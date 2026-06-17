@@ -70,6 +70,8 @@ title: 金融工程 · 个人主页
     <a href="mailto:sw6245@nyu.edu" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #1e293b; text-decoration: none; font-weight: 500; background: #f1f5f9; padding: 0.4rem 1rem; border-radius: 30px;">
         <i class="fas fa-envelope"></i> sw6245@nyu.edu
     </a>
+      <a href="tel:+86159xxxxxxxx" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #1e293b; text-decoration: none; font-weight: 500; background: #f1f5f9; padding: 0.4rem 1rem; border-radius: 30px;">
+        <i class="fas fa-phone"></i> +86 159 0896 3789
     <a href="https://hanson-sw.github.io/" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #1e293b; text-decoration: none; font-weight: 500; background: #f1f5f9; padding: 0.4rem 1rem; border-radius: 30px;">
         <i class="fab fa-github"></i> GitHub
     </a>
