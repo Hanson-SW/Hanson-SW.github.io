@@ -1,14 +1,14 @@
 # 网站基础信息
 # 这些信息会用于网站标题、SEO等，{{ site.title }} 可以在模板中调用
-title: 金融工程 · 张明宇
-email: your-email@example.com
+title:  Shengye（Hanson） Wang
+email: sw6245@nyu.edu
 description: >- # 网站简短描述，会显示在浏览器标签和搜索结果中
-  金融工程研究者，专注于量化策略与资产配置。
+  商业与金融专业，专注于商业分析与量化策略。
 # 网站域名与路径
 # url 是你的网站地址，baseurl 是子路径
 # 如果这是你的用户/组织主页，baseurl 留空
 # 如果是项目主页，baseurl 设置为 /项目名
-url: "https://你的用户名.github.io"
+url: "https://hanson-sw.github.io/"
 baseurl: ""  # 例如: /my-project
 
 # 主题与构建设置
