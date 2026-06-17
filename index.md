@@ -6,12 +6,12 @@ title: 金融工程 · 个人主页
 <!-- ===== 头部区域 ===== -->
 <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid #eef2f6;">
     <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 600; color: white; flex-shrink: 0; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);">
-        张
+        王
     </div>
     <div>
-        <h1 style="font-size: 2rem; font-weight: 700; margin: 0; background: linear-gradient(135deg, #0f172a, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">张 明 宇</h1>
+        <h1 style="font-size: 2rem; font-weight: 700; margin: 0; background: linear-gradient(135deg, #0f172a, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">王 盛 烨</h1>
         <p style="font-size: 1.05rem; color: #475569; margin: 0.1rem 0 0 0;">
-            <i class="fas fa-chart-line" style="color: #2563eb;"></i> 金融工程 · 量化研究员
+            <i class="fas fa-chart-line" style="color: #2563eb;"></i> 上海纽约大学 · 商业与金融（商业分析）
         </p>
     </div>
 </div>
@@ -27,7 +27,7 @@ title: 金融工程 · 个人主页
         <span style="font-weight: 600;">金融工程简历</span>
         <span style="font-size: 0.9rem; color: #64748b;">· 2026 最新版</span>
     </div>
-    <button onclick="window.open('resume.pdf', '_blank')" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1.1rem; border-radius: 40px; font-size: 0.85rem; font-weight: 500; background: #2563eb; color: white; border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+    <button onclick="window.open('王盛烨简历.pdf', '_blank')" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1.1rem; border-radius: 40px; font-size: 0.85rem; font-weight: 500; background: #2563eb; color: white; border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
         <i class="fas fa-eye"></i> 查看简历
     </button>
 </div>
@@ -67,10 +67,10 @@ title: 金融工程 · 个人主页
 </h2>
 
 <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem;">
-    <a href="mailto:your-email@example.com" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #1e293b; text-decoration: none; font-weight: 500; background: #f1f5f9; padding: 0.4rem 1rem; border-radius: 30px;">
-        <i class="fas fa-envelope"></i> your-email@example.com
+    <a href="mailto:sw6245@nyu.edu" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #1e293b; text-decoration: none; font-weight: 500; background: #f1f5f9; padding: 0.4rem 1rem; border-radius: 30px;">
+        <i class="fas fa-envelope"></i> sw6245@nyu.edu
     </a>
-    <a href="https://github.com/你的用户名" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #1e293b; text-decoration: none; font-weight: 500; background: #f1f5f9; padding: 0.4rem 1rem; border-radius: 30px;">
+    <a href="https://hanson-sw.github.io/" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; color: #1e293b; text-decoration: none; font-weight: 500; background: #f1f5f9; padding: 0.4rem 1rem; border-radius: 30px;">
         <i class="fab fa-github"></i> GitHub
     </a>
 </div>
