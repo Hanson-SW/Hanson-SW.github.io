@@ -1,0 +1,53 @@
+# 网站基础信息
+# 这些信息会用于网站标题、SEO等，{{ site.title }} 可以在模板中调用
+title: 金融工程 · 张明宇
+email: your-email@example.com
+description: >- # 网站简短描述，会显示在浏览器标签和搜索结果中
+  金融工程研究者，专注于量化策略与资产配置。
+# 网站域名与路径
+# url 是你的网站地址，baseurl 是子路径
+# 如果这是你的用户/组织主页，baseurl 留空
+# 如果是项目主页，baseurl 设置为 /项目名
+url: "https://你的用户名.github.io"
+baseurl: ""  # 例如: /my-project
+
+# 主题与构建设置
+# GitHub Pages 支持的主题列表: https://pages.github.com/themes/
+# 这里使用了最常用的 minima 主题
+theme: minima
+# Markdown 渲染引擎
+markdown: kramdown
+# 代码高亮工具
+highlighter: rouge
+
+# 插件
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag  # 自动优化 SEO，推荐添加
+
+# 默认 Front Matter 设置
+# 这个配置很重要：为所有页面设置默认布局
+# 这样你的 index.md 就不需要在文件头重复声明 layout 了
+defaults:
+  - scope:
+      path: ""  # 表示项目根目录下所有文件
+    values:
+      layout: "default"  # 使用 _layouts/default.html 布局
+  - scope:
+      path: ""
+      type: "pages"  # 仅对 pages 类型的文件生效
+    values:
+      layout: "default"
+
+# 排除文件（这些文件不会被处理或复制到生成目录）
+exclude:
+  - .sass-cache/
+  - .jekyll-cache/
+  - gemfiles/
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
