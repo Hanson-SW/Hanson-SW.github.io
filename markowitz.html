@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro版 马科维茨智能优化与回测简报系统</title>
+    <title>旗舰版 马科维茨智能优化与回测简报系统</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
@@ -20,9 +20,10 @@
         .asset-item { display: flex; gap: 10px; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; }
         .btn-remove { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
         
-        .btn-add { background: transparent; border: 2px dashed #cbd5e1; padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; color: #64748b; font-weight: bold; }
+        .btn-add { background: transparent; border: 2px dashed #cbd5e1; padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; color: #64748b; font-weight: bold; transition: all 0.2s; }
         .btn-add:hover { border-color: var(--accent); color: var(--accent); background: #f5f3ff; }
-        .btn-run { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); }
+        .btn-run { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); transition: transform 0.1s; }
+        .btn-run:hover { transform: translateY(-1px); }
 
         .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
         .stats-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
@@ -33,8 +34,8 @@
         
         .optimal-weights { font-size: 13px; color: #475569; margin-top: 8px; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; white-space: pre-wrap; word-break: break-all; }
 
-        /* 增加图表容器最小高度，保证上下两个图有足够的空间 */
         #chart-container { flex: 1; min-height: 650px; background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 18px; font-weight: bold; color: var(--accent); }
         .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -64,8 +65,8 @@
         <p style="font-size: 12px; color: #64748b; margin-top: -5px;">生成华尔街级专业量化分析简报 (Tear-Sheet)</p>
         
         <div class="form-group" style="flex-direction: row; gap: 10px;">
-            <div style="flex: 1;"><label>开始提取日期</label><input type="date" id="start-date" value="2022-01-01" style="width:100%"></div>
-            <div style="flex: 1;"><label>结束提取日期</label><input type="date" id="end-date" value="2023-12-31" style="width:100%"></div>
+            <div style="flex: 1;"><label>开始提取日期</label><input type="date" id="start-date" value="2025-01-01" style="width:100%"></div>
+            <div style="flex: 1;"><label>结束提取日期</label><input type="date" id="end-date" value="2025-12-31" style="width:100%"></div>
         </div>
         
         <div class="form-group">
@@ -81,7 +82,7 @@
             <button class="btn-add" onclick="addAsset()" style="padding: 8px 12px; border: none; background: #e2e8f0; color: #475569; border-radius:6px; cursor:pointer;">添加</button>
         </div>
 
-        <button class="btn-run" onclick="runOptimization()">🎯 一键生成分析简报</button>
+        <button class="btn-run" onclick="runOptimization()">🎯 重新生成分析简报</button>
     </div>
 
     <div class="main-content">
@@ -99,7 +100,7 @@
             <div class="stat-card" style="border-left-color: #ef4444;">
                 <div class="stat-title">效率比率与最优配比</div>
                 <div class="stat-val" id="opt-sharpe-sortino">-- / --</div>
-                <div class="optimal-weights" id="opt-weights">运行后输出...</div>
+                <div class="optimal-weights" id="opt-weights">正在初始化数据引擎...</div>
             </div>
         </div>
         <div id="chart-container"></div>
@@ -128,7 +129,6 @@
             const code = codeInput.value.trim().toLowerCase();
             if(code && !assetPool.includes(code)) { assetPool.push(code); codeInput.value = ''; renderAssets(); }
         }
-        
         function removeAsset(index) { assetPool.splice(index, 1); renderAssets(); }
 
         async function fetchAssetData(code) {
@@ -170,10 +170,10 @@
 
                 let alignedDates = Object.keys(dataStore[assetPool[0]]).filter(d => d >= startDate && d <= endDate).sort();
                 for (let code of assetPool) {
-                    if(!dataStore[code]) throw new Error(`${code.toUpperCase()} 数据缺失`);
+                    if(!dataStore[code]) throw new Error(`${code.toUpperCase()} 数据缺失或在该时间段无数据`);
                     alignedDates = alignedDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
                 }
-                if (alignedDates.length < 10) throw new Error("有效重合交易日过少");
+                if (alignedDates.length < 10) throw new Error("有效重合交易日过少，可能该年份无数据");
 
                 const returnsMatrix = [];
                 const numAssets = assetPool.length;
@@ -251,28 +251,37 @@
                 let sortino = downsideVol === 0 ? 0 : (optimalPoint[1] - RISK_FREE_RATE) / downsideVol;
                 let calmar = maxDD === 0 ? 0 : optimalPoint[1] / maxDD;
 
+                // UI 更新面板
                 const fmtPct = (v) => (v * 100).toFixed(2) + '%';
+                // ⭐ 亮点优化：权重专门写一个保留一位小数的格式化器
+                const fmtWeight = (v) => (v * 100).toFixed(1) + '%'; 
+
                 document.getElementById('opt-return-vol').innerText = `${fmtPct(optimalPoint[1])} / ${fmtPct(optimalPoint[0])}`;
                 document.getElementById('opt-drawdown').innerText = fmtPct(maxDD);
                 document.getElementById('sub-risk-metrics').innerHTML = `最大回撤(MaxDD): ${fmtPct(maxDD)} <br>卡玛比率(Calmar): ${calmar.toFixed(2)}`;
                 document.getElementById('opt-sharpe-sortino').innerText = `${optimalPoint[2].toFixed(2)} / ${sortino.toFixed(2)}`;
                 
-                let weightStr = assetPool.map((code, i) => `${code.toUpperCase()}: ${fmtPct(optimalWeights[i])}`).join(' | ');
+                // ⭐ 简化展示：让百分比显示如 12.3%
+                let weightStr = assetPool.map((code, i) => `${code.toUpperCase()}: ${fmtWeight(optimalWeights[i])}`).join(' | ');
                 document.getElementById('opt-weights').innerText = `最高夏普配比: ${weightStr}`;
 
                 const extraMetrics = { maxDD: fmtPct(maxDD), sortino: sortino.toFixed(2), calmar: calmar.toFixed(2) };
                 
-                // 将配比数据传给渲染函数，以便展示在图片上
                 renderComprehensiveChart(scatterData, optimalPoint, assetPool, alignedDates, netValues, extraMetrics, weightStr);
 
             } catch (error) {
-                alert("量化引擎报错：" + error.message);
+                alert("引擎提示：" + error.message);
+                console.error(error);
             } finally {
                 document.getElementById('loading-overlay').style.display = 'none';
             }
         }
 
         function renderComprehensiveChart(scatterData, optPoint, assets, dates, netValues, metrics, weightStr) {
+            // ⭐ 动态生成今天的日期戳
+            const today = new Date();
+            const genDate = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+
             const option = {
                 title: { 
                     text: '量化资产配置综合分析简报 (Tear-Sheet)', 
@@ -284,7 +293,7 @@
                 toolbox: { 
                     feature: { 
                         saveAsImage: { 
-                            name: '量化资产配置分析简报', 
+                            name: `最优配置研报_${genDate.replace(/\\//g, '')}`, 
                             pixelRatio: 2, 
                             backgroundColor: '#fff' 
                         } 
@@ -292,15 +301,10 @@
                     right: 20,
                     top: 10
                 },
-                
-                // 💎 核心大招：上下绝对分离的双画板布局！
-                // 上半部分画散点，下半部分画折线，互不干扰，整洁大气！
                 grid: [
-                    { left: '8%', right: '28%', top: '15%', height: '42%', containLabel: true }, // 上图：有效边界区 (右侧留出30%专门放指标面板)
-                    { left: '8%', right: '28%', top: '65%', height: '28%', containLabel: true }  // 下图：历史净值区
+                    { left: '8%', right: '28%', top: '15%', height: '42%', containLabel: true }, 
+                    { left: '8%', right: '28%', top: '65%', height: '28%', containLabel: true }
                 ],
-                
-                // 完全独立的坐标系
                 xAxis: [
                     { type: 'value', name: '年化波动率(风险)', gridIndex: 0, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' } },
                     { type: 'category', data: dates, gridIndex: 1, boundaryGap: false }
@@ -309,46 +313,35 @@
                     { type: 'value', name: '年化收益率', gridIndex: 0, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' }, nameGap: 30 },
                     { type: 'value', name: '最优组合净值', gridIndex: 1, scale: true, nameGap: 30 }
                 ],
-                
-                // 图例映射：精准控制放置在右上角
                 visualMap: {
-                    min: Math.min(...scatterData.map(d=>d[2])),
-                    max: optPoint[2],
-                    dimension: 2,
-                    orient: 'horizontal',
-                    right: '30%', 
-                    top: 55,
-                    itemWidth: 15,
-                    text: ['高夏普', '低夏普'],
-                    calculable: true,
+                    min: Math.min(...scatterData.map(d=>d[2])), max: optPoint[2], dimension: 2,
+                    orient: 'horizontal', right: '30%', top: 55, itemWidth: 15,
+                    text: ['高夏普', '低夏普'], calculable: true,
                     inRange: { color: ['#cbd5e1', '#6366f1', '#a855f7', '#ec4899'] }
                 },
-                
-                // 💎 下载专属大屏水印面板：安放在图表的正右侧，再也不会遮挡任何线条
                 graphic: [
                     {
-                        type: 'group',
-                        right: '3%', // 放置在最右侧空白处
-                        top: '18%',
+                        type: 'group', right: '2%', top: '16%',
                         children: [
                             {
-                                type: 'rect', z: 100, shape: { width: 230, height: 280, r: 8 },
+                                type: 'rect', z: 100, shape: { width: 235, height: 305, r: 8 },
                                 style: { fill: '#f8fafc', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.05)' }
                             },
                             {
                                 type: 'text', z: 100, left: 15, top: 20,
                                 style: {
                                     fill: '#1e293b',
-                                    text: `📊 组合最优切点数据卡\n(Tangency Portfolio)\n\n` + 
-                                          `--------------------------------\n\n` +
+                                    // ⭐ 加入生成日期和精简版的一位小数配比
+                                    text: `📅 报告生成: ${genDate}\n\n` + 
+                                          `----------------------------------\n\n` +
                                           `📈 预期年化收益: ${(optPoint[1]*100).toFixed(2)}%\n` +
                                           `⚡ 预期年化波动: ${(optPoint[0]*100).toFixed(2)}%\n\n` +
                                           `🏆 夏普比率 (Sharpe):   ${optPoint[2].toFixed(2)}\n` +
                                           `🛡️ 索提诺比 (Sortino):   ${metrics.sortino}\n\n` +
                                           `📉 最大回撤 (MaxDD):  ${metrics.maxDD}\n` +
                                           `⚖️ 卡玛比率 (Calmar):   ${metrics.calmar}\n\n` +
-                                          `--------------------------------\n\n` +
-                                          `🎯 最优资产配比:\n\n${weightStr.replace(/ \| /g, '\n')}`, // 将配比分行显示
+                                          `----------------------------------\n\n` +
+                                          `🎯 最优资产配比:\n\n${weightStr.replace(/ \| /g, '\n')}`, 
                                     font: 'bold 12px sans-serif',
                                     lineHeight: 18
                                 }
@@ -356,9 +349,7 @@
                         ]
                     }
                 ],
-
                 series: [
-                    // 挂载在上半部分的有效边界
                     {
                         name: '模拟组合', type: 'scatter', xAxisIndex: 0, yAxisIndex: 0,
                         symbolSize: 4.5, data: scatterData, itemStyle: { opacity: 0.6 }
@@ -370,7 +361,6 @@
                         data: [optPoint],
                         label: { show: true, formatter: '最高夏普解', position: 'top', fontWeight: 'bold' }
                     },
-                    // 挂载在下半部分的历史净值线
                     {
                         name: '历史净值', type: 'line', xAxisIndex: 1, yAxisIndex: 1,
                         data: netValues, smooth: true, symbol: 'none',
@@ -388,6 +378,17 @@
         }
 
         renderAssets();
+
+        // ==========================================
+        // 🚀 开箱即用：网页加载完成后自动执行一次计算
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            // 延时 500ms 让 UI 动画平滑过渡，然后触发核心引擎
+            setTimeout(() => {
+                runOptimization();
+            }, 500);
+        });
+
     </script>
 </body>
 </html>
