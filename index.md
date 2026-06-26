@@ -68,13 +68,13 @@ title: 金融工程 · 个人主页
         <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：蒙特卡洛股价路径预测</span>
     </h2>
     <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
-        支持A股与美股。自动拉取历史数据测算参数，在后台进行 <b>5000次</b> Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。
+        支持A股与美股。自动拉取历史数据测算参数进行 Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。
     </p>
 
     <div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1.5rem;">
         <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
             
-            <div style="flex: 2; min-width: 220px; position: relative;">
+            <div style="flex: 2; min-width: 200px; position: relative;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_ticker">股票代码 (Ticker)</label>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch()" autocomplete="off" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; text-transform: uppercase;" placeholder="输入 AAPL, 600519.SS..." />
@@ -85,22 +85,27 @@ title: 金融工程 · 个人主页
                 <div id="autocompleteList" style="display:none; position:absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></div>
             </div>
 
-            <div style="flex: 1; min-width: 90px;">
+            <div style="flex: 1; min-width: 85px;">
                 <label id="priceLabel" style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">当前股价 ($)</label>
                 <input type="number" id="currentPrice" value="175.00" step="0.01" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
             </div>
 
-            <div style="flex: 1; min-width: 90px;">
+            <div style="flex: 1; min-width: 85px;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_vol">波动率 (σ)</label>
                 <input type="number" id="impliedVol" value="0.22" step="0.001" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
             </div>
 
-            <div style="flex: 1; min-width: 90px;">
+            <div style="flex: 1; min-width: 85px;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_mu">期望收益 (μ)</label>
                 <input type="number" id="expReturn" value="0.08" step="0.001" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
             </div>
+            
+            <div style="flex: 1; min-width: 85px;">
+                <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_paths">模拟次数</label>
+                <input type="number" id="numPaths" value="5000" step="500" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
+            </div>
 
-            <div style="flex: 1; min-width: 90px;">
+            <div style="flex: 1; min-width: 85px;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_days">预测天数</label>
                 <input type="number" id="timeHorizon" value="252" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
             </div>
@@ -221,11 +226,12 @@ title: 金融工程 · 个人主页
         proj2_name: { zh: "A股择时策略", en: "A-Share Timing Strategy" },
         proj2_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
         mc_title: { zh: "实盘量化引擎：蒙特卡洛股价路径预测", en: "Live Quant Engine: Monte Carlo Path Prediction" },
-        mc_desc: { zh: "支持A股与美股。自动拉取历史数据测算参数，在后台进行 <b>5000次</b> Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。", en: "Supports US & A-shares. Auto-fetches live data, runs <b>5000</b> Itô random walks. Heatmap is Per-Day Normalized to ensure the main trend is always highlighted." },
+        mc_desc: { zh: "支持A股与美股。自动拉取历史数据测算参数进行 Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。", en: "Supports US & A-shares. Auto-fetches live data for Itô random walks. Heatmap is Per-Day Normalized to ensure the main trend is always highlighted." },
         mc_ticker: { zh: "股票代码 (Ticker)", en: "Stock Ticker" },
         mc_pull: { zh: "拉取", en: "Fetch" },
         mc_vol: { zh: "波动率 (σ)", en: "Volatility (σ)" },
         mc_mu: { zh: "期望收益 (μ)", en: "Expected Ret (μ)" },
+        mc_paths: { zh: "模拟次数", en: "Sim Paths" },
         mc_days: { zh: "预测天数", en: "Horizon (Days)" },
         mc_run: { zh: "运行", en: "Run" },
         contact_title: { zh: "联系我", en: "Contact Me" },
@@ -250,7 +256,6 @@ title: 金融工程 · 个人主页
     }
 
     // ================= 2. 绝对可靠的本地容灾股票库 =================
-    // 即使没网，这些联想词也绝对能弹出来
     const localTickerDB = [
         { symbol: 'AAPL', name: '苹果公司 (Apple)' },
         { symbol: 'MSFT', name: '微软 (Microsoft)' },
@@ -276,7 +281,6 @@ title: 金融工程 · 个人主页
         const listDiv = document.getElementById('autocompleteList');
         if(q.length < 1) { listDiv.style.display = 'none'; return; }
         
-        // 极速本地过滤
         let results = localTickerDB.filter(item => item.symbol.includes(q) || item.name.toUpperCase().includes(q));
         
         if(results.length > 0) {
@@ -333,12 +337,11 @@ title: 金融工程 · 个人主页
             html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
         };
-        // 临时隐藏操作按钮防止被印进PDF
         const buttons = element.querySelectorAll('button');
         buttons.forEach(b => b.style.display = 'none');
         
         html2pdf().set(opt).from(element).save().then(() => {
-            buttons.forEach(b => b.style.display = 'inline-block'); // 恢复显示
+            buttons.forEach(b => b.style.display = 'inline-block');
         });
     }
 
@@ -362,7 +365,6 @@ title: 金融工程 · 个人主页
         fetchBtn.disabled = true;
 
         try {
-            // 使用 /raw 接口直连，规避跨域并防止 JSON 解析截断
             const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
             const response = await fetch(proxyUrl);
@@ -372,7 +374,6 @@ title: 金融工程 · 个人主页
 
             if (!data.chart || !data.chart.result) throw new Error("Ticker not found");
 
-            // 过滤掉 Yahoo 偶尔返回的 null 断层数据
             const closePrices = data.chart.result[0].indicators.quote[0].close.filter(p => p !== null && p !== undefined);
             const currentPrice = closePrices[closePrices.length - 1];
 
@@ -397,7 +398,6 @@ title: 金融工程 · 个人主页
             runSimulation();
         } catch (error) {
             console.warn("API Fetch failed, using fallback mechanism.", error);
-            // 终极容灾防崩溃预案：哪怕没网，也要让面试官看到图表！
             document.getElementById('currentPrice').value = ticker.includes('600519') ? "1500.00" : "175.00";
             document.getElementById('impliedVol').value = "0.220";
             document.getElementById('expReturn').value = "0.080";
@@ -409,7 +409,7 @@ title: 金融工程 · 个人主页
         }
     }
 
-    function generateMonteCarloData(S0, mu, sigma, days, numPaths = 5000, numBins = 80) {
+    function generateMonteCarloData(S0, mu, sigma, days, numPaths, numBins) {
         let paths = [];
         let dt = 1 / 252;
         let globalMin = S0, globalMax = S0;
@@ -433,7 +433,6 @@ title: 金融工程 · 个人主页
         let heatmapData = [];
         let matrix = Array(days + 1).fill(0).map(() => Array(numBins).fill(0));
         
-        // 核心技术：每天单独记录最大概率，用于之后的【逐日归一化】
         let maxFreqPerDay = Array(days + 1).fill(0);
 
         for(let p = 0; p < numPaths; p++) {
@@ -444,19 +443,17 @@ title: 金融工程 · 个人主页
                 if(binIdx < 0) binIdx = 0;
                 matrix[d][binIdx]++;
                 
+                // 修复点：正确使用 binIdx 赋值
                 if(matrix[d][binIdx] > maxFreqPerDay[d]) {
-                    maxFreqPerDay[d] = matrix[d][b];
+                    maxFreqPerDay[d] = matrix[d][binIdx];
                 }
             }
         }
 
-        // 重新遍历，计算并推入归一化权重
         for(let d = 0; d <= days; d++) {
             for(let b = 0; b < numBins; b++) {
                 if(matrix[d][b] > 0) {
-                    // norm 取值 0~1，确保无论哪一天，那一天概率最大的方块都是 1.0 (最深色)
                     let norm = maxFreqPerDay[d] > 0 ? (matrix[d][b] / maxFreqPerDay[d]) : 0;
-                    // 数据结构: [天数, Y轴区间索引, 实际频数, 归一化比例]
                     heatmapData.push([d, b, matrix[d][b], norm]);
                 }
             }
@@ -481,28 +478,31 @@ title: 金融工程 · 个人主页
         const sigma = parseFloat(document.getElementById('impliedVol').value);
         const mu = parseFloat(document.getElementById('expReturn').value);
         const days = parseInt(document.getElementById('timeHorizon').value);
+        
+        // 读取用户选择的模拟次数
+        const pathsCount = parseInt(document.getElementById('numPaths').value) || 5000;
 
         document.getElementById('simBtn').innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${currentLang==='zh'?'计算中':'Computing'}`;
 
+        // 延长一点超时时间给 UI 渲染让路
         setTimeout(() => {
-            const data = generateMonteCarloData(S0, mu, sigma, days, 5000, 80);
+            const data = generateMonteCarloData(S0, mu, sigma, days, pathsCount, 80);
             let xAxisData = [];
             for(let i = 0; i <= days; i++) xAxisData.push(i);
 
-            // 获取当前日期字符串用于显示在图表中
             const today = new Date();
             const dateStr = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
             const watermarkText = currentLang === 'zh' 
-                ? `模拟日期: ${dateStr}\n分析标的: ${ticker}\n当前价格: ${currentCurrency}${S0}\n设定波动率(σ): ${sigma}\n期望收益率(μ): ${mu}`
-                : `Date: ${dateStr}\nTicker: ${ticker}\nPrice: ${currentCurrency}${S0}\nVol (σ): ${sigma}\nExp. Ret (μ): ${mu}`;
+                ? `模拟日期: ${dateStr}\n分析标的: ${ticker}\n当前价格: ${currentCurrency}${S0}\n设定波动率(σ): ${sigma}\n期望收益率(μ): ${mu}\n模拟路径数: ${pathsCount}`
+                : `Date: ${dateStr}\nTicker: ${ticker}\nPrice: ${currentCurrency}${S0}\nVol (σ): ${sigma}\nExp. Ret (μ): ${mu}\nSim Paths: ${pathsCount}`;
 
             if (!chartInstance) chartInstance = echarts.init(document.getElementById('itoChart'));
 
+            const titleText = currentLang === 'zh' ? `${pathsCount}次 蒙特卡洛路径模拟 (逐日归一化)` : `${pathsCount}-Path Monte Carlo (Per-Day Normalized)`;
+
             const option = {
-                // 图表背景改为纯白
                 backgroundColor: '#ffffff',
-                title: { text: currentLang === 'zh' ? '蒙特卡洛 5000次 路径模拟 (逐日归一化)' : '5000-Path Monte Carlo (Per-Day Normalized)', left: 'center', top: 10, textStyle: { color: '#334155', fontSize: 16 } },
-                // 在图表左上角画入参数水印
+                title: { text: titleText, left: 'center', top: 10, textStyle: { color: '#334155', fontSize: 16 } },
                 graphic: [
                     {
                         type: 'text',
@@ -536,13 +536,11 @@ title: 金融工程 · 个人主页
                     }
                 },
                 visualMap: {
-                    // 指明依据第四个参数(归一化比例 0~1)来进行颜色映射
                     dimension: 3,
                     min: 0, 
                     max: 1, 
-                    show: false, // 隐藏图例条，让白底画面更干净
+                    show: false,
                     inRange: { 
-                        // 白色(无数据) -> 浅蓝(小概率) -> 深蓝 -> 艳红(单日最高概率)
                         color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] 
                     }
                 },
@@ -558,14 +556,12 @@ title: 金融工程 · 个人主页
                         itemStyle: { opacity: 0.9 }
                     },
                     { 
-                        // 在白底上使用极客感的实心深蓝色表示单次模拟
                         name: currentLang==='zh'?'单次模拟抽样 (Simulated)':'Single Walk Sample', type: 'line', data: data.singleSimPath, yAxisIndex: 1, 
                         showSymbol: false, 
                         lineStyle: { width: 2, color: '#1e3a8a' }, 
                         itemStyle: { color: '#1e3a8a' }, z: 10 
                     },
                     { 
-                        // 亮绿色虚线表示理论期望
                         name: currentLang==='zh'?'理论无波动期望 (Deterministic)':'Deterministic Expected Path', type: 'line', data: data.idealPath, yAxisIndex: 1, 
                         showSymbol: false, lineStyle: { width: 2, type: 'dashed', color: '#10b981' }, itemStyle: { color: '#10b981' }, z: 10 
                     }
@@ -609,15 +605,4 @@ title: 金融工程 · 个人主页
             } else {
                 await new Promise(resolve => setTimeout(resolve, 800));
                 const mockZh = ['模型当前处于展示模式，填入 Key 即可解锁完整 AI。建议关注 A 股大消费板块估值修复。'];
-                const mockEn = ['Model is in Demo mode. Please provide an API Key to unlock the LLM. Recommend monitoring consumer sector valuation recovery.'];
-                resultDiv.innerHTML = '💡 ' + (currentLang === 'zh' ? mockZh[0] : mockEn[0]);
-            }
-        } catch (error) {
-            resultDiv.innerHTML = '❌ Request Failed.';
-        }
-    }
-
-    document.getElementById('aiSearchInput').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') handleAISearch();
-    });
-</script>
+                const
