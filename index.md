@@ -43,14 +43,18 @@ title: 金融工程 · 个人主页
     <div class="info-card">
         <div class="card-left">
             <i class="fas fa-chart-pie card-icon"></i>
-            <span class="card-text" data-i18n="proj1_name">基金组合分析工具</span>
-            <span class="card-tag" data-i18n="proj1_tag">· Python 回测 &amp; 归因</span>
-        </div>
-        <div class="card-buttons">
-            <button onclick="window.open('https://github.com/hanson-sw/fund-analysis', '_blank')" class="btn btn-outline">
-                <i class="fab fa-github"></i> Repository
-            </button>
-        </div>
+            <span class="card-text" data-i18n="proj2_name">A股回测模型</span>
+<span class="card-tag" data-i18n="proj2_tag">· 宏观 + 情绪指标</span>
+
+<div class="card-buttons">
+    <button onclick="window.open('https://github.com/hanson-sw/astock-strategy', '_blank')" class="btn btn-outline">
+        <i class="fab fa-github"></i> Repository
+    </button>
+    
+    <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary" style="margin-left: 10px;">
+        <i class="fas fa-chart-line"></i> 运行回测模型
+    </button>
+</div>
     </div>
 
     <div class="info-card">
@@ -70,7 +74,7 @@ title: 金融工程 · 个人主页
         <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：蒙特卡洛股价路径预测</span>
     </h2>
     <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
-        支持A股与美股。输入代码自动测算历史参数。支持自定义模拟次数，极速引擎生成逐日归一化的概率分布热力图。
+        支持A股与美股。自动拉取历史数据测算参数进行 Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。
     </p>
 
     <div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1.5rem;">
@@ -254,7 +258,7 @@ title: 金融工程 · 个人主页
         if(chartInstance) runSimulation(); 
     }
 
-    // ================= 2. 绝对可靠的本地容灾股票库 =================
+    // ================= 2. 本地容灾股票库 =================
     const localTickerDB = [
         { symbol: 'AAPL', name: '苹果公司 (Apple)' },
         { symbol: 'MSFT', name: '微软 (Microsoft)' },
@@ -308,7 +312,7 @@ title: 金融工程 · 个人主页
         }
     });
 
-    // ================= 3. 量化核心引擎与极速算法 =================
+    // ================= 3. 量化核心与防止PDF空白方案 =================
     let chartInstance = null;
     let currentCurrency = '$'; 
 
@@ -326,26 +330,58 @@ title: 金融工程 · 个人主页
         if(chartInstance) setTimeout(() => chartInstance.resize(), 100);
     }
 
+    // 【核心修复】防止 PDF 空白的终极杀招
     function downloadPDF() {
         if(typeof html2pdf === 'undefined') {
-            alert('PDF 导出组件加载失败，请检查网络连接。');
+            alert('PDF 导出组件尚未加载完毕，请稍后再试。');
             return;
         }
+
         const element = document.getElementById('pdfExportWrapper');
+        const chartDiv = document.getElementById('itoChart');
         const ticker = document.getElementById('stockTicker').value || 'Model';
+        
+        // 1. 将交互式 ECharts Canvas 转换为静态高质量图片
+        const imgData = chartInstance.getDataURL({
+            type: 'png',
+            pixelRatio: 2,
+            backgroundColor: '#ffffff'
+        });
+        
+        const imgEl = document.createElement('img');
+        imgEl.src = imgData;
+        imgEl.style.width = '100%';
+        imgEl.id = 'tempPdfImg'; // 打个标记
+        
+        // 2. 隐藏动态图表，插入静态图，并隐藏不需要打印的按钮
+        chartDiv.style.display = 'none';
+        element.appendChild(imgEl);
+        
+        const buttons = element.querySelectorAll('button');
+        buttons.forEach(b => b.style.display = 'none');
+        
         const opt = {
             margin:       0.2,
             filename:     `Quant_Simulation_${ticker}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
+            html2canvas:  { scale: 2, useCORS: true, logging: false },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
         };
-        const buttons = element.querySelectorAll('button');
-        buttons.forEach(b => b.style.display = 'none');
         
+        // 3. 执行导出
         html2pdf().set(opt).from(element).save().then(() => {
+            // 4. 导出完毕，把图片删掉，恢复原状
             buttons.forEach(b => b.style.display = 'inline-flex');
+            element.removeChild(imgEl);
+            chartDiv.style.display = 'block';
         });
+    }
+
+    function randomNormal() {
+        let u = 0, v = 0;
+        while(u === 0) u = Math.random();
+        while(v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
     async function fetchStockData() {
@@ -364,7 +400,6 @@ title: 金融工程 · 个人主页
             const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
             
-            // 加入 5秒超时保护机制，彻底防止卡死
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             const response = await fetch(proxyUrl, { signal: controller.signal });
@@ -410,17 +445,13 @@ title: 金融工程 · 个人主页
         }
     }
 
-    // 极速算法重写：运算提速近 10 倍
     function generateMonteCarloData(S0, mu, sigma, days, numPaths, numBins) {
         let dt = 1 / 252;
         let globalMin = S0, globalMax = S0;
         
-        // 【优化核心1】将乘法提取出百万次循环之外
         let drift = (mu - 0.5 * sigma * sigma) * dt;
         let vol = sigma * Math.sqrt(dt);
         let singleSimPath = new Float64Array(days + 1);
-        
-        // 用一维扁平化结构存储，极大减少内存分配
         let allPrices = new Float64Array(numPaths * (days + 1));
 
         for(let p = 0; p < numPaths; p++) {
@@ -446,7 +477,6 @@ title: 金融工程 · 个人主页
         globalMin *= 0.95; globalMax *= 1.05;
         let binSize = (globalMax - globalMin) / numBins;
         
-        // 初始化矩阵
         let matrix = [];
         for(let d=0; d<=days; d++) {
             matrix.push(new Int32Array(numBins));
@@ -461,8 +491,6 @@ title: 金融工程 · 个人主页
                 if(binIdx < 0) binIdx = 0;
                 
                 matrix[d][binIdx]++;
-                
-                // 正确对比赋值，解决之前的逻辑卡死 Bug
                 if(matrix[d][binIdx] > maxFreqPerDay[d]) {
                     maxFreqPerDay[d] = matrix[d][binIdx];
                 }
@@ -494,8 +522,8 @@ title: 金融工程 · 个人主页
 
     function runSimulation() {
         if(typeof echarts === 'undefined') {
-            document.getElementById('simBtn').innerHTML = `<i class="fas fa-exclamation-triangle"></i> 图表加载失败`;
-            alert('图表底层库加载失败，请刷新网页或检查网络代理设置。');
+            document.getElementById('simBtn').innerHTML = `<i class="fas fa-exclamation-triangle"></i>`;
+            alert('图表库加载中，请稍后再试。');
             return;
         }
 
@@ -508,7 +536,6 @@ title: 金融工程 · 个人主页
 
         document.getElementById('simBtn').innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${currentLang==='zh'?'极速计算中':'Computing'}`;
 
-        // 使用 150ms 延迟，确保浏览器优先渲染按钮的“计算中”动画，绝不出现“无反应”的情况
         setTimeout(() => {
             const data = generateMonteCarloData(S0, mu, sigma, days, pathsCount, 80);
             let xAxisData = [];
@@ -573,10 +600,7 @@ title: 金融工程 · 个人主页
         }, 150);
     }
 
-    // 页面加载完成后立即执行一次
-    document.addEventListener('DOMContentLoaded', () => {
-        runSimulation();
-    });
+    document.addEventListener('DOMContentLoaded', () => { runSimulation(); });
     window.addEventListener('resize', function() { if(chartInstance) chartInstance.resize(); });
 
     // ================= 4. AI 引擎 =================
