@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A股量化策略回测与归因系统</title>
+    <title>A股量化策略回测与归因系统 (分屏呼吸灯版)</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
@@ -115,6 +115,7 @@
 
     <script>
         const myChart = echarts.init(document.getElementById('chart-container'));
+        let glowInterval = null; // 用于存储呼吸灯定时器
         
         // 🎯 完美初始设置：匹配用户指定的 2025 初始回测条件
         let portfolioConfig = [
@@ -275,9 +276,6 @@
                 }));
 
                 let alignedDates = Object.keys(dataStore[benchmarkCode] || {}).filter(d => d >= startDate && d <= endDate).sort();
-                for (let code of window.location.toString()) { 
-                    // 这里的冗余逻辑去掉，直接检查配置里的 code
-                }
                 allCodes.forEach(code => {
                     if (!dataStore[code]) throw new Error(`资产 ${code.toUpperCase()} 数据源提取失败或区间内无数据`);
                     alignedDates = alignedDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
@@ -303,7 +301,7 @@
                     bNetValues.push(bNAV);
                     bDailyReturns.push((dataStore[benchmarkCode][d] - dataStore[benchmarkCode][prevD]) / dataStore[benchmarkCode][prevD]);
 
-                    // 策略组合净值（每日再平衡法 / 收益率加权合成）
+                    // 策略组合净值（收益率加权合成）
                     let portfolioTodayReturn = 0;
                     portfolioConfig.forEach(item => {
                         let r = (dataStore[item.code][d] - dataStore[item.code][prevD]) / dataStore[item.code][prevD];
@@ -330,7 +328,7 @@
                 document.getElementById('meta-bench-dd').innerText = `基准最大回撤: ${fmt(bMetrics.maxDD)}`;
                 document.getElementById('meta-sharpe-calmar').innerText = `${pMetrics.sharpe.toFixed(2)} / ${pMetrics.calmar.toFixed(2)}`;
 
-                // 渲染图表
+                // 渲染带分屏和呼吸灯的图表
                 renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, benchmarkCode.toUpperCase());
 
             } catch (err) {
@@ -341,41 +339,85 @@
         }
 
         function renderBacktestChart(dates, pNAV, bNAV, excess, benchName) {
+            // 清理旧的呼吸灯定时器
+            if (glowInterval) clearInterval(glowInterval);
+
             const option = {
-                // 🎯 核心升级：彻底杜绝入场渐进、动态上浮，让图像瞬间定死！
+                // 彻底关闭渲染上浮动画，实现秒开定型
                 animation: false, 
-                
                 title: { text: '多资产策略回测净值与超额收益归因 (NAV & Alpha)', left: 'center', top: 5 },
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-                legend: { data: ['组合净值', `${benchName}基准`, '组合超额收益(右轴)'], top: 35 },
-                grid: { left: '5%', right: '5%', top: '15%', bottom: '8%', containLabel: true },
-                xAxis: { type: 'category', data: dates, boundaryGap: false },
-                yAxis: [
-                    { type: 'value', name: '累计净值 (NAV)', scale: true, axisLabel: { formatter: '{value}' } },
-                    { type: 'value', name: '超额收益 (Alpha)', scale: true, axisLabel: { formatter: val => (val * 100).toFixed(1) + '%' } }
+                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢/跑输)'], top: 30 },
+                toolbox: { 
+                    feature: { saveAsImage: { name: '回测与归因结果', pixelRatio: 2, backgroundColor: '#fff' } },
+                    right: 20
+                },
+                
+                // 📊 经典的量化分屏排版：上图看净值走势，下图看超额柱状图
+                grid: [
+                    { left: '5%', right: '5%', top: '15%', height: '50%', containLabel: true },
+                    { left: '5%', right: '5%', top: '70%', height: '22%', containLabel: true }
                 ],
+                xAxis: [
+                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } }, // 主图隐藏日期重叠
+                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 1 }                              // 副图显示日期
+                ],
+                yAxis: [
+                    { type: 'value', scale: true, gridIndex: 0, name: '累计净值' },
+                    { type: 'value', gridIndex: 1, name: '超额' }
+                ],
+                // 加入数据缩放，双图表完美联动
+                dataZoom: [
+                    { type: 'inside', start: 0, end: 100, xAxisIndex: [0, 1] },
+                    { show: true, type: 'slider', bottom: '2%', xAxisIndex: [0, 1] }
+                ],
+                
                 series: [
                     {
-                        name: '组合净值', type: 'line', data: pNAV, symbol: 'none', smooth: true,
-                        lineStyle: { width: 3, color: '#2563eb' }
+                        name: '组合净值', type: 'line', data: pNAV, smooth: true, symbol: 'none',
+                        xAxisIndex: 0, yAxisIndex: 0, zlevel: 1,
+                        lineStyle: { width: 2.5, color: '#ef4444' } 
                     },
                     {
-                        name: `${benchName}基准`, type: 'line', data: bNAV, symbol: 'none', smooth: true,
-                        lineStyle: { width: 1.5, type: 'dashed', color: '#64748b' }
+                        name: `${benchName}基准`, type: 'line', data: bNAV, smooth: true, symbol: 'none',
+                        xAxisIndex: 0, yAxisIndex: 0, zlevel: 0,
+                        lineStyle: { width: 1.5, color: '#94a3b8', type: 'dashed' }
                     },
                     {
-                        name: '组合超额收益(右轴)', type: 'line', yAxisIndex: 1, data: excess, symbol: 'none', smooth: true,
-                        lineStyle: { width: 2, color: '#10b981' },
-                        areaStyle: {
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: 'rgba(16, 185, 129, 0.15)' },
-                                { offset: 1, color: 'rgba(16, 185, 129, 0.0)' }
-                            ])
+                        name: '超额收益(跑赢/跑输)', type: 'bar', data: excess,
+                        xAxisIndex: 1, yAxisIndex: 1,
+                        // 智能柱状图：正超额为红柱，负超额为绿柱
+                        itemStyle: {
+                            color: function(params) {
+                                return params.data >= 0 ? '#ef4444' : '#10b981';
+                            }
                         }
                     }
                 ]
             };
+            
+            // 首帧直接定稿
             myChart.setOption(option, true);
+
+            // 🌟 重新接回经典的“呼吸灯特效”
+            let startTime = Date.now();
+            glowInterval = setInterval(() => {
+                const timeElapsed = Date.now() - startTime;
+                const phase = (Math.sin(timeElapsed / 1000 * Math.PI) + 1) / 2; 
+
+                // 在亮红色 (#ef4444) 和暗深红色 (#8b1a1a) 之间纯净渐变
+                const r = Math.round(239 - phase * (239 - 139)); 
+                const g = Math.round(68 - phase * (68 - 26));
+                const b = Math.round(68 - phase * (68 - 26));
+
+                // 局部高频更新，不会触发 ECharts 的结构性重绘（所以不受 animation: false 限制）
+                myChart.setOption({
+                    series: [{
+                        name: '组合净值',
+                        lineStyle: { color: `rgb(${r}, ${g}, ${b})` }
+                    }]
+                });
+            }, 50); 
         }
 
         // ==========================================
