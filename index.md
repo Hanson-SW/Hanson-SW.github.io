@@ -57,22 +57,22 @@ title: 金融工程 · 个人主页
             </button>
         </div>
     </div>
-    //量化ito开始
+//😀量化ito开始
 <h2 class="section-title" style="margin-top: 3.5rem;">
     <i class="fas fa-chart-area" style="color: #2563eb;"></i> 实盘量化引擎：蒙特卡洛股价路径预测
 </h2>
 <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;">
-    输入美股代码，系统将自动通过 Yahoo Finance 拉取过去一年真实历史数据，测算历史波动率(σ)与期望收益(μ)，并在后台进行 500 次 Itô Process 模拟，生成未来走势概率密度的热力图。
+    输入美股代码，系统自动通过 Yahoo Finance 拉取过去一年真实数据，测算历史波动率(σ)与期望收益(μ)，并在后台进行 500 次 Itô 随机漫步，生成未来走势的概率密度热力图。
 </p>
 
 <div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1.5rem;">
     <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
         
-        <div style="flex: 1; min-width: 120px;">
+        <div style="flex: 2; min-width: 220px;">
             <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">美股代码 (Ticker)</label>
             <div style="display: flex; gap: 0.5rem;">
-                <input type="text" id="stockTicker" value="AAPL" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; text-transform: uppercase;" placeholder="例如: AAPL, TSLA" />
-                <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline" style="padding: 0 1rem; white-space: nowrap;">
+                <input type="text" id="stockTicker" value="AAPL" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; text-transform: uppercase;" placeholder="如: AAPL" />
+                <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline" style="padding: 0 1rem; white-space: nowrap; flex-shrink: 0;">
                     <i class="fas fa-cloud-download-alt"></i> 拉取
                 </button>
             </div>
@@ -84,7 +84,7 @@ title: 金融工程 · 个人主页
         </div>
 
         <div style="flex: 1; min-width: 90px;">
-            <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">年化波动率 (σ)</label>
+            <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">波动率 (σ)</label>
             <input type="number" id="impliedVol" value="0.25" step="0.001" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
         </div>
 
@@ -98,21 +98,72 @@ title: 金融工程 · 个人主页
             <input type="number" id="timeHorizon" value="252" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
         </div>
 
-        <button onclick="runSimulation()" id="simBtn" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem; white-space: nowrap;">
-            <i class="fas fa-play"></i> 运行蒙特卡洛
+        <button onclick="runSimulation()" id="simBtn" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem; white-space: nowrap; flex-shrink: 0;">
+            <i class="fas fa-play"></i> 运行
         </button>
     </div>
     <div id="dataStatus" style="font-size: 0.8rem; color: #2563eb; margin-top: 0.8rem; font-weight: 500; min-height: 1.2rem;"></div>
 </div>
 
-<div style="background: #ffffff; border-radius: 16px; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+<div id="chartContainer" style="position: relative; background: #ffffff; border-radius: 16px; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: all 0.3s ease;">
+    <button onclick="toggleFullscreen()" style="position: absolute; top: 15px; right: 15px; z-index: 100; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s;">
+        <i id="fullscreenIcon" class="fas fa-expand"></i>
+    </button>
     <div id="itoChart" style="width: 100%; height: 450px;"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
+<style>
+    .chart-fullscreen {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 2rem !important;
+        box-sizing: border-box;
+        background: #ffffff !important;
+    }
+    .chart-fullscreen #itoChart {
+        height: 100% !important;
+    }
+</style>
+
 <script>
     let chartInstance = null;
+
+    // 全屏切换逻辑
+    function toggleFullscreen() {
+        const container = document.getElementById('chartContainer');
+        const icon = document.getElementById('fullscreenIcon');
+        
+        container.classList.toggle('chart-fullscreen');
+        
+        if(container.classList.contains('chart-fullscreen')) {
+            icon.className = 'fas fa-compress'; // 缩小图标
+            document.body.style.overflow = 'hidden'; // 防止全屏时背后滚动
+        } else {
+            icon.className = 'fas fa-expand'; // 放大图标
+            document.body.style.overflow = 'auto';
+        }
+        
+        // 延迟触发 resize 使 ECharts 适应新尺寸
+        if(chartInstance) {
+            setTimeout(() => chartInstance.resize(), 100);
+        }
+    }
+
+    // 按 ESC 键退出全屏
+    document.addEventListener('keydown', function(e) {
+        const container = document.getElementById('chartContainer');
+        if (e.key === 'Escape' && container.classList.contains('chart-fullscreen')) {
+            toggleFullscreen();
+        }
+    });
 
     // Box-Muller 算法生成标准正态分布随机数
     function randomNormal() {
@@ -122,18 +173,17 @@ title: 金融工程 · 个人主页
         return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
-    // 从 Yahoo Finance 获取真实股票历史数据，并自动测算金融参数
+    // 从 Yahoo Finance 获取真实股票历史数据
     async function fetchStockData() {
         const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
         if(!ticker) return;
 
         const statusDiv = document.getElementById('dataStatus');
         const fetchBtn = document.getElementById('fetchBtn');
-        statusDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 正在从 Yahoo Finance 拉取 ${ticker} 过去 1 年的历史数据...`;
+        statusDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 拉取 ${ticker} 过去 1 年历史数据...`;
         fetchBtn.disabled = true;
 
         try {
-            // 使用 allorigins 代理绕过 CORS 限制，直连 Yahoo Finance
             const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`;
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
             
@@ -156,35 +206,31 @@ title: 金融工程 · 个人主页
             const meanReturn = logReturns.reduce((a, b) => a + b, 0) / logReturns.length;
             const variance = logReturns.reduce((a, b) => a + Math.pow(b - meanReturn, 2), 0) / (logReturns.length - 1);
             
-            // 年化处理 (假设一年 252 个交易日)
             const annVol = Math.sqrt(variance) * Math.sqrt(252);
-            const annMu = meanReturn * 252 + (annVol * annVol) / 2; // 伊托引理调整
+            const annMu = meanReturn * 252 + (annVol * annVol) / 2;
 
-            // 自动填入表单
             document.getElementById('currentPrice').value = currentPrice.toFixed(2);
             document.getElementById('impliedVol').value = annVol.toFixed(3);
             document.getElementById('expReturn').value = annMu.toFixed(3);
 
-            statusDiv.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> 成功加载 ${ticker} 数据！基于历史表现推算：年化波动率 ${(annVol*100).toFixed(1)}%, 期望收益 ${(annMu*100).toFixed(1)}%。`;
+            statusDiv.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> 成功！历史年化波动率 ${(annVol*100).toFixed(1)}%, 期望收益 ${(annMu*100).toFixed(1)}%。`;
             
-            // 自动运行模拟
             runSimulation();
 
         } catch (error) {
             console.error(error);
-            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> 拉取失败，请检查股票代码是否正确 (如 AAPL)。`;
+            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> 拉取失败，请检查代码 (如 AAPL)。`;
         } finally {
             fetchBtn.disabled = false;
         }
     }
 
-    // 核心引擎：运行蒙特卡洛并生成热力图数据
+    // 核心引擎：生成蒙特卡洛数据，导出区间大小(binSize)
     function generateMonteCarloData(S0, mu, sigma, days, numPaths = 500, numBins = 60) {
         let paths = [];
         let dt = 1 / 252;
         let globalMin = S0, globalMax = S0;
 
-        // 1. 跑 500 次模拟路径
         for(let p = 0; p < numPaths; p++) {
             let simPath = [S0];
             for(let i = 1; i <= days; i++) {
@@ -200,12 +246,10 @@ title: 金融工程 · 个人主页
             paths.push(simPath);
         }
 
-        // 上下留出一点视觉缓冲空间
         globalMin *= 0.95; 
         globalMax *= 1.05;
         let binSize = (globalMax - globalMin) / numBins;
 
-        // 2. 将数据装入热力图矩阵 (Day vs Price Bin)
         let heatmapData = [];
         let matrix = Array(days + 1).fill(0).map(() => Array(numBins).fill(0));
         let maxFreq = 0;
@@ -221,7 +265,6 @@ title: 金融工程 · 个人主页
             }
         }
 
-        // 整理给 ECharts 的数据格式 [x, y, value]
         for(let d = 0; d <= days; d++) {
             for(let b = 0; b < numBins; b++) {
                 if(matrix[d][b] > 0) {
@@ -230,19 +273,17 @@ title: 金融工程 · 个人主页
             }
         }
 
-        // 生成 Y 轴的分类标签（价格区间）
         let yAxisLabels = [];
         for(let b = 0; b < numBins; b++) {
-            yAxisLabels.push((globalMin + b * binSize).toFixed(1));
+            yAxisLabels.push((globalMin + b * binSize).toFixed(2));
         }
 
-        // 3. 生成理想走势线 (Deterministic path)
         let idealPath = [S0];
         for(let i = 1; i <= days; i++) {
             idealPath.push(idealPath[i-1] * Math.exp(mu * dt));
         }
 
-        return { heatmapData, yAxisLabels, globalMin, globalMax, maxFreq, singleSimPath: paths[0], idealPath };
+        return { heatmapData, yAxisLabels, globalMin, globalMax, maxFreq, singleSimPath: paths[0], idealPath, binSize, numPaths };
     }
 
     // 渲染图表
@@ -252,9 +293,8 @@ title: 金融工程 · 个人主页
         const mu = parseFloat(document.getElementById('expReturn').value);
         const days = parseInt(document.getElementById('timeHorizon').value);
 
-        document.getElementById('simBtn').innerHTML = `<i class="fas fa-spinner fa-spin"></i> 计算中...`;
+        document.getElementById('simBtn').innerHTML = `<i class="fas fa-spinner fa-spin"></i> 计算中`;
 
-        // 使用 setTimeout 防止阻塞 UI
         setTimeout(() => {
             const data = generateMonteCarloData(S0, mu, sigma, days, 500, 60);
 
@@ -269,82 +309,47 @@ title: 金融工程 · 个人主页
                 title: { text: 'Monte Carlo 概率密度热力图 vs 单次模拟', left: 'center', textStyle: { color: '#334155', fontSize: 15 } },
                 tooltip: {
                     position: 'top',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#cbd5e1',
+                    textStyle: { color: '#334155' },
                     formatter: function (params) {
                         if(params.seriesType === 'heatmap') {
-                            return `Day ${params.value[0]} <br/>股价边界: $${data.yAxisLabels[params.value[1]]} <br/>落入概率权重: ${params.value[2]}`;
+                            let day = params.value[0];
+                            let binIdx = params.value[1];
+                            let count = params.value[2];
+                            
+                            // 计算闭合区间 [Lower, Upper]
+                            let lower = parseFloat(data.yAxisLabels[binIdx]);
+                            let upper = lower + data.binSize;
+                            
+                            // 计算更易懂的落入概率
+                            let prob = ((count / data.numPaths) * 100).toFixed(1);
+                            
+                            return `<div style="font-weight:bold; margin-bottom:4px;">第 ${day} 天预测</div>
+                                    价格区间: <b>[ $${lower.toFixed(2)} , $${upper.toFixed(2)} ]</b><br/>
+                                    落入概率: <b>${prob}%</b> <span style="color:#64748b; font-size:0.85em;">(500次模拟中有 ${count} 次落入此区间)</span>`;
                         } else {
-                            return `Day ${params.dataIndex} <br/>股价: $${params.value.toFixed(2)}`;
+                            return `<div style="font-weight:bold; margin-bottom:4px;">${params.seriesName}</div>
+                                    第 ${params.dataIndex} 天 <br/>
+                                    预期股价: <b>$${params.value.toFixed(2)}</b>`;
                         }
                     }
                 },
-                // 配置热力图的视觉映射 (颜色渐变)
                 visualMap: {
                     min: 0,
-                    max: Math.min(data.maxFreq, 50), // 截断极端极值让颜色更饱满
+                    max: Math.min(data.maxFreq, 50),
                     calculable: true,
                     orient: 'horizontal',
                     left: 'center',
                     bottom: '0%',
-                    inRange: {
-                        color: ['#ffffff', '#bfdbfe', '#3b82f6', '#1e40af'] // 从白到浅蓝到深蓝
-                    },
-                    textStyle: { color: '#64748b', fontSize: 10 }
+                    inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#1e40af'] },
+                    textStyle: { color: '#64748b', fontSize: 11 },
+                    formatter: function (value) { return value.toFixed(0) + ' 频数'; }
                 },
-                grid: { left: '8%', right: '5%', top: '12%', bottom: '20%', containLabel: true },
-                xAxis: { type: 'category', data: xAxisData, name: 'Days', nameLocation: 'middle', nameGap: 25 },
-                // 采用双 Y 轴黑科技：轴0用于热力图分类，轴1用于连线绝对数值，确保完美重叠
-                yAxis: [
-                    { type: 'category', data: data.yAxisLabels, show: false }, // 隐藏的 heatmap 分类轴
-                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { formatter: '${value}' }, splitLine: { show: false } }
-                ],
-                series: [
-                    {
-                        name: '概率密度热力图 (500次模拟)',
-                        type: 'heatmap',
-                        data: data.heatmapData,
-                        yAxisIndex: 0,
-                        itemStyle: { opacity: 0.4 }, // 设置透明度 40%
-                        emphasis: { itemStyle: { borderColor: '#333', borderWidth: 1 } }
-                    },
-                    {
-                        name: '单次随机模拟走势 (Simulated)',
-                        type: 'line',
-                        data: data.singleSimPath,
-                        yAxisIndex: 1,
-                        showSymbol: false,
-                        lineStyle: { width: 2, color: '#f59e0b' }, // 橘黄色，在蓝色背景上极其显眼
-                        itemStyle: { color: '#f59e0b' },
-                        z: 10 // 确保显示在最上层
-                    },
-                    {
-                        name: '理论期望走势 (Deterministic)',
-                        type: 'line',
-                        data: data.idealPath,
-                        yAxisIndex: 1,
-                        showSymbol: false,
-                        lineStyle: { width: 2, type: 'dashed', color: '#10b981' }, // 绿色虚线
-                        itemStyle: { color: '#10b981' },
-                        z: 10
-                    }
-                ]
-            };
-
-            chartInstance.setOption(option);
-            document.getElementById('simBtn').innerHTML = `<i class="fas fa-play"></i> 运行蒙特卡洛`;
-        }, 100);
-    }
-
-    // 页面初始加载时自动运行一次默认模型
-    window.onload = function() {
-        runSimulation();
-    };
-    
-    // 适配窗口响应式
-    window.addEventListener('resize', function() {
-        if(chartInstance) chartInstance.resize();
-    });
-</script>
-//量化ito结束
+                grid: { left: '8%', right: '5%', top: '15%', bottom: '20%', containLabel: true },
+                xAxis: { type: 'category', data: xAxisData, name: '交易日 (Days)', nameLocation: 'middle', nameGap: 25 },
+                yAxis:
+//😀😀量化ito结束
 
     <h2 class="section-title">
         <i class="fas fa-paper-plane"></i> 联系我
