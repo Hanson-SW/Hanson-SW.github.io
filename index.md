@@ -55,7 +55,8 @@ title: 金融工程 · 个人主页
         <i class="fas fa-chart-line"></i> 运行回测模型
     </button>
     </div>
-
+ </div>
+ 
     <div class="info-card">
         <div class="card-left">
             <i class="fas fa-bolt card-icon"></i>
