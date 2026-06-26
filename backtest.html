@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro版 资产配置回测终端 (视觉增强版)</title>
+    <title>Pro版 资产配置回测终端 (双图量化版)</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --bg: #f1f5f9; --card: #ffffff; --border: #cbd5e1; --text: #334155; }
@@ -91,7 +91,6 @@
             { code: 'sh000688', weight: 100 }
         ];
         
-        // 动画定时器 ID (用于重置回测时清除上一个动画)
         let glowInterval = null;
 
         function renderAssets() {
@@ -118,7 +117,6 @@
         function addAssetRow() { assets.push({ code: '', weight: 0 }); renderAssets(); }
         function removeAsset(index) { assets.splice(index, 1); renderAssets(); }
 
-        // 数据拉取核心 (带去NaN强心针版)
         async function fetchAssetData(code) {
             if (!code) return null;
             const cleanCode = code.trim().toLowerCase();
@@ -195,6 +193,7 @@
 
                 let portPrices = [1.0];
                 let benchPrices = [1.0];
+                let alphaPrices = [0.0]; // 存储超额收益 (组合 - 基准)
                 let portDailyReturns = [];
                 let maxDrawdown = 0;
                 let peak = 1.0;
@@ -206,7 +205,8 @@
                     const benchTodayPrice = dataStore[benchmarkCode][today];
                     const benchYestPrice = dataStore[benchmarkCode][yesterday];
                     const benchReturn = (benchTodayPrice - benchYestPrice) / benchYestPrice;
-                    benchPrices.push(benchPrices[i-1] * (1 + benchReturn));
+                    const currentBenchNV = benchPrices[i-1] * (1 + benchReturn);
+                    benchPrices.push(currentBenchNV);
 
                     let portTodayReturn = 0;
                     for (let asset of assets) {
@@ -221,6 +221,9 @@
                     portDailyReturns.push(portTodayReturn);
                     const currentNetValue = portPrices[i-1] * (1 + portTodayReturn);
                     portPrices.push(currentNetValue);
+
+                    // 计算每日超额收益
+                    alphaPrices.push(currentNetValue - currentBenchNV);
 
                     if (currentNetValue > peak) peak = currentNetValue;
                     let dd = (peak - currentNetValue) / peak;
@@ -242,7 +245,6 @@
                 document.getElementById('val-sortino').innerText = metrics.sortino.toFixed(2);
                 document.getElementById('val-sortino').className = 'stat-val ' + (metrics.sortino >= 0 ? 'positive' : 'negative');
 
-                // 准备要印在图表上的文本数据
                 const displayMetrics = {
                     annReturn: fmtNum(metrics.annReturn),
                     maxDrawdown: fmtNum(maxDrawdown),
@@ -250,7 +252,7 @@
                     sortino: metrics.sortino.toFixed(2)
                 };
 
-                renderChart(alignedDates, portPrices, benchPrices, portName, benchmarkCode, displayMetrics);
+                renderChart(alignedDates, portPrices, benchPrices, alphaPrices, portName, benchmarkCode, displayMetrics);
 
             } catch (error) {
                 console.error(error);
@@ -259,40 +261,52 @@
             }
         }
 
-        function renderChart(dates, portData, benchData, portName, benchName, metricsObj) {
-            // 清除之前的发光动画，防止每次点击执行后动画加速叠加
+        function renderChart(dates, portData, benchData, alphaData, portName, benchName, metricsObj) {
             if (glowInterval) clearInterval(glowInterval);
 
             const option = {
-                title: { text: `净值走势对比: ${portName}`, subtext: '起始净值: 1.0', left: 'center', top: 10 },
+                title: { text: `净值走势与超额收益对比: ${portName}`, subtext: '起始净值: 1.0', left: 'center', top: 5 },
                 tooltip: { trigger: 'axis' },
-                legend: { data: ['组合净值', `基准(${benchName})`], bottom: 0 },
-                // backgroundColor: '#ffffff', // 确保下载图片时背景是白色而不是透明
+                legend: { data: ['组合净值', `基准(${benchName})`, '超额收益(跑赢/跑输)'], bottom: 0 },
                 toolbox: { 
                     feature: { 
                         saveAsImage: { 
                             name: `回测结果_${portName}`, 
-                            pixelRatio: 2, // 提高下载图片的清晰度
+                            pixelRatio: 2, 
                             backgroundColor: '#fff'
                         } 
                     }, 
-                    right: 20 
+                    right: 20,
+                    top: 10
                 },
-                grid: { left: '5%', right: '5%', bottom: '10%', top: '18%', containLabel: true },
-                xAxis: { type: 'category', boundaryGap: false, data: dates },
-                yAxis: { type: 'value', scale: true },
-                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { show: true, type: 'slider', bottom: '2%' }],
+                // 🛠️ 核心：拆分画板为上下两个 Grid 区域
+                grid: [
+                    { left: '5%', right: '5%', top: '15%', height: '50%', containLabel: true }, // 上图：净值主图
+                    { left: '5%', right: '5%', top: '70%', height: '18%', containLabel: true }  // 下图：超额收益柱状图
+                ],
+                // 两个图共用一个 X 轴（日期），通过 gridIndex 绑定
+                xAxis: [
+                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } }, // 主图隐藏下标签
+                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 1 }                             // 副图显示标签
+                ],
+                yAxis: [
+                    { type: 'value', scale: true, gridIndex: 0, name: '净值' },
+                    { type: 'value', gridIndex: 1, name: '超额' }
+                ],
+                dataZoom: [
+                    { type: 'inside', start: 0, end: 100, xAxisIndex: [0, 1] }, // 联动放大缩小
+                    { show: true, type: 'slider', bottom: '4%', xAxisIndex: [0, 1] }
+                ],
                 
-                // 📊 亮点功能：图内水印浮窗 (完美附带在下载的图片中)
                 graphic: [
                     {
                         type: 'group',
                         left: '8%',
-                        top: '15%',
+                        top: '16%',
                         children: [
                             {
                                 type: 'rect', z: 100, shape: { width: 170, height: 100, r: 8 },
-                                style: { fill: 'rgba(255, 255, 255, 0.9)', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.1)' }
+                                style: { fill: 'rgba(255, 255, 255, 0.95)', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 5, shadowColor: 'rgba(0,0,0,0.05)' }
                             },
                             {
                                 type: 'text', z: 100, left: 15, top: 15,
@@ -314,8 +328,10 @@
                         data: portData, 
                         smooth: true, 
                         symbol: 'none', 
-                        zlevel: 1, // 确保这条红线永远在虚线之上
-                        lineStyle: { width: 4, color: '#ef4444' } // 初始鲜红色加粗
+                        xAxisIndex: 0, yAxisIndex: 0,
+                        zlevel: 1,
+                        // ✨ 优化：线宽变细到 2.5，彻底移除 shadowBlur 和 shadowColor 杜绝模糊！
+                        lineStyle: { width: 2.5, color: '#ef4444' } 
                     },
                     { 
                         name: `基准(${benchName})`, 
@@ -323,44 +339,47 @@
                         data: benchData, 
                         smooth: true, 
                         symbol: 'none', 
+                        xAxisIndex: 0, yAxisIndex: 0,
                         zlevel: 0,
-                        // 对比度优化：基准线设为灰色、变细、虚线
-                        lineStyle: { width: 2, color: '#94a3b8', type: 'dashed' } 
+                        lineStyle: { width: 1.5, color: '#94a3b8', type: 'dashed' } 
+                    },
+                    {
+                        name: '超额收益(跑赢/跑输)',
+                        type: 'bar',
+                        data: alphaData,
+                        xAxisIndex: 1, yAxisIndex: 1,
+                        // ✨ 智能变色：正数变红（跑赢），负数变绿（跑输）
+                        itemStyle: {
+                            color: function(params) {
+                                return params.data >= 0 ? '#ef4444' : '#10b981';
+                            }
+                        }
                     }
                 ]
             };
             
-            // 首次渲染
             myChart.setOption(option, true);
 
-            // 🌟 亮点功能：每隔一秒由浅入深的呼吸灯动画
+            // 🌟 动态呼吸效果：由于取消了外发光光晕，这里调整为“纯线条颜色的深浅渐变”
+            // 每秒线条颜色在鲜红色和暗红之间纯净切换，绝不带任何模糊和毛边
             let startTime = Date.now();
             glowInterval = setInterval(() => {
                 const timeElapsed = Date.now() - startTime;
-                
-                // 正弦波形计算：周期 2000 毫秒 (1秒变深，1秒变浅)
                 const phase = (Math.sin(timeElapsed / 1000 * Math.PI) + 1) / 2; 
 
-                // 颜色通道混合：在 亮红 (239, 68, 68) 和 暗深红 (127, 29, 29) 之间过渡
-                const r = Math.round(239 - phase * (239 - 127));
-                const g = Math.round(68 - phase * (68 - 29));
-                const b = Math.round(68 - phase * (68 - 29));
-                
-                // 光晕大小动态收缩
-                const shadowSize = 3 + phase * 12;
+                const r = Math.round(239 - phase * (239 - 139)); // 在 #ef4444 和 #8b1a1a 之间纯净渐变
+                const g = Math.round(68 - phase * (68 - 26));
+                const b = Math.round(68 - phase * (68 - 26));
 
-                // 局部刷新机制：只更新颜色和光晕，不消耗额外性能
                 myChart.setOption({
                     series: [{
                         name: '组合净值',
                         lineStyle: {
-                            color: `rgb(${r}, ${g}, ${b})`,
-                            shadowBlur: shadowSize,
-                            shadowColor: `rgba(${r}, ${g}, ${b}, 0.8)`
+                            color: `rgb(${r}, ${g}, ${b})`
                         }
                     }]
                 });
-            }, 50); // 每 50ms (即20帧/秒) 渲染一帧动画
+            }, 50);
         }
 
         renderAssets();
