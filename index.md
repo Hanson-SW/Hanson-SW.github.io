@@ -3,7 +3,6 @@ layout: default
 title: 金融工程 · 个人主页
 ---
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
@@ -83,19 +82,19 @@ title: 金融工程 · 个人主页
     </div>
 
     <h2 class="section-title" style="margin-top: 3.5rem;">
-        <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：蒙特卡洛股价路径预测</span>
+        <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：股价路径预测</span>
     </h2>
     <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
-        支持A股与美股。自动拉取历史数据测算参数进行 Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。
+        系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
     </p>
 
-    <div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1.5rem;">
+    <div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1rem;">
         <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
             
             <div style="flex: 2; min-width: 200px; position: relative;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_ticker">股票代码 (Ticker)</label>
                 <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch()" autocomplete="off" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; text-transform: uppercase;" placeholder="输入 AAPL, 600519.SS..." />
+                    <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; text-transform: uppercase;" placeholder="输入 AAPL, 600519.SS..." />
                     <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline" style="padding: 0 1rem; white-space: nowrap; flex-shrink: 0;">
                         <i class="fas fa-cloud-download-alt"></i> <span data-i18n="mc_pull">拉取</span>
                     </button>
@@ -105,27 +104,27 @@ title: 金融工程 · 个人主页
 
             <div style="flex: 1; min-width: 85px;">
                 <label id="priceLabel" style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">当前股价 ($)</label>
-                <input type="number" id="currentPrice" value="175.00" step="0.01" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
+                <input type="number" id="currentPrice" value="175.00" step="0.01" oninput="markCustom()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
             </div>
 
             <div style="flex: 1; min-width: 85px;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_vol">波动率 (σ)</label>
-                <input type="number" id="impliedVol" value="0.22" step="0.001" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
+                <input type="number" id="impliedVol" value="0.22" step="0.001" oninput="markCustom()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
             </div>
 
             <div style="flex: 1; min-width: 85px;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_mu">期望收益 (μ)</label>
-                <input type="number" id="expReturn" value="0.08" step="0.001" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
+                <input type="number" id="expReturn" value="0.08" step="0.001" oninput="markCustom()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
             </div>
             
             <div style="flex: 1; min-width: 85px;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_paths">模拟次数</label>
-                <input type="number" id="numPaths" value="5000" step="500" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
+                <input type="number" id="numPaths" value="5000" step="500" oninput="markCustom()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
             </div>
 
             <div style="flex: 1; min-width: 85px;">
                 <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_days">预测天数</label>
-                <input type="number" id="timeHorizon" value="252" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
+                <input type="number" id="timeHorizon" value="252" oninput="markCustom()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
             </div>
 
             <button onclick="runSimulation()" id="simBtn" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem; white-space: nowrap; flex-shrink: 0;">
@@ -135,18 +134,18 @@ title: 金融工程 · 个人主页
         <div id="dataStatus" style="font-size: 0.8rem; color: #2563eb; margin-top: 0.8rem; font-weight: 500; min-height: 1.2rem;"></div>
     </div>
 
-    <div id="pdfExportWrapper" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative;">
+    <div id="chartExportWrapper" style="background: #ffffff; border-radius: 12px; padding: 1rem 0; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; margin-left: -1.5rem; margin-right: -1.5rem;">
         
-        <div style="position: absolute; top: 1.5rem; right: 1.5rem; z-index: 100; display: flex; gap: 0.5rem;">
-            <button onclick="downloadPDF()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s;" title="导出报告为 PDF">
-                <i class="fas fa-file-pdf"></i>
+        <div style="position: absolute; top: 1rem; right: 1rem; z-index: 100; display: flex; gap: 0.5rem;">
+            <button onclick="downloadImage()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s;" title="导出高清图片">
+                <i class="fas fa-download"></i>
             </button>
             <button onclick="toggleFullscreen()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s;" title="全屏放大">
                 <i id="fullscreenIcon" class="fas fa-expand"></i>
             </button>
         </div>
 
-        <div id="itoChart" style="width: 100%; height: 550px;"></div>
+        <div id="itoChart" style="width: 100%; height: 500px;"></div>
     </div>
 
     <h2 class="section-title">
@@ -180,7 +179,8 @@ title: 金融工程 · 个人主页
 </div>
 
 <style>
-    .cv-container { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; position: relative;}
+    /* 将全局最大宽度稍微提升，配合图表的负边距，在电脑端极其震撼 */
+    .cv-container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; position: relative;}
     .header-section { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid #eef2f6; }
     .avatar-gradient { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 600; color: white; flex-shrink: 0; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2); }
     .main-title { font-size: 2.2rem; font-weight: 700; margin: 0; background: linear-gradient(135deg, #0f172a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px; }
@@ -210,7 +210,7 @@ title: 金融工程 · 个人主页
     .search-tip { font-size: 0.8rem; color: #94a3b8; margin-top: 0.6rem; }
     
     .chart-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; margin: 0 !important; padding: 2rem !important; box-sizing: border-box; background: #ffffff !important; overflow-y: auto;}
-    .chart-fullscreen #itoChart { height: 90% !important; }
+    .chart-fullscreen #itoChart { height: 95% !important; }
     
     .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #334155; transition: background 0.1s; }
     .autocomplete-item:hover { background: #eff6ff; color: #2563eb; }
@@ -223,6 +223,8 @@ title: 金融工程 · 个人主页
         .card-buttons, .btn { width: 100%; justify-content: center; }
         .search-wrapper { flex-direction: column; }
         #aiSearchInput, .search-btn { width: 100% !important; box-sizing: border-box; }
+        /* 手机端保持负边距，让图表贴紧屏幕边缘 */
+        #chartExportWrapper { margin-left: -1rem; margin-right: -1rem; border-radius: 0; border-left: none; border-right: none;}
     }
 </style>
 
@@ -243,8 +245,8 @@ title: 金融工程 · 个人主页
         proj_backtest_btn: { zh: "运行回测模型", en: "Run Backtest Model" },
         proj2_name: { zh: "A股择时策略", en: "A-Share Timing Strategy" },
         proj2_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
-        mc_title: { zh: "实盘量化引擎：蒙特卡洛股价路径预测", en: "Live Quant Engine: Monte Carlo Path Prediction" },
-        mc_desc: { zh: "支持A股与美股。自动拉取历史数据测算参数进行 Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。", en: "Supports US & A-shares. Auto-fetches live data for Itô random walks. Heatmap is Per-Day Normalized to ensure the main trend is always highlighted." },
+        mc_title: { zh: "实盘量化引擎：股价路径预测", en: "Live Quant Engine: Monte Carlo Prediction" },
+        mc_desc: { zh: "支持A股与美股。自动拉取历史数据(含GitHub缓存容灾)。极速引擎生成逐日归一化的热力图。", en: "Auto-fetches live data (w/ GitHub cache fallback). Per-Day Normalized heatmap." },
         mc_ticker: { zh: "股票代码 (Ticker)", en: "Stock Ticker" },
         mc_pull: { zh: "拉取", en: "Fetch" },
         mc_vol: { zh: "波动率 (σ)", en: "Volatility (σ)" },
@@ -273,25 +275,25 @@ title: 金融工程 · 个人主页
         if(chartInstance) runSimulation(); 
     }
 
-    // ================= 2. 本地容灾股票库 =================
+    // ================= 2. 状态追踪与数据库容灾系统 =================
+    let currentDataSource = '用户自定义 (Custom Input)'; // 记录数据来源
+    let currentCurrency = '$'; 
+    let chartInstance = null;
+
+    // 当用户手动修改参数时，触发自定义状态
+    function markCustom() {
+        currentDataSource = currentLang === 'zh' ? '用户自定义 (Custom Input)' : 'User Custom Input';
+    }
+
     const localTickerDB = [
         { symbol: 'AAPL', name: '苹果公司 (Apple)' },
         { symbol: 'MSFT', name: '微软 (Microsoft)' },
         { symbol: 'NVDA', name: '英伟达 (NVIDIA)' },
         { symbol: 'TSLA', name: '特斯拉 (Tesla)' },
-        { symbol: 'GOOGL', name: '谷歌 (Alphabet)' },
-        { symbol: 'AMZN', name: '亚马逊 (Amazon)' },
-        { symbol: 'META', name: 'Meta Platforms' },
         { symbol: 'SPY', name: '标普500指数 ETF' },
-        { symbol: 'QQQ', name: '纳斯达克100 ETF' },
         { symbol: '600519.SS', name: '贵州茅台 (Kweichow Moutai)' },
         { symbol: '000858.SZ', name: '五粮液 (Wuliangye)' },
-        { symbol: '600036.SS', name: '招商银行 (China Merchants Bank)' },
-        { symbol: '601318.SS', name: '中国平安 (Ping An Insurance)' },
-        { symbol: '002594.SZ', name: '比亚迪 (BYD)' },
-        { symbol: '300750.SZ', name: '宁德时代 (CATL)' },
-        { symbol: '000300.SS', name: '沪深300指数 (CSI 300)' },
-        { symbol: 'BABA', name: '阿里巴巴 (Alibaba)' }
+        { symbol: '601318.SS', name: '中国平安 (Ping An Insurance)' }
     ];
 
     function handleLocalSearch() {
@@ -300,7 +302,6 @@ title: 金融工程 · 个人主页
         if(q.length < 1) { listDiv.style.display = 'none'; return; }
         
         let results = localTickerDB.filter(item => item.symbol.includes(q) || item.name.toUpperCase().includes(q));
-        
         if(results.length > 0) {
             let html = results.map(item => 
                 `<div class="autocomplete-item" onclick="selectTicker('${item.symbol}')">
@@ -327,12 +328,9 @@ title: 金融工程 · 个人主页
         }
     });
 
-    // ================= 3. 量化核心与防止PDF空白方案 =================
-    let chartInstance = null;
-    let currentCurrency = '$'; 
-
+    // ================= 3. 极速导出图片 =================
     function toggleFullscreen() {
-        const container = document.getElementById('pdfExportWrapper');
+        const container = document.getElementById('chartExportWrapper');
         const icon = document.getElementById('fullscreenIcon');
         container.classList.toggle('chart-fullscreen');
         if(container.classList.contains('chart-fullscreen')) {
@@ -345,55 +343,22 @@ title: 金融工程 · 个人主页
         if(chartInstance) setTimeout(() => chartInstance.resize(), 100);
     }
 
-    function downloadPDF() {
-        if(typeof html2pdf === 'undefined') {
-            alert('PDF 导出组件尚未加载完毕，请稍后再试。');
-            return;
-        }
-
-        const element = document.getElementById('pdfExportWrapper');
-        const chartDiv = document.getElementById('itoChart');
-        const ticker = document.getElementById('stockTicker').value || 'Model';
-        
-        const imgData = chartInstance.getDataURL({
+    // 采用 ECharts 原生 API，瞬间导出高清大图，告别空白和排版错乱！
+    function downloadImage() {
+        if(!chartInstance) return;
+        const url = chartInstance.getDataURL({
             type: 'png',
-            pixelRatio: 2,
+            pixelRatio: 2, // 2倍高清抗锯齿
             backgroundColor: '#ffffff'
         });
-        
-        const imgEl = document.createElement('img');
-        imgEl.src = imgData;
-        imgEl.style.width = '100%';
-        imgEl.id = 'tempPdfImg'; 
-        
-        chartDiv.style.display = 'none';
-        element.appendChild(imgEl);
-        
-        const buttons = element.querySelectorAll('button');
-        buttons.forEach(b => b.style.display = 'none');
-        
-        const opt = {
-            margin:       0.2,
-            filename:     `Quant_Simulation_${ticker}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-        };
-        
-        html2pdf().set(opt).from(element).save().then(() => {
-            buttons.forEach(b => b.style.display = 'inline-flex');
-            element.removeChild(imgEl);
-            chartDiv.style.display = 'block';
-        });
+        const a = document.createElement('a');
+        const ticker = document.getElementById('stockTicker').value || 'Model';
+        a.download = `Quant_Simulation_${ticker}.png`;
+        a.href = url;
+        a.click();
     }
 
-    function randomNormal() {
-        let u = 0, v = 0;
-        while(u === 0) u = Math.random();
-        while(v === 0) v = Math.random();
-        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-    }
-
+    // ================= 4. 三级拉取机制 (Live -> GitHub DB -> Fallback) =================
     async function fetchStockData() {
         const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
         if(!ticker) return;
@@ -407,18 +372,17 @@ title: 金融工程 · 个人主页
         fetchBtn.disabled = true;
 
         try {
+            // [Tier 1] 尝试实时 API 拉取
             const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
-            
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(() => controller.abort(), 4000); // 4秒超时切断
             const response = await fetch(proxyUrl, { signal: controller.signal });
             clearTimeout(timeoutId);
             
-            if (!response.ok) throw new Error("Proxy connection failed");
+            if (!response.ok) throw new Error("Live API failed");
             const data = await response.json();
-
-            if (!data.chart || !data.chart.result) throw new Error("Ticker not found");
+            if (!data.chart || !data.chart.result) throw new Error("Ticker not found in API");
 
             const closePrices = data.chart.result[0].indicators.quote[0].close.filter(p => p !== null && p !== undefined);
             const currentPrice = closePrices[closePrices.length - 1];
@@ -436,23 +400,49 @@ title: 金融工程 · 个人主页
             document.getElementById('impliedVol').value = annVol.toFixed(3);
             document.getElementById('expReturn').value = annMu.toFixed(3);
             
-            let msg = currentLang === 'zh' ? 
-                `成功！历史年化波动率 ${(annVol*100).toFixed(1)}%, 期望收益 ${(annMu*100).toFixed(1)}%。` :
-                `Success! Hist. Vol ${(annVol*100).toFixed(1)}%, Exp. Ret ${(annMu*100).toFixed(1)}%.`;
-            statusDiv.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> ${msg}`;
+            currentDataSource = currentLang === 'zh' ? '实时接口 (Live Yahoo API)' : 'Live API (Yahoo)';
+            statusDiv.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> ${currentLang==='zh'?'成功！':'Success!'} [${currentDataSource}]`;
             
             runSimulation();
-        } catch (error) {
-            console.warn("API Fetch failed, using fallback mechanism.", error);
-            document.getElementById('currentPrice').value = ticker.includes('600519') ? "1500.00" : "175.00";
-            document.getElementById('impliedVol').value = "0.220";
-            document.getElementById('expReturn').value = "0.080";
-            
-            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> ${currentLang==='zh'?'网络受限，已自动启用备用参数出图。':'Network limited. Using fallback parameters.'}`;
-            runSimulation();
+        } catch (e1) {
+            console.warn("Tier 1 Failed, trying Local GitHub DB...", e1);
+            try {
+                // [Tier 2] 尝试拉取 GitHub Actions 生成的本地 JSON 缓存 (你以后可以在仓库建立这个文件)
+                // 这里我们做个尝试，如果没有文件会直接跳到 Catch
+                const localRes = await fetch('./market_data.json');
+                if(!localRes.ok) throw new Error("No local JSON found");
+                const localData = await localRes.json();
+                
+                if(!localData[ticker]) throw new Error("Ticker not in local DB");
+
+                document.getElementById('currentPrice').value = localData[ticker].price.toFixed(2);
+                document.getElementById('impliedVol').value = localData[ticker].vol.toFixed(3);
+                document.getElementById('expReturn').value = localData[ticker].mu.toFixed(3);
+
+                currentDataSource = currentLang === 'zh' ? '本地缓存 (GitHub Data)' : 'Local Cache (GitHub DB)';
+                statusDiv.innerHTML = `<i class="fas fa-check-circle" style="color: #2563eb;"></i> ${currentLang==='zh'?'已使用本地每日缓存数据':'Using local cached data'} [${currentDataSource}]`;
+                runSimulation();
+            } catch(e2) {
+                // [Tier 3] 如果没网也没 JSON，使用极其稳妥的硬编码离线数据
+                console.warn("Tier 2 Failed, using offline hardcoded fallback.", e2);
+                document.getElementById('currentPrice').value = ticker.includes('600519') ? "1500.00" : "175.00";
+                document.getElementById('impliedVol').value = "0.220";
+                document.getElementById('expReturn').value = "0.080";
+                
+                currentDataSource = currentLang === 'zh' ? '离线备用数据 (Offline Fallback)' : 'Offline Fallback';
+                statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> ${currentLang==='zh'?'网络受限，已自动启用备用参数出图。':'Network limited. Using offline fallback.'} [${currentDataSource}]`;
+                runSimulation();
+            }
         } finally {
             fetchBtn.disabled = false;
         }
+    }
+
+    function randomNormal() {
+        let u = 0, v = 0;
+        while(u === 0) u = Math.random();
+        while(v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
     function generateMonteCarloData(S0, mu, sigma, days, numPaths, numBins) {
@@ -553,22 +543,22 @@ title: 金融工程 · 个人主页
 
             const today = new Date();
             const dateStr = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
+            
+            // 【排版修改】极致压缩成两行，不抢占图表空间
             const watermarkText = currentLang === 'zh' 
-                ? `模拟日期: ${dateStr}\n分析标的: ${ticker}\n当前价格: ${currentCurrency}${S0}\n设定波动率(σ): ${sigma}\n期望收益率(μ): ${mu}\n模拟路径数: ${pathsCount}`
-                : `Date: ${dateStr}\nTicker: ${ticker}\nPrice: ${currentCurrency}${S0}\nVol (σ): ${sigma}\nExp. Ret (μ): ${mu}\nSim Paths: ${pathsCount}`;
+                ? `【运行参数】 标的: ${ticker} | 日期: ${dateStr} | 数据源: ${currentDataSource}\n 模型设定: 价格 ${currentCurrency}${S0} | 波动率(σ) ${sigma} | 期望收益(μ) ${mu} | 路径数 ${pathsCount}`
+                : `[Params] Ticker: ${ticker} | Date: ${dateStr} | Source: ${currentDataSource}\n Input: Price ${currentCurrency}${S0} | Vol(σ) ${sigma} | Exp.Ret(μ) ${mu} | Paths ${pathsCount}`;
 
             if (!chartInstance) chartInstance = echarts.init(document.getElementById('itoChart'));
 
-            const titleText = currentLang === 'zh' ? `${pathsCount}次 蒙特卡洛路径模拟 (逐日归一化)` : `${pathsCount}-Path Monte Carlo (Per-Day Normalized)`;
-
             const option = {
                 backgroundColor: '#ffffff',
-                title: { text: titleText, left: 'center', top: 15, textStyle: { color: '#334155', fontSize: 16 } },
+                // 取消图表标题，标题已在 HTML 中展现，节约极大的垂直空间
                 graphic: [
                     {
                         type: 'text', 
-                        left: '8%', top: '10%',
-                        style: { text: watermarkText, fontSize: 11, fill: '#64748b', fontFamily: 'sans-serif', lineHeight: 18 },
+                        left: '2%', top: '3%', // 将水印贴紧左上角
+                        style: { text: watermarkText, fontSize: 10, fill: '#64748b', fontFamily: 'sans-serif', lineHeight: 15 },
                         z: 100
                     }
                 ],
@@ -593,8 +583,9 @@ title: 金融工程 · 个人主页
                     dimension: 3, min: 0, max: 1, show: false,
                     inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] }
                 },
-                grid: { left: '5%', right: '5%', top: 130, bottom: 40, containLabel: true },
-                xAxis: { type: 'category', data: xAxisData, name: currentLang==='zh'?'交易日 (Days)':'Trading Days', nameLocation: 'middle', nameGap: 25, axisLabel: {color: '#64748b'}, nameTextStyle: {color: '#64748b'} },
+                // 【排版修改】网格极度拉伸。top缩减至 45，左右缩减至 2% / 3%，极大增加图表绘图面积
+                grid: { left: '2%', right: '3%', top: 45, bottom: 25, containLabel: true },
+                xAxis: { type: 'category', data: xAxisData, name: currentLang==='zh'?'交易日':'Days', nameLocation: 'end', nameGap: 10, axisLabel: {color: '#64748b'} },
                 yAxis: [
                     { type: 'category', data: data.yAxisLabels, show: false }, 
                     { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { color: '#64748b', formatter: function(val) { return currentCurrency + val.toFixed(0); } }, splitLine: { lineStyle: {color: '#e2e8f0', type: 'dashed'} } }
