@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A股量化策略回测系统 </title>
+    <title>A股量化策略回测与归因系统 (分屏呼吸灯版)</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
@@ -115,9 +115,9 @@
 
     <script>
         const myChart = echarts.init(document.getElementById('chart-container'));
-        let glowInterval = null; // 用于存储呼吸灯定时器
+        let glowInterval = null; 
         
-        // 🎯 完美初始设置：匹配用户指定的 2025 初始回测条件
+        // 🎯 初始设置：50%上证, 25%科创50, 25%创业板
         let portfolioConfig = [
             { code: 'sh000001', weight: 50 },
             { code: 'sh000688', weight: 25 },
@@ -126,7 +126,7 @@
         let cachedDataStore = null;
 
         // ==========================================
-        // 🔬 内生高保真数仓生成器（生成合规逻辑的2025全年交易序列）
+        // 🔬 内生高保真数仓生成器（2025全年）
         // ==========================================
         function generateDeterministic2025Data() {
             const store = {};
@@ -151,7 +151,7 @@
             let p_300 = 1.0, p_001 = 1.0, p_688 = 1.0, p_906 = 1.0;
             
             dates.forEach((date) => {
-                let betaFactor = lcg() - 0.485; // 2025温和多头中枢
+                let betaFactor = lcg() - 0.485; 
                 let r_300 = betaFactor * 0.011 + (lcg() - 0.5) * 0.005 + 0.0004;
                 let r_001 = betaFactor * 0.009 + (lcg() - 0.5) * 0.004 + 0.0003;
                 let r_688 = betaFactor * 0.024 + (lcg() - 0.5) * 0.021 + 0.0007;
@@ -216,7 +216,7 @@
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
             
-            // 首开提速：如果是默认的2025时间且资产在数仓内，秒级返回
+            // 首开秒级返回缓存数据
             if (startDate === '2025-01-01' && endDate === '2025-12-31' && cachedDataStore[code]) {
                 return cachedDataStore[code];
             }
@@ -289,19 +289,15 @@
                 let bDailyReturns = [];
 
                 let bBase = dataStore[benchmarkCode][alignedDates[0]];
-                let assetBases = {};
-                portfolioConfig.forEach(item => { assetBases[item.code] = dataStore[item.code][alignedDates[0]]; });
 
                 for (let i = 1; i < alignedDates.length; i++) {
                     let d = alignedDates[i];
                     let prevD = alignedDates[i-1];
                     
-                    // 基准净值
                     let bNAV = dataStore[benchmarkCode][d] / bBase;
                     bNetValues.push(bNAV);
                     bDailyReturns.push((dataStore[benchmarkCode][d] - dataStore[benchmarkCode][prevD]) / dataStore[benchmarkCode][prevD]);
 
-                    // 策略组合净值（收益率加权合成）
                     let portfolioTodayReturn = 0;
                     portfolioConfig.forEach(item => {
                         let r = (dataStore[item.code][d] - dataStore[item.code][prevD]) / dataStore[item.code][prevD];
@@ -311,12 +307,10 @@
                     
                     let newPNAV = pNetValues[pNetValues.length - 1] * (1 + portfolioTodayReturn);
                     pNetValues.push(newPNAV);
-
-                    // 超额收益
                     excessSeries.push(newPNAV - bNAV);
                 }
 
-                // 指标计算
+                // 计算用于图表水印的核心指标
                 let pMetrics = calculateMetrics(pNetValues, pDailyReturns);
                 let bMetrics = calculateMetrics(bNetValues, bDailyReturns);
 
@@ -328,8 +322,19 @@
                 document.getElementById('meta-bench-dd').innerText = `基准最大回撤: ${fmt(bMetrics.maxDD)}`;
                 document.getElementById('meta-sharpe-calmar').innerText = `${pMetrics.sharpe.toFixed(2)} / ${pMetrics.calmar.toFixed(2)}`;
 
-                // 渲染带分屏和呼吸灯的图表
-                renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, benchmarkCode.toUpperCase());
+                // 📌 整理用于图像导出的数据
+                let displayMetrics = {
+                    totalReturn: fmt(pMetrics.totalReturn),
+                    annReturn: fmt(pMetrics.annReturn),
+                    annVol: fmt(pMetrics.annVol),
+                    maxDD: fmt(pMetrics.maxDD),
+                    sharpe: pMetrics.sharpe.toFixed(2),
+                    calmar: pMetrics.calmar.toFixed(2)
+                };
+                let weightStr = portfolioConfig.map(item => `${item.code.toUpperCase()}: ${item.weight}%`).join('\n');
+
+                // 渲染图表并传入指标
+                renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, benchmarkCode.toUpperCase(), displayMetrics, weightStr);
 
             } catch (err) {
                 alert("回测引擎异常: " + err.message);
@@ -338,38 +343,72 @@
             }
         }
 
-        function renderBacktestChart(dates, pNAV, bNAV, excess, benchName) {
-            // 清理旧的呼吸灯定时器
+        function renderBacktestChart(dates, pNAV, bNAV, excess, benchName, metrics, weightStr) {
             if (glowInterval) clearInterval(glowInterval);
+            
+            // 动态生成今日日期
+            const today = new Date();
+            const genDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
+            const safeImageName = '策略回测研报_' + genDate.split('/').join('');
 
             const option = {
-                // 彻底关闭渲染上浮动画，实现秒开定型
-                animation: false, 
+                animation: false, // 秒开定型，绝不上浮
                 title: { text: '多资产策略回测净值与超额收益归因 (NAV & Alpha)', left: 'center', top: 5 },
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢/跑输)'], top: 30 },
+                
+                // 🛠️ 将图例稍微偏左，以免挡住右侧的数据卡片
+                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢/跑输)'], top: 35, left: '30%' },
                 toolbox: { 
-                    feature: { saveAsImage: { name: '回测与归因结果', pixelRatio: 2, backgroundColor: '#fff' } },
-                    right: 20
+                    feature: { saveAsImage: { name: safeImageName, pixelRatio: 2, backgroundColor: '#fff' } },
+                    right: 20, top: 10
                 },
                 
-                // 📊 经典的量化分屏排版：上图看净值走势，下图看超额柱状图
+                // 📊 绝对物理隔离：右侧死死锁定 260 像素的空白区，保护水印文字不被曲线覆盖
                 grid: [
-                    { left: '5%', right: '5%', top: '15%', height: '50%', containLabel: true },
-                    { left: '5%', right: '5%', top: '70%', height: '22%', containLabel: true }
+                    { left: 60, right: 260, top: '15%', height: '50%', containLabel: true },
+                    { left: 60, right: 260, top: '70%', height: '22%', containLabel: true }
                 ],
                 xAxis: [
-                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } }, // 主图隐藏日期重叠
-                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 1 }                              // 副图显示日期
+                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } },
+                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 1 }
                 ],
                 yAxis: [
                     { type: 'value', scale: true, gridIndex: 0, name: '累计净值' },
                     { type: 'value', gridIndex: 1, name: '超额' }
                 ],
-                // 加入数据缩放，双图表完美联动
                 dataZoom: [
                     { type: 'inside', start: 0, end: 100, xAxisIndex: [0, 1] },
-                    { show: true, type: 'slider', bottom: '2%', xAxisIndex: [0, 1] }
+                    { show: true, type: 'slider', bottom: '1%', xAxisIndex: [0, 1] }
+                ],
+                
+                // 💎 核心水印回归：生成于图表右上角空白区域，完美支持下载
+                graphic: [
+                    {
+                        type: 'group', right: 15, top: '15%',
+                        children: [
+                            {
+                                type: 'rect', z: 100, shape: { width: 220, height: 330, r: 8 },
+                                style: { fill: '#f8fafc', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.05)' }
+                            },
+                            {
+                                type: 'text', z: 100, left: 15, top: 15,
+                                style: {
+                                    fill: '#1e293b',
+                                    text: `📅 回测生成: ${genDate}\n\n` + 
+                                          `--------------------------------\n\n` +
+                                          `📈 累计收益: ${metrics.totalReturn}\n` +
+                                          `⚡ 年化收益: ${metrics.annReturn}\n` +
+                                          `🌊 年化波动: ${metrics.annVol}\n` +
+                                          `📉 最大回撤: ${metrics.maxDD}\n\n` +
+                                          `🏆 夏普比率: ${metrics.sharpe}\n` +
+                                          `⚖️ 卡玛比率: ${metrics.calmar}\n\n` +
+                                          `--------------------------------\n\n` +
+                                          `🎯 资产配置组合:\n\n${weightStr}`, 
+                                    font: 'bold 12px sans-serif', lineHeight: 18
+                                }
+                            }
+                        ]
+                    }
                 ],
                 
                 series: [
@@ -386,7 +425,6 @@
                     {
                         name: '超额收益(跑赢/跑输)', type: 'bar', data: excess,
                         xAxisIndex: 1, yAxisIndex: 1,
-                        // 智能柱状图：正超额为红柱，负超额为绿柱
                         itemStyle: {
                             color: function(params) {
                                 return params.data >= 0 ? '#ef4444' : '#10b981';
@@ -396,21 +434,18 @@
                 ]
             };
             
-            // 首帧直接定稿
             myChart.setOption(option, true);
 
-            // 🌟 重新接回经典的“呼吸灯特效”
+            // 🌟 纯净渐变呼吸灯特效
             let startTime = Date.now();
             glowInterval = setInterval(() => {
                 const timeElapsed = Date.now() - startTime;
                 const phase = (Math.sin(timeElapsed / 1000 * Math.PI) + 1) / 2; 
 
-                // 在亮红色 (#ef4444) 和暗深红色 (#8b1a1a) 之间纯净渐变
                 const r = Math.round(239 - phase * (239 - 139)); 
                 const g = Math.round(68 - phase * (68 - 26));
                 const b = Math.round(68 - phase * (68 - 26));
 
-                // 局部高频更新，不会触发 ECharts 的结构性重绘（所以不受 animation: false 限制）
                 myChart.setOption({
                     series: [{
                         name: '组合净值',
@@ -421,10 +456,10 @@
         }
 
         // ==========================================
-        // 🚀 初始化加载：打开网页一开即现
+        // 🚀 初始化无感秒开加载
         // ==========================================
         renderPortfolioDOM();
-        runBacktest(true); // 传入 true 代表静默初始化，全自动跑出100%正确的闭环真报告
+        runBacktest(true); 
     </script>
 </body>
 </html>
