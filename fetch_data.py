@@ -23,11 +23,13 @@ def update_index_data(symbol, filename):
     file_path = os.path.join(DATA_DIR, f"{filename}.json")
     print(f"正在获取 [{symbol}] 的数据...")
     
-    try:
+ try:
         # 抓取日线数据
         df_new = ak.stock_zh_index_daily(symbol=symbol)
         df_new = df_new[['date', 'open', 'close', 'low', 'high', 'volume']]
-        df_new['date'] = pd.to_datetime(df_new['date']).dt.strftime('%Y-%m-%d')
+        
+        # 🌟 核心修复：剔除掉价格数据为空(NaN)的交易日，保证数据纯净
+        df_new = df_new.dropna(subset=['open', 'close', 'low', 'high'])
         
         # 增量合并逻辑
         if os.path.exists(file_path):
