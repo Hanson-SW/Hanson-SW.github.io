@@ -263,7 +263,57 @@
 
         function renderChart(dates, portData, benchData, alphaData, portName, benchName, metricsObj) {
             if (glowInterval) clearInterval(glowInterval);
+const option = {
+    // 🎯 核心优化：彻底关闭 ECharts 所有入场、渐进、上浮和缩放动画
+    animation: false, 
 
+    title: {
+        text: '策略回测净值与超额收益对比',
+        left: 'center'
+    },
+    tooltip: {
+        trigger: 'axis',
+        // ... 其他保持不变
+    },
+    grid: {
+        // ... 你的网格配置
+    },
+    xAxis: {
+        type: 'category',
+        data: dates,
+        boundaryGap: false
+    },
+    yAxis: [
+        { type: 'value', name: '组合净值', scale: true },
+        { type: 'value', name: '超额收益', scale: true }
+    ],
+    series: [
+        {
+            name: '组合净值',
+            type: 'line',
+            data: netValues,
+            symbol: 'none',
+            smooth: true
+        },
+        {
+            name: '基准净值',
+            type: 'line',
+            data: benchmarkValues,
+            symbol: 'none',
+            smooth: true
+        },
+        {
+            name: '超额收益',
+            type: 'line', // 如果是折线图
+            // 或者 type: 'bar', 如果是柱状图
+            data: excessReturns,
+            symbol: 'none'
+        }
+    ]
+};
+
+// 最后应用配置
+myChart.setOption(option, true);
             const option = {
                 title: { text: `净值走势与超额收益对比: ${portName}`, subtext: '起始净值: 1.0', left: 'center', top: 5 },
                 tooltip: { trigger: 'axis' },
