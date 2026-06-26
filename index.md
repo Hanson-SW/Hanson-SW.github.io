@@ -84,7 +84,7 @@ title: 金融工程 · 个人主页
             </div>
 
             <div style="flex: 1; min-width: 90px;">
-                <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;" data-i18n="mc_price">当前股价</label>
+                <label id="priceLabel" style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">当前股价 ($)</label>
                 <input type="number" id="currentPrice" value="170.00" step="0.01" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;" />
             </div>
 
@@ -182,7 +182,6 @@ title: 金融工程 · 个人主页
     .chart-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; margin: 0 !important; padding: 2rem !important; box-sizing: border-box; background: #0f172a !important; }
     .chart-fullscreen #itoChart { height: 100% !important; }
     
-    /* 联想菜单 Hover 样式 */
     .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #334155; transition: background 0.1s; }
     .autocomplete-item:hover { background: #eff6ff; color: #2563eb; }
     .autocomplete-item strong { color: #0f172a; }
@@ -211,11 +210,10 @@ title: 金融工程 · 个人主页
         proj1_tag: { zh: "· Python 回测 & 归因", en: "· Python Backtesting & Attribution" },
         proj2_name: { zh: "A股择时策略", en: "A-Share Timing Strategy" },
         proj2_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
-        mc_title: { zh: "实盘量化引擎：蒙特卡洛股价路径预测", en: "Live Quant Engine: Monte Carlo Price Path Prediction" },
+        mc_title: { zh: "实盘量化引擎：蒙特卡洛股价路径预测", en: "Live Quant Engine: Monte Carlo Path Prediction" },
         mc_desc: { zh: "支持A股(后缀.SS/.SZ)与美股。系统将自动拉取真实历史数据测算参数，并在后台进行 <b>5000次</b> Itô 随机漫步，生成未来走势的双色概率密度热力图。", en: "Supports US & China A-shares (.SS/.SZ). Auto-fetches live data to estimate parameters, runs <b>5000</b> Itô random walks, and generates a dual-color probability density heatmap." },
         mc_ticker: { zh: "股票代码 (Ticker)", en: "Stock Ticker" },
         mc_pull: { zh: "拉取", en: "Fetch" },
-        mc_price: { zh: "当前股价", en: "Current Price" },
         mc_vol: { zh: "波动率 (σ)", en: "Volatility (σ)" },
         mc_mu: { zh: "期望收益 (μ)", en: "Expected Ret (μ)" },
         mc_days: { zh: "预测天数", en: "Horizon (Days)" },
@@ -236,7 +234,11 @@ title: 金融工程 · 个人主页
         });
         document.getElementById('stockTicker').placeholder = currentLang === 'zh' ? "尝试输入 A 或 600..." : "Try typing AAPL or TSLA...";
         document.getElementById('aiSearchInput').placeholder = currentLang === 'zh' ? "输入你想问的金融问题…" : "Ask a financial question...";
-        if(chartInstance) runSimulation(); // 重新渲染图表以刷新中英文语言轴
+        
+        // 更新货币符号相关的 Label
+        document.getElementById('priceLabel').innerText = currentLang === 'zh' ? `当前股价 (${currentCurrency})` : `Current Price (${currentCurrency})`;
+        
+        if(chartInstance) runSimulation(); 
     }
 
     // ================= 2. 股票智能联想 (Yahoo Finance API) =================
@@ -248,7 +250,6 @@ title: 金融工程 · 个人主页
         
         if(q.length < 1) { listDiv.style.display = 'none'; return; }
         
-        // 延迟触发，防止请求过频
         searchTimer = setTimeout(async () => {
             try {
                 const proxyUrl = `https://api.allorigins.win/get?url=`;
@@ -260,7 +261,6 @@ title: 金融工程 · 个人主页
                 if(data.quotes && data.quotes.length > 0) {
                     let html = '';
                     data.quotes.forEach(item => {
-                        // 过滤掉非股票的垃圾信息
                         if(item.quoteType === 'EQUITY' || item.quoteType === 'ETF') {
                             const name = item.shortname || item.longname || '';
                             html += `<div class="autocomplete-item" onclick="selectTicker('${item.symbol}')">
@@ -282,19 +282,18 @@ title: 金融工程 · 个人主页
     function selectTicker(symbol) {
         document.getElementById('stockTicker').value = symbol;
         document.getElementById('autocompleteList').style.display = 'none';
-        fetchStockData(); // 选中后自动拉取数据
+        fetchStockData();
     }
 
-    // 点击外部关闭联想菜单
     document.addEventListener('click', function(e) {
         if(!document.getElementById('autocompleteList').contains(e.target) && e.target.id !== 'stockTicker') {
             document.getElementById('autocompleteList').style.display = 'none';
         }
     });
 
-
     // ================= 3. 量化图表与数据拉取 =================
     let chartInstance = null;
+    let currentCurrency = '$'; // 全局记录当前货币符号
 
     function toggleFullscreen() {
         const container = document.getElementById('chartContainer');
@@ -325,19 +324,25 @@ title: 金融工程 · 个人主页
     async function fetchStockData() {
         const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
         if(!ticker) return;
+        
+        // 动态判定货币符号 (A股为 ¥，其它默认 $)
+        currentCurrency = (ticker.endsWith('.SS') || ticker.endsWith('.SZ')) ? '¥' : '$';
+        document.getElementById('priceLabel').innerText = currentLang === 'zh' ? `当前股价 (${currentCurrency})` : `Current Price (${currentCurrency})`;
+
         const statusDiv = document.getElementById('dataStatus');
         const fetchBtn = document.getElementById('fetchBtn');
         statusDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${currentLang==='zh'?'拉取数据中...':'Fetching data...'}`;
         fetchBtn.disabled = true;
 
         try {
+            // 加入 disableCache=true 防止代理服务器返回过期的 A股缓存
             const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
+            const proxyUrl = `https://api.allorigins.win/get?disableCache=true&url=${encodeURIComponent(yahooUrl)}`;
             const response = await fetch(proxyUrl);
             const rawData = await response.json();
             const data = JSON.parse(rawData.contents);
 
-            if (!data.chart || !data.chart.result) throw new Error("Ticker not found");
+            if (!data.chart || !data.chart.result) throw new Error("Ticker not found in Yahoo Finance");
 
             const closePrices = data.chart.result[0].indicators.quote[0].close.filter(p => p !== null);
             const currentPrice = closePrices[closePrices.length - 1];
@@ -363,13 +368,12 @@ title: 金融工程 · 个人主页
             runSimulation();
         } catch (error) {
             console.error(error);
-            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> ${currentLang==='zh'?'拉取失败，请检查代码(A股需加 .SS 或 .SZ)':'Fetch failed. Check ticker (China stocks need .SS or .SZ)'}`;
+            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> ${currentLang==='zh'?'拉取失败，请检查代码(A股务必添加后缀 .SS 或 .SZ)':'Fetch failed. Check ticker (China stocks need .SS or .SZ)'}`;
         } finally {
             fetchBtn.disabled = false;
         }
     }
 
-    // 核心引擎：提升至 5000 次模拟！
     function generateMonteCarloData(S0, mu, sigma, days, numPaths = 5000, numBins = 70) {
         let paths = [];
         let dt = 1 / 252;
@@ -406,6 +410,7 @@ title: 金融工程 · 个人主页
             }
         }
 
+        // 保留所有发生频数 >= 1 的网格数据
         for(let d = 0; d <= days; d++) {
             for(let b = 0; b < numBins; b++) {
                 if(matrix[d][b] > 0) heatmapData.push([d, b, matrix[d][b]]);
@@ -431,11 +436,9 @@ title: 金融工程 · 个人主页
         const mu = parseFloat(document.getElementById('expReturn').value);
         const days = parseInt(document.getElementById('timeHorizon').value);
 
-        const btnHtml = document.getElementById('simBtn').innerHTML;
         document.getElementById('simBtn').innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${currentLang==='zh'?'计算中':'Computing'}`;
 
         setTimeout(() => {
-            // 生成 5000 次模拟！
             const data = generateMonteCarloData(S0, mu, sigma, days, 5000, 70);
             let xAxisData = [];
             for(let i = 0; i <= days; i++) xAxisData.push(i);
@@ -455,22 +458,22 @@ title: 金融工程 · 个人主页
                             let upper = lower + data.binSize;
                             let prob = ((count / data.numPaths) * 100).toFixed(2);
                             return `<div style="font-weight:bold; margin-bottom:4px; color:#38bdf8;">${currentLang==='zh'?'第 '+day+' 天预测':'Day '+day+' Forecast'}</div>
-                                    ${currentLang==='zh'?'价格区间':'Price Range'}: <b>[ $${lower.toFixed(2)} , $${upper.toFixed(2)} ]</b><br/>
+                                    ${currentLang==='zh'?'价格区间':'Price Range'}: <b>[ ${currentCurrency}${lower.toFixed(2)} , ${currentCurrency}${upper.toFixed(2)} ]</b><br/>
                                     ${currentLang==='zh'?'落入概率':'Probability'}: <b style="color:#f472b6;">${prob}%</b> <span style="color:#94a3b8; font-size:0.85em;">(N=${count})</span>`;
                         } else {
                             return `<div style="font-weight:bold; margin-bottom:4px; color:#38bdf8;">${params.seriesName}</div>
-                                    Day ${params.dataIndex} <br/>${currentLang==='zh'?'预期股价':'Expected Price'}: <b>$${params.value.toFixed(2)}</b>`;
+                                    Day ${params.dataIndex} <br/>${currentLang==='zh'?'预期股价':'Expected Price'}: <b>${currentCurrency}${params.value.toFixed(2)}</b>`;
                         }
                     }
                 },
                 visualMap: {
-                    min: 0, 
-                    // 核心技术点：强行截断最高频数，让低概率的浅紫色能够提早显现，避免被大基数稀释
-                    max: Math.min(data.maxFreq * 0.4, 200), 
+                    // 从真实的最小频数(1次) 到真实的最大频数，确保渐变从头到尾无截断
+                    min: 1, 
+                    max: data.maxFreq, 
                     calculable: true, orient: 'vertical', right: '2%', top: 'center',
                     inRange: { 
-                        // 从透明(无数据) -> 浅紫(低概率) -> 深紫 -> 亮品红(高概率) 的双色渐变
-                        color: ['rgba(0,0,0,0)', '#4c1d95', '#7e22ce', '#db2777', '#f43f5e'] 
+                        // 深邃蓝(极小概率) -> 亮紫 -> 粉红 -> 荧光红(最大概率)，过渡平滑无断层
+                        color: ['#1e3a8a', '#8b5cf6', '#d946ef', '#f43f5e'] 
                     },
                     textStyle: { color: '#94a3b8', fontSize: 10 },
                     formatter: function (value) { return value.toFixed(0) + (currentLang==='zh'?' 次':' Hits'); }
@@ -479,7 +482,7 @@ title: 金融工程 · 个人主页
                 xAxis: { type: 'category', data: xAxisData, name: currentLang==='zh'?'交易日 (Days)':'Trading Days', nameLocation: 'middle', nameGap: 25, axisLabel: {color: '#94a3b8'}, nameTextStyle: {color: '#cbd5e1'} },
                 yAxis: [
                     { type: 'category', data: data.yAxisLabels, show: false }, 
-                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { color: '#94a3b8', formatter: function(val) { return '$' + val.toFixed(0); } }, splitLine: { lineStyle: {color: '#1e293b', type: 'dashed'} } }
+                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { color: '#94a3b8', formatter: function(val) { return currentCurrency + val.toFixed(0); } }, splitLine: { lineStyle: {color: '#1e293b', type: 'dashed'} } }
                 ],
                 series: [
                     { 
@@ -487,10 +490,9 @@ title: 金融工程 · 个人主页
                         itemStyle: { opacity: 0.8 }, emphasis: { itemStyle: { borderColor: '#fff', borderWidth: 1 } } 
                     },
                     { 
-                        // 单次闪光走势线 (Neon Cyan)
                         name: currentLang==='zh'?'单次发光模拟 (Simulated)':'Single Neon Path', type: 'line', data: data.singleSimPath, yAxisIndex: 1, 
                         showSymbol: false, 
-                        lineStyle: { width: 3, color: '#22d3ee', shadowColor: '#22d3ee', shadowBlur: 15 }, // 赛博朋克发光特效
+                        lineStyle: { width: 3, color: '#22d3ee', shadowColor: '#22d3ee', shadowBlur: 15 }, 
                         itemStyle: { color: '#22d3ee' }, z: 10 
                     },
                     { 
