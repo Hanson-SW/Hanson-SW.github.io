@@ -34,23 +34,10 @@ title: 金融工程 · 个人主页
             <i class="fas fa-eye"></i> <span data-i18n="resume_btn">查看简历</span>
         </button>
     </div>
-
-    <h2 class="section-title">
+😀
+   <h2 class="section-title">
         <i class="fas fa-code-branch"></i> <span data-i18n="project_title">项目展示</span>
     </h2>
-
-    <div class="info-card">
-        <div class="card-left">
-            <i class="fas fa-chart-pie card-icon"></i>
-            <span class="card-text" data-i18n="proj1_name">基金组合分析工具</span>
-            <span class="card-tag" data-i18n="proj1_tag">· Python 回测 &amp; 归因</span>
-        </div>
-        <div class="card-buttons">
-            <button onclick="window.open('https://github.com/hanson-sw/fund-analysis', '_blank')" class="btn btn-outline">
-                <i class="fab fa-github"></i> Repository
-            </button>
-        </div>
-    </div>
 
     <div class="info-card">
         <div class="card-left">
@@ -59,9 +46,6 @@ title: 金融工程 · 个人主页
             <span class="card-tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</span>
         </div>
         <div class="card-buttons">
-            <button onclick="window.open('https://github.com/hanson-sw/astock-strategy', '_blank')" class="btn btn-outline">
-                <i class="fab fa-github"></i> Repository
-            </button>
             <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary">
                 <i class="fas fa-play"></i> <span data-i18n="proj_backtest_btn">运行回测模型</span>
             </button>
@@ -70,22 +54,22 @@ title: 金融工程 · 个人主页
 
     <div class="info-card">
         <div class="card-left">
-            <i class="fas fa-bolt card-icon"></i>
-            <span class="card-text" data-i18n="proj2_name">A股择时策略</span>
-            <span class="card-tag" data-i18n="proj2_tag">· 宏观 + 情绪指标</span>
+            <i class="fas fa-pie-chart card-icon"></i>
+            <span class="card-text" data-i18n="proj_frontier_name">现代资产配置模型</span>
+            <span class="card-tag" data-i18n="proj_frontier_tag">· 马科维茨有效边界优化</span>
         </div>
         <div class="card-buttons">
-            <button onclick="window.open('https://github.com/hanson-sw/astock-strategy', '_blank')" class="btn btn-outline">
-                <i class="fab fa-github"></i> Repository
+            <button onclick="window.open('./efficient_frontier.html', '_blank')" class="btn btn-primary">
+                <i class="fas fa-play"></i> <span data-i18n="proj_frontier_btn">运行有效边界模型</span>
             </button>
         </div>
     </div>
-
+🥲
     <h2 class="section-title" style="margin-top: 3.5rem;">
         <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：股价路径预测</span>
     </h2>
     <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
-        系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
+        系统自动拉取历史数据。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
     </p>
 
     <div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1rem;">
@@ -243,6 +227,9 @@ title: 金融工程 · 个人主页
         proj_backtest_name: { zh: "A股回测模型", en: "A-Share Backtesting Model" },
         proj_backtest_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
         proj_backtest_btn: { zh: "运行回测模型", en: "Run Backtest Model" },
+        proj_frontier_name: { zh: "现代资产配置模型", en: "Modern Portfolio Model" },
+        proj_frontier_tag: { zh: "· 马科维茨有效边界优化", en: "· Markowitz Efficient Frontier Optimization" },
+        proj_frontier_btn: { zh: "运行有效边界模型", en: "Run Frontier Model" },
         proj2_name: { zh: "A股择时策略", en: "A-Share Timing Strategy" },
         proj2_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
         mc_title: { zh: "实盘量化引擎：股价路径预测", en: "Live Quant Engine: Monte Carlo Prediction" },
