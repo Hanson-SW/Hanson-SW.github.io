@@ -57,7 +57,157 @@ title: 金融工程 · 个人主页
             </button>
         </div>
     </div>
+<h2 class="section-title" style="margin-top: 3.5rem;">
+    <i class="fas fa-chart-line" style="color: #2563eb;"></i> 量化模型在线演示：股价路径模拟 (Itô Process)
+</h2>
+<p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;">
+    基于几何布朗运动 (Geometric Brownian Motion)，设定参数后点击“运行模拟”，即可生成未来股价的随机漫步路径。
+</p>
 
+<div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1.5rem;">
+    <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+        
+        <div style="flex: 1; min-width: 120px;">
+            <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">选择股票 (数据源)</label>
+            <select id="stockTicker" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; background: #f8fafc;">
+                <option value="AAPL|170.0">Apple (AAPL) - $170.0</option>
+                <option value="TSLA|175.0">Tesla (TSLA) - $175.0</option>
+                <option value="SPY|510.0">S&P 500 (SPY) - $510.0</option>
+                <option value="CUSTOM">自定义当前股价...</option>
+            </select>
+        </div>
+
+        <div style="flex: 1; min-width: 100px;">
+            <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">当前股价 ($)</label>
+            <input type="number" id="currentPrice" value="170" step="0.1" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
+        </div>
+
+        <div style="flex: 1; min-width: 100px;">
+            <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">隐含波动率 (σ)</label>
+            <input type="number" id="impliedVol" value="0.20" step="0.01" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
+        </div>
+
+        <div style="flex: 1; min-width: 100px;">
+            <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">预期年化收益 (μ)</label>
+            <input type="number" id="expReturn" value="0.08" step="0.01" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
+        </div>
+
+        <div style="flex: 1; min-width: 100px;">
+            <label style="display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600;">预测天数</label>
+            <input type="number" id="timeHorizon" value="252" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;" />
+        </div>
+
+        <button onclick="runSimulation()" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem; white-space: nowrap;">
+            <i class="fas fa-play"></i> 运行模拟
+        </button>
+    </div>
+</div>
+
+<div style="background: #ffffff; border-radius: 16px; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+    <div id="itoChart" style="width: 100%; height: 400px;"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+<script>
+    // 监听股票选择下拉框，自动填充当前股价
+    document.getElementById('stockTicker').addEventListener('change', function(e) {
+        if(this.value !== 'CUSTOM') {
+            const price = this.value.split('|')[1];
+            document.getElementById('currentPrice').value = price;
+        }
+    });
+
+    // Box-Muller 算法生成标准正态分布随机数 (模拟 Excel 里的随机抽取)
+    function randomNormal() {
+        let u = 0, v = 0;
+        while(u === 0) u = Math.random();
+        while(v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    // Itô Process (几何布朗运动) 核心算法
+    function generateItoPath(S0, mu, sigma, days) {
+        let dt = 1 / 252; // 假设一年252个交易日 (对应你Excel中的 0.003968)
+        let simPath = [S0];
+        let idealPath = [S0];
+
+        for(let i = 1; i <= days; i++) {
+            let Z = randomNormal();
+            // 随机漫步公式：St = S_{t-1} * exp((mu - 0.5*sigma^2)*dt + sigma*sqrt(dt)*Z)
+            let drift = (mu - 0.5 * sigma * sigma) * dt;
+            let shock = sigma * Math.sqrt(dt) * Z;
+            let nextPrice = simPath[i-1] * Math.exp(drift + shock);
+            simPath.push(nextPrice);
+
+            // 无波动的理想走势 (Excel里的橙线)
+            let idealNext = idealPath[i-1] * Math.exp(mu * dt);
+            idealPath.push(idealNext);
+        }
+        return { simPath, idealPath };
+    }
+
+    // 初始化 ECharts 实例
+    let chartInstance = null;
+
+    function runSimulation() {
+        const S0 = parseFloat(document.getElementById('currentPrice').value);
+        const sigma = parseFloat(document.getElementById('impliedVol').value);
+        const mu = parseFloat(document.getElementById('expReturn').value);
+        const days = parseInt(document.getElementById('timeHorizon').value);
+
+        // 生成 x 轴 (天数)
+        let xAxisData = [];
+        for(let i = 0; i <= days; i++) xAxisData.push('Day ' + i);
+
+        // 运行模型生成数据
+        const data = generateItoPath(S0, mu, sigma, days);
+
+        // 渲染图表
+        if (!chartInstance) {
+            chartInstance = echarts.init(document.getElementById('itoChart'));
+        }
+
+        const option = {
+            title: { text: 'Itô Process 股价模拟', left: 'center', textStyle: { color: '#334155', fontSize: 16 } },
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['模拟股价走势 (Simulated)', '理想期望走势 (Ideal)'], bottom: 0 },
+            grid: { left: '5%', right: '5%', top: '15%', bottom: '12%', containLabel: true },
+            xAxis: { type: 'category', boundaryGap: false, data: xAxisData },
+            yAxis: { type: 'value', min: 'dataMin', axisLabel: { formatter: '${value}' } },
+            series: [
+                {
+                    name: '模拟股价走势 (Simulated)',
+                    type: 'line',
+                    data: data.simPath,
+                    showSymbol: false,
+                    lineStyle: { width: 2, color: '#2563eb' },
+                    itemStyle: { color: '#2563eb' }
+                },
+                {
+                    name: '理想期望走势 (Ideal)',
+                    type: 'line',
+                    data: data.idealPath,
+                    showSymbol: false,
+                    lineStyle: { width: 2, type: 'dashed', color: '#f59e0b' },
+                    itemStyle: { color: '#f59e0b' }
+                }
+            ]
+        };
+
+        chartInstance.setOption(option);
+    }
+
+    // 页面加载完成后自动跑一次默认数据
+    window.onload = function() {
+        runSimulation();
+    };
+    
+    // 适配窗口缩放
+    window.addEventListener('resize', function() {
+        if(chartInstance) chartInstance.resize();
+    });
+</script>
     <h2 class="section-title">
         <i class="fas fa-paper-plane"></i> 联系我
     </h2>
