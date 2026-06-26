@@ -34,7 +34,7 @@ title: 金融工程 · 个人主页
             <i class="fas fa-eye"></i> <span data-i18n="resume_btn">查看简历</span>
         </button>
     </div>
-😀
+
    <h2 class="section-title">
         <i class="fas fa-code-branch"></i> <span data-i18n="project_title">项目展示</span>
     </h2>
@@ -59,12 +59,12 @@ title: 金融工程 · 个人主页
             <span class="card-tag" data-i18n="proj_frontier_tag">· 马科维茨有效边界优化</span>
         </div>
         <div class="card-buttons">
-            <button onclick="window.open('./efficient_frontier.html', '_blank')" class="btn btn-primary">
+            <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary">
                 <i class="fas fa-play"></i> <span data-i18n="proj_frontier_btn">运行有效边界模型</span>
             </button>
         </div>
     </div>
-🥲
+
     <h2 class="section-title" style="margin-top: 3.5rem;">
         <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：股价路径预测</span>
     </h2>
