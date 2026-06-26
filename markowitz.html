@@ -3,38 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>马科维茨有效边界优化器 (Markowitz Efficient Frontier)</title>
+    <title>Pro版 马科维茨有效边界与历史净值融合终端</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; box-sizing: border-box; }
         
-        /* 左侧控制台 */
         .sidebar { width: 350px; background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; border: 1px solid var(--border); }
         .sidebar h3 { margin: 0 0 10px 0; font-size: 18px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; color: #1e293b; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 12px; font-weight: bold; color: #64748b; }
-        input[type="text"], input[type="number"], input[type="date"] { padding: 10px; border: 1px solid var(--border); border-radius: 8px; outline: none; transition: border-color 0.2s; }
+        input[type="text"], input[type="number"], input[type="date"] { padding: 10px; border: 1px solid var(--border); border-radius: 8px; outline: none; }
         input:focus { border-color: var(--accent); }
         
         .asset-list { display: flex; flex-direction: column; gap: 10px; }
         .asset-item { display: flex; gap: 10px; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; }
         .btn-remove { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
         
-        .btn-add { background: transparent; border: 2px dashed #cbd5e1; padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; color: #64748b; font-weight: bold; transition: all 0.2s; }
+        .btn-add { background: transparent; border: 2px dashed #cbd5e1; padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; color: #64748b; font-weight: bold; }
         .btn-add:hover { border-color: var(--accent); color: var(--accent); background: #f5f3ff; }
-        .btn-run { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); transition: transform 0.1s; }
-        .btn-run:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4); }
+        .btn-run { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); cursor: pointer; }
 
-        /* 右侧内容区 */
         .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
         .stats-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        .stat-card { background: var(--card); padding: 18px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
-        .stat-title { font-size: 13px; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
-        .stat-val { font-size: 24px; font-weight: bold; color: #1e293b; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+        .stat-title { font-size: 11px; color: #64748b; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; }
+        .stat-val { font-size: 20px; font-weight: bold; color: #1e293b; }
+        .stat-sub { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.4; }
         
-        /* 智能权重输出框 */
-        .optimal-weights { font-size: 14px; color: #475569; margin-top: 8px; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; }
+        .optimal-weights { font-size: 13px; color: #475569; margin-top: 8px; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; white-space: pre-wrap; word-break: break-all; }
 
         #chart-container { flex: 1; background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 18px; font-weight: bold; color: var(--accent); }
@@ -58,12 +55,12 @@
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div>正在进行蒙特卡洛矩阵运算，请稍候...</div>
+        <div>正在进行高维马科维茨蒙特卡洛算法求解...</div>
     </div>
 
     <div class="sidebar">
         <h3>🧠 智能资产优化器</h3>
-        <p style="font-size: 12px; color: #64748b; margin-top: -5px;">利用蒙特卡洛模拟寻找最优风险收益比组合</p>
+        <p style="font-size: 12px; color: #64748b; margin-top: -5px;">结合空间有效边界与时间净值曲线的双维大屏</p>
         
         <div class="form-group" style="flex-direction: row; gap: 10px;">
             <div style="flex: 1;"><label>开始提取日期</label><input type="date" id="start-date" value="2022-01-01" style="width:100%"></div>
@@ -71,36 +68,37 @@
         </div>
         
         <div class="form-group">
-            <label>蒙特卡洛模拟次数 (次)</label>
+            <label>模拟碰撞次数 (次)</label>
             <input type="number" id="sim-count" value="3000" min="1000" max="10000" step="500">
-            <span style="font-size:11px; color:#94a3b8;">*次数越多图形越丰满，但计算越耗时</span>
         </div>
 
-        <h3>📦 候选资产池 (无需配平)</h3>
+        <h3>📦 候选资产池 (自动配平)</h3>
         <div class="asset-list" id="assets-container"></div>
         
         <div style="display: flex; gap: 5px;">
-            <input type="text" id="new-asset-code" list="stock-database" placeholder="输入股票/指数代码" style="flex: 1;">
-            <button class="btn-add" onclick="addAsset()" style="padding: 10px; border: none; background: #e2e8f0; color: #475569;">添加</button>
+            <input type="text" id="new-asset-code" list="stock-database" placeholder="输入股票/指数代码" style="flex: 1; padding: 8px; border:1px solid var(--border); border-radius:6px;">
+            <button class="btn-add" onclick="addAsset()" style="padding: 8px 12px; border: none; background: #e2e8f0; color: #475569; border-radius:6px; cursor:pointer;">添加</button>
         </div>
 
-        <button class="btn-run" onclick="runOptimization()">🎯 一键寻找最优组合</button>
+        <button class="btn-run" onclick="runOptimization()">🎯 执行双维资产优化</button>
     </div>
 
     <div class="main-content">
         <div class="stats-container">
             <div class="stat-card" style="border-left-color: #f59e0b;">
-                <div class="stat-title">最优组合 - 预期年化收益率</div>
-                <div class="stat-val" id="opt-return">--</div>
+                <div class="stat-title">最优组合 - 收益与风险</div>
+                <div class="stat-val" id="opt-return-vol">-- / --</div>
+                <div class="stat-sub" id="sub-return-vol">年化收益率 / 年化波动率</div>
             </div>
-            <div class="stat-card" style="border-left-color: #3b82f6;">
-                <div class="stat-title">最优组合 - 预期年化波动率(风险)</div>
-                <div class="stat-val" id="opt-vol">--</div>
+            <div class="stat-card" style="border-left-color: #10b981;">
+                <div class="stat-title">风控核心指标</div>
+                <div class="stat-val" id="opt-drawdown">--</div>
+                <div class="stat-sub" id="sub-risk-metrics">最大回撤(MaxDD): -- <br>卡玛比率(Calmar): --</div>
             </div>
             <div class="stat-card" style="border-left-color: #ef4444;">
-                <div class="stat-title">全局最高夏普比率 (最优解)</div>
-                <div class="stat-val" id="opt-sharpe">--</div>
-                <div class="optimal-weights" id="opt-weights">运行后显示各资产最佳配置比例...</div>
+                <div class="stat-title">夏普与索提诺效率</div>
+                <div class="stat-val" id="opt-sharpe-sortino">-- / --</div>
+                <div class="optimal-weights" id="opt-weights">最优配比比例将在此处输出...</div>
             </div>
         </div>
         <div id="chart-container"></div>
@@ -108,8 +106,6 @@
 
     <script>
         const myChart = echarts.init(document.getElementById('chart-container'));
-        
-        // 初始候选资产池
         let assetPool = ['sh000300', 'sz399006', 'sh000688'];
 
         function renderAssets() {
@@ -119,8 +115,8 @@
                 const div = document.createElement('div');
                 div.className = 'asset-item';
                 div.innerHTML = `
-                    <span style="flex:1;">🏷️ ${code}</span>
-                    <button class="btn-remove" onclick="removeAsset(${index})"><i class="fas fa-times"></i> 删除</button>
+                    <span style="flex:1;">🏷️ ${code.toUpperCase()}</span>
+                    <button class="btn-remove" onclick="removeAsset(${index})">删除</button>
                 `;
                 container.appendChild(div);
             });
@@ -136,14 +132,8 @@
             }
         }
         
-        function removeAsset(index) {
-            assetPool.splice(index, 1);
-            renderAssets();
-        }
+        function removeAsset(index) { assetPool.splice(index, 1); renderAssets(); }
 
-        // ==========================================
-        // 核心一：数据拉取 (复用安全去NaN版本)
-        // ==========================================
         async function fetchAssetData(code) {
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
             try {
@@ -161,19 +151,7 @@
             } catch (error) { return null; }
         }
 
-        // ==========================================
-        // 核心二：协方差矩阵与底层数学引擎 (JS硬核实现)
-        // ==========================================
-        function calculateDailyReturns(priceArray) {
-            let returns = [];
-            for(let i=1; i<priceArray.length; i++) {
-                returns.push((priceArray[i] - priceArray[i-1]) / priceArray[i-1]);
-            }
-            return returns;
-        }
-
         function mean(arr) { return arr.reduce((a,b) => a+b, 0) / arr.length; }
-
         function covariance(arr1, arr2, mean1, mean2) {
             let cov = 0;
             for(let i=0; i<arr1.length; i++) cov += (arr1[i] - mean1) * (arr2[i] - mean2);
@@ -181,8 +159,7 @@
         }
 
         async function runOptimization() {
-            if (assetPool.length < 2) return alert("请至少添加2只以上资产进行组合优化！");
-            
+            if (assetPool.length < 2) return alert("请至少添加2只以上资产！");
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
             const numSimulations = parseInt(document.getElementById('sim-count').value);
@@ -190,7 +167,6 @@
             document.getElementById('loading-overlay').style.display = 'flex';
 
             try {
-                // 1. 获取并对齐数据
                 const dataStore = {};
                 await Promise.all(assetPool.map(async (code) => {
                     const dict = await fetchAssetData(code);
@@ -199,27 +175,31 @@
 
                 let alignedDates = Object.keys(dataStore[assetPool[0]]).filter(d => d >= startDate && d <= endDate).sort();
                 for (let code of assetPool) {
-                    if(!dataStore[code]) throw new Error(`${code} 数据缺失`);
+                    if(!dataStore[code]) throw new Error(`${code.toUpperCase()} 数据拉取或对齐失败`);
                     alignedDates = alignedDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
                 }
+                if (alignedDates.length < 10) throw new Error("有效重合交易日过少");
 
-                if (alignedDates.length < 30) throw new Error("有效重合交易日少于30天，无法计算协方差！");
-
-                // 2. 提取日线对齐价格矩阵并计算收益率
+                // 计算日收益率矩阵
                 const returnsMatrix = [];
+                const numAssets = assetPool.length;
                 for (let code of assetPool) {
-                    const prices = alignedDates.map(d => dataStore[code][d]);
-                    returnsMatrix.push(calculateDailyReturns(prices));
+                    let rList = [];
+                    for(let i=1; i<alignedDates.length; i++) {
+                        let pToday = dataStore[code][alignedDates[i]];
+                        let pYest = dataStore[code][alignedDates[i-1]];
+                        rList.push((pToday - pYest) / pYest);
+                    }
+                    returnsMatrix.push(rList);
                 }
 
-                const numAssets = assetPool.length;
                 const TRADING_DAYS = 252;
                 const RISK_FREE_RATE = 0.02;
 
-                // 3. 计算期望收益向量 (年化) 和 协方差矩阵 (年化)
-                const expectedReturns = [];
-                for(let i=0; i<numAssets; i++) expectedReturns.push(mean(returnsMatrix[i]) * TRADING_DAYS);
+                // 年化平均收益率向量
+                const expectedReturns = returnsMatrix.map(rList => mean(rList) * TRADING_DAYS);
 
+                // 年化协方差矩阵
                 const covMatrix = Array(numAssets).fill(0).map(() => Array(numAssets).fill(0));
                 for(let i=0; i<numAssets; i++) {
                     for(let j=0; j<numAssets; j++) {
@@ -227,22 +207,20 @@
                     }
                 }
 
-                // 4. 蒙特卡洛随机碰撞算法 (Monte Carlo Simulation)
-                const scatterData = []; // 保存所有散点：[波动率, 收益率, 夏普, 权重...]
+                // 蒙特卡洛优化循环
+                const scatterData = [];
                 let maxSharpe = -Infinity;
+                let optimalWeights = null;
                 let optimalPoint = null;
 
                 for (let sim=0; sim<numSimulations; sim++) {
-                    // 生成随机权重，使其和为1
                     let weights = Array.from({length: numAssets}, () => Math.random());
-                    let sumWeights = weights.reduce((a,b)=>a+b,0);
-                    weights = weights.map(w => w / sumWeights);
+                    let sumW = weights.reduce((a,b)=>a+b,0);
+                    weights = weights.map(w => w / sumW);
 
-                    // 组合收益： w^T * R
                     let portReturn = 0;
                     for(let i=0; i<numAssets; i++) portReturn += weights[i] * expectedReturns[i];
 
-                    // 组合方差： w^T * Cov * w
                     let portVar = 0;
                     for(let i=0; i<numAssets; i++) {
                         for(let j=0; j<numAssets; j++) {
@@ -252,82 +230,190 @@
                     let portVol = Math.sqrt(portVar);
                     let sharpe = (portReturn - RISK_FREE_RATE) / portVol;
 
-                    const dataPoint = [portVol, portReturn, sharpe, ...weights];
-                    scatterData.push(dataPoint);
+                    const pt = [portVol, portReturn, sharpe, ...weights];
+                    scatterData.push(pt);
 
                     if (sharpe > maxSharpe) {
                         maxSharpe = sharpe;
-                        optimalPoint = dataPoint;
+                        optimalWeights = weights;
+                        optimalPoint = pt;
                     }
                 }
 
-                // 5. 更新UI展示
-                const fmtPct = (v) => (v * 100).toFixed(2) + '%';
-                document.getElementById('opt-return').innerText = fmtPct(optimalPoint[1]);
-                document.getElementById('opt-vol').innerText = fmtPct(optimalPoint[0]);
-                document.getElementById('opt-sharpe').innerText = optimalPoint[2].toFixed(3);
-                
-                // 解析最优权重
-                const optW = optimalPoint.slice(3);
-                let weightStr = assetPool.map((code, i) => `${code.toUpperCase()}: ${fmtPct(optW[i])}`).join(' | ');
-                document.getElementById('opt-weights').innerText = `最优配比：${weightStr}`;
+                // ==========================================
+                // 动态计算最优组合的时间轴指标（最大回撤、索提诺、卡玛等）
+                // ==========================================
+                let netValues = [1.0];
+                let dailyReturns = [];
+                let peak = 1.0;
+                let maxDD = 0;
 
-                // 6. 渲染精美散点图 (有效边界)
-                renderScatterChart(scatterData, optimalPoint, assetPool);
+                for(let i=1; i<alignedDates.length; i++) {
+                    let todayReturn = 0;
+                    for(let a=0; a<numAssets; a++) {
+                        todayReturn += optimalWeights[a] * returnsMatrix[a][i-1];
+                    }
+                    dailyReturns.push(todayReturn);
+                    let currentNV = netValues[netValues.length-1] * (1 + todayReturn);
+                    netValues.push(currentNV);
+
+                    if(currentNV > peak) peak = currentNV;
+                    let dd = (peak - currentNV) / peak;
+                    if(dd > maxDD) maxDD = dd;
+                }
+
+                // 索提诺比率计算 (仅考虑下行标准差)
+                const negReturns = dailyReturns.filter(r => r < 0);
+                let downsideVar = negReturns.length > 0 ? negReturns.reduce((acc, v) => acc + v*v, 0) / dailyReturns.length : 0;
+                let downsideVol = Math.sqrt(downsideVar) * Math.sqrt(TRADING_DAYS);
+                let sortino = downsideVol === 0 ? 0 : (optimalPoint[1] - RISK_FREE_RATE) / downsideVol;
+
+                // 卡玛比率计算
+                let calmar = maxDD === 0 ? 0 : optimalPoint[1] / maxDD;
+
+                // 更新仪表盘面板数据
+                const fmtPct = (v) => (v * 100).toFixed(2) + '%';
+                document.getElementById('opt-return-vol').innerText = `${fmtPct(optimalPoint[1])} / ${fmtPct(optimalPoint[0])}`;
+                document.getElementById('opt-drawdown').innerText = fmtPct(maxDD);
+                document.getElementById('sub-risk-metrics').innerHTML = `最大回撤(MaxDD): ${fmtPct(maxDD)} <br>卡玛比率(Calmar): ${calmar.toFixed(2)}`;
+                document.getElementById('opt-sharpe-sortino').innerText = `${optimalPoint[2].toFixed(2)} / ${sortino.toFixed(2)}`;
+                
+                let weightStr = assetPool.map((code, i) => `${code.toUpperCase()}: ${fmtPct(optimalWeights[i])}`).join(' | ');
+                document.getElementById('opt-weights').innerText = `最优切点配比：\n${weightStr}`;
+
+                const extraMetrics = { maxDD: fmtPct(maxDD), sortino: sortino.toFixed(2), calmar: calmar.toFixed(2) };
+
+                // 渲染融合大图
+                renderComprehensiveChart(scatterData, optimalPoint, assetPool, alignedDates, netValues, extraMetrics);
 
             } catch (error) {
-                alert("运算失败：" + error.message);
+                alert("量化引擎报错：" + error.message);
+                console.error(error);
             } finally {
                 document.getElementById('loading-overlay').style.display = 'none';
             }
         }
 
-        function renderScatterChart(scatterData, optPoint, assets) {
-            // ECharts视觉映射散点图
+        function renderComprehensiveChart(scatterData, optPoint, assets, dates, netValues, metrics) {
             const option = {
-                title: { text: '组合有效边界 (Efficient Frontier)', subtext: '通过蒙特卡洛寻找最优风险收益比' },
-                tooltip: {
-                    formatter: function (params) {
-                        if (params.componentType !== 'series') return '';
-                        const data = params.data;
-                        let tip = `<b>收益率:</b> ${(data[1]*100).toFixed(2)}%<br/><b>波动率(风险):</b> ${(data[0]*100).toFixed(2)}%<br/><b>夏普比率:</b> ${data[2].toFixed(2)}<br/><hr/>`;
-                        for(let i=0; i<assets.length; i++) {
-                            tip += `${assets[i]}: ${(data[3+i]*100).toFixed(1)}%<br/>`;
-                        }
-                        return tip;
-                    }
+                title: { 
+                    text: '资产配置优化：有效边界 与 历史净值 融合大屏', 
+                    subtext: `最优解风控：MaxDD=${metrics.maxDD} | Sortino=${metrics.sortino} | Calmar=${metrics.calmar}`,
+                    left: 'center',
+                    top: 5
                 },
-                toolbox: { feature: { saveAsImage: { name: '有效边界分析', pixelRatio: 2, backgroundColor: '#fff' } } },
-                xAxis: { type: 'value', name: '年化波动率 (风险)', scale: true, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' } },
-                yAxis: { type: 'value', name: '年化收益率', scale: true, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' } },
-                // 核心视觉映射：通过夏普比率上色 (深蓝代表低夏普，紫红代表高夏普)
+                tooltip: { trigger: 'item' },
+                toolbox: { 
+                    feature: { 
+                        saveAsImage: { 
+                            name: '马科维茨有效边界与历史净值分析大图', 
+                            pixelRatio: 2, 
+                            backgroundColor: '#fff' 
+                        } 
+                    },
+                    right: 30,
+                    top: 10
+                },
+                // 🛠️ 调整大板布局留白，彻底把文字挤到可视区域内
+                grid: { left: '10%', right: '10%', top: '15%', bottom: '10%', containLabel: true },
+                
+                // 💡 核心设计：双坐标系统。
+                // 轴0是有效边界散点图的轴；轴1是隐藏的、用来画背景净值线的时间/净值轴。
+                xAxis: [
+                    { type: 'value', name: '年化波动率(风险)', scale: true, gridIndex: 0, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' }, nameGap: 25 },
+                    { type: 'category', data: dates, gridIndex: 0, show: false } // 隐藏的历史时间轴
+                ],
+                yAxis: [
+                    { type: 'value', name: '年化收益率', scale: true, gridIndex: 0, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' }, nameGap: 35 }, // 放大Gap防重叠
+                    { type: 'value', name: '组合历史净值', scale: true, gridIndex: 0, position: 'right', show: false } // 隐藏的净值Y轴
+                ],
                 visualMap: {
                     min: Math.min(...scatterData.map(d=>d[2])),
                     max: optPoint[2],
-                    dimension: 2, // 绑定数组中的第三项 (夏普比率)
+                    dimension: 2,
                     orient: 'horizontal',
-                    right: 10,
-                    top: 10,
-                    text: ['高夏普 (优质)', '低夏普'],
+                    left: 'center',
+                    top: 60,
+                    text: ['高夏普', '低夏普'],
                     calculable: true,
-                    inRange: { color: ['#cbd5e1', '#3b82f6', '#8b5cf6', '#ef4444'] } // 渐变色系
+                    inRange: { color: ['#cbd5e1', '#6366f1', '#a855f7', '#ec4899'] }
                 },
+                
+                // 📌 核心指标水印悬浮窗
+                graphic: [
+                    {
+                        type: 'group',
+                        right: '11%',
+                        top: '16%',
+                        children: [
+                            {
+                                type: 'rect', z: 100, shape: { width: 180, height: 120, r: 6 },
+                                style: { fill: 'rgba(255, 255, 255, 0.92)', stroke: '#e2e8f0', lineWidth: 1 }
+                            },
+                            {
+                                type: 'text', z: 100, left: 15, top: 15,
+                                style: {
+                                    fill: '#1e293b',
+                                    text: `【最优组合历史表现】\n\n年化收益: ${(optPoint[1]*100).toFixed(2)}%\n年化波动: ${(optPoint[0]*100).toFixed(2)}%\n夏普比率: ${optPoint[2].toFixed(2)}\n最大回撤: ${metrics.maxDD}\n索提诺比: ${metrics.sortino}\n卡玛比率: ${metrics.calmar}`,
+                                    font: 'bold 11px sans-serif',
+                                    lineHeight: 15
+                                }
+                            }
+                        ]
+                    }
+                ],
+
                 series: [
+                    // 1. 背景层：最优组合的历史价格/净值曲线（设置40%透明度，挂载到隐藏的轴上）
+                    {
+                        name: '最高夏普组合历史净值',
+                        type: 'line',
+                        xAxisIndex: 1, // 挂载到隐藏的日期轴
+                        yAxisIndex: 1, // 挂载到隐藏的净值轴
+                        data: netValues,
+                        smooth: true,
+                        symbol: 'none',
+                        z: 1, // 置于底层
+                        lineStyle: { width: 3, color: 'rgba(139, 92, 246, 0.4)' }, // ⚡ 40%透明度
+                        areaStyle: { color: 'rgba(139, 92, 246, 0.05)' },
+                        tooltip: {
+                            formatter: function(params) {
+                                return `⏱️ <b>历史日期:</b> ${params.name}<br/>📈 <b>回测净值:</b> ${params.data.toFixed(4)}`;
+                            }
+                        }
+                    },
+                    // 2. 主体层：蒙特卡洛模拟散点群
                     {
                         name: '模拟组合',
                         type: 'scatter',
-                        symbolSize: 4, // 几千个点，稍微画小一点
+                        xAxisIndex: 0, yAxisIndex: 0,
+                        symbolSize: 4.5,
                         data: scatterData,
-                        itemStyle: { opacity: 0.7 }
+                        z: 2,
+                        itemStyle: { opacity: 0.6 },
+                        tooltip: {
+                            formatter: function (params) {
+                                if(!params.data) return '';
+                                const data = params.data;
+                                let tip = `<b>年化收益:</b> ${(data[1]*100).toFixed(2)}%<br/><b>年化波动:</b> ${(data[0]*100).toFixed(2)}%<br/><b>夏普比率:</b> ${data[2].toFixed(2)}<br/><hr/>`;
+                                for(let i=0; i<assets.length; i++) {
+                                    tip += `${assets[i].toUpperCase()}: ${(data[3+i]*100).toFixed(1)}%<br/>`;
+                                }
+                                return tip;
+                            }
+                        }
                     },
+                    // 3. 焦点层：最高夏普组合切点星芒
                     {
-                        name: '最优切点', // 突出显示夏普比率最大的那一颗星
+                        name: '最优切点',
                         type: 'scatter',
-                        symbol: 'star',
-                        symbolSize: 20,
+                        xAxisIndex: 0, yAxisIndex: 0,
+                        symbol: 'pin',
+                        symbolSize: 22,
+                        z: 3, // 置于最顶层
                         itemStyle: { color: '#fbbf24', shadowBlur: 10, shadowColor: 'rgba(251, 191, 36, 0.8)' },
                         data: [optPoint],
-                        label: { show: true, formatter: '最高夏普解', position: 'right', fontWeight: 'bold' }
+                        label: { show: true, formatter: '最高夏普解', position: 'top', fontWeight: 'bold', color: '#1e293b', backgroundColor: '#fff', padding: 4, borderRadius: 4, borderOpacity: 0.5 }
                     }
                 ]
             };
