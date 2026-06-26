@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro版 资产配置回测终端 (真实数据对接)</title>
+    <title>Pro版 资产配置回测终端 (视觉增强版)</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --bg: #f1f5f9; --card: #ffffff; --border: #cbd5e1; --text: #334155; }
@@ -22,8 +22,8 @@
         
         .btn-add { background: var(--bg); border: 1px dashed var(--border); padding: 10px; border-radius: 6px; cursor: pointer; text-align: center; color: var(--text); font-weight: bold; }
         .btn-add:hover { background: #e2e8f0; }
-        .btn-run { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-run:hover { background: #2563eb; }
+        .btn-run { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: transform 0.1s; }
+        .btn-run:hover { background: #2563eb; transform: translateY(-1px); }
 
         .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
         .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
@@ -34,7 +34,6 @@
         .negative { color: #10b981; }
         #chart-container { flex: 1; background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         
-        /* 加载动画蒙版 */
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: none; justify-content: center; align-items: center; z-index: 999; font-size: 20px; font-weight: bold; color: var(--accent); }
     </style>
 </head>
@@ -66,7 +65,7 @@
         </div>
         <div class="form-group">
             <label>基准标的</label>
-            <input type="text" id="benchmark-code" value="sh000300" list="stock-database" placeholder="输入代码联想">
+            <input type="text" id="benchmark-code" value="sh000688" list="stock-database" placeholder="输入代码联想">
         </div>
 
         <h3>📦 资产配置 (权重须为100%)</h3>
@@ -89,11 +88,12 @@
     <script>
         const myChart = echarts.init(document.getElementById('chart-container'));
         let assets = [
-            { code: 'sh000001', weight: 60 },
-            { code: 'sz399006', weight: 40 }
+            { code: 'sh000688', weight: 100 }
         ];
+        
+        // 动画定时器 ID (用于重置回测时清除上一个动画)
+        let glowInterval = null;
 
-        // UI 渲染逻辑
         function renderAssets() {
             const container = document.getElementById('assets-container');
             container.innerHTML = '';
@@ -103,7 +103,7 @@
                 const div = document.createElement('div');
                 div.className = 'asset-item';
                 div.innerHTML = `
-                    <input type="text" list="stock-database" placeholder="代码 (如sh000001)" value="${asset.code}" onchange="updateAsset(${index}, 'code', this.value)" style="flex:2">
+                    <input type="text" list="stock-database" placeholder="代码" value="${asset.code}" onchange="updateAsset(${index}, 'code', this.value)" style="flex:2">
                     <input type="number" placeholder="权重%" value="${asset.weight}" onchange="updateAsset(${index}, 'weight', this.value)" style="flex:1">
                     <button class="btn-remove" onclick="removeAsset(${index})">X</button>
                 `;
@@ -117,59 +117,33 @@
         function updateAsset(index, key, value) { assets[index][key] = key === 'weight' ? parseFloat(value) || 0 : value; renderAssets(); }
         function addAssetRow() { assets.push({ code: '', weight: 0 }); renderAssets(); }
         function removeAsset(index) { assets.splice(index, 1); renderAssets(); }
-// ==========================================
-// 核心一：从 GitHub 拉取并解析真实 JSON 数据 (极限 Debug 诊断版)
-// ==========================================
-async function fetchAssetData(code) {
-    if (!code) return null;
-    
-    // 1. 强制清理隐形空格和大小写问题
-    const cleanCode = code.trim().toLowerCase();
-    
-    // 2. 强制使用最安全的字符串拼接
-    const url = "https://hanson-sw.github.io/data/" + cleanCode + ".json";
-    
-    try {
-        // 3. 核心大招：追加动态时间戳，强制每次都绕过浏览器缓存请求最新文件！
-        const fetchUrl = url + "?t=" + new Date().getTime();
-        
-        const response = await fetch(fetchUrl);
-        
-        // 检查 HTTP 状态码
-        if (!response.ok) {
-            alert("❌ HTTP 状态报错: " + response.status + "\n请检查: " + cleanCode + " 文件是否真的在仓库里。");
-            return null;
-        }
-        
-    const textData = await response.text();
-        
-        // 检查是不是被 GitHub 错误地返回了 404 HTML 网页
-        if (textData.trim().startsWith("<")) {
-            alert("❌ 数据异常！\n服务器返回了网页(HTML)而不是JSON数据！这说明路径依旧不对。\n请求的URL: " + url);
-            return null;
-        }
-        
-        // 🌟 终极去污粉：把 Python 导出的非法 NaN 替换为合法的 null
-        const cleanTextData = textData.replace(/NaN/g, 'null');
-        
-        // 现在解析绝对不会再崩溃了！
-        const data = JSON.parse(cleanTextData);
-        
-        const priceDict = {};
-        for (let i = 0; i < data.dates.length; i++) {
-            priceDict[data.dates[i]] = data.values[i][1]; 
-        }
-        return priceDict;
-        
-    } catch (error) {
-        // 4. 捕获最底层的网络/代码崩溃，并直接把致命错误抛到您的屏幕上！
-        alert("🚨 底层网络或解析崩溃！\n【错误类型】: " + error.name + "\n【详细原因】: " + error.message + "\n【试图拉取的URL】: " + url);
-        console.error("深度诊断日志:", error);
-        return null;
-    }
-}
 
-        // 高阶指标计算 (同上一版)
+        // 数据拉取核心 (带去NaN强心针版)
+        async function fetchAssetData(code) {
+            if (!code) return null;
+            const cleanCode = code.trim().toLowerCase();
+            const url = "https://hanson-sw.github.io/data/" + cleanCode + ".json";
+            try {
+                const fetchUrl = url + "?t=" + new Date().getTime();
+                const response = await fetch(fetchUrl);
+                if (!response.ok) { alert(`❌ 找不到 ${cleanCode}，请检查代码或等待Actions抓取。`); return null; }
+                const textData = await response.text();
+                if (textData.trim().startsWith("<")) return null;
+                
+                const cleanTextData = textData.replace(/NaN/g, 'null');
+                const data = JSON.parse(cleanTextData);
+                
+                const priceDict = {};
+                for (let i = 0; i < data.dates.length; i++) {
+                    priceDict[data.dates[i]] = data.values[i][1]; 
+                }
+                return priceDict;
+            } catch (error) {
+                console.error("加载数据报错", error);
+                return null;
+            }
+        }
+
         function calculateMetrics(dailyReturns) {
             if(dailyReturns.length === 0) return { annReturn: 0, sharpe: 0, sortino: 0 };
             const TRADING_DAYS = 252;
@@ -189,75 +163,55 @@ async function fetchAssetData(code) {
             return { annReturn, sharpe, sortino };
         }
 
-        // ==========================================
-        // 核心二：执行回测 (解决日期对齐问题)
-        // ==========================================
         async function runBacktest() {
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
             const benchmarkCode = document.getElementById('benchmark-code').value;
+            const portName = document.getElementById('portfolio-name').value;
             const totalWeight = assets.reduce((sum, a) => sum + a.weight, 0);
 
             if (totalWeight !== 100) return alert("组合权重总和必须等于 100%");
-
             document.getElementById('loading-overlay').style.display = 'flex';
 
             try {
-                // 1. 并发拉取基准和所有投资组合成分股的数据
                 const codesToFetch = [benchmarkCode, ...assets.map(a => a.code)];
-                // 过滤掉空字符串去重
                 const uniqueCodes = [...new Set(codesToFetch.filter(c => c))]; 
                 
                 const dataStore = {};
-                // 并发请求，极大地提升前端响应速度
                 await Promise.all(uniqueCodes.map(async (code) => {
                     const dict = await fetchAssetData(code);
                     if(dict) dataStore[code] = dict;
                 }));
 
-                // 确保基准数据存在
-                if (!dataStore[benchmarkCode]) throw new Error("基准数据缺失终止回测");
+                if (!dataStore[benchmarkCode]) throw new Error("基准数据缺失");
 
-                // 2. 日期对齐算法 (取交集)
-                // 先获取基准在 [startDate, endDate] 区间内的所有日期
                 let alignedDates = Object.keys(dataStore[benchmarkCode]).filter(date => date >= startDate && date <= endDate).sort();
-                
-                // 遍历每个资产，保留大家都共同拥有的交易日 (剔除某一只停牌的日期)
                 for (let asset of assets) {
                     if (!dataStore[asset.code]) continue;
-                    alignedDates = alignedDates.filter(date => dataStore[asset.code][date] !== undefined);
+                    alignedDates = alignedDates.filter(date => dataStore[asset.code][date] !== undefined && dataStore[asset.code][date] !== null);
                 }
 
-                if (alignedDates.length === 0) {
-                    alert("在该时间段内，所选资产没有共同的有效交易日数据！");
-                    return;
-                }
+                if (alignedDates.length === 0) return alert("该时间段内没有共同的有效交易日！");
 
-                // 3. 计算每日净值
                 let portPrices = [1.0];
                 let benchPrices = [1.0];
                 let portDailyReturns = [];
                 let maxDrawdown = 0;
                 let peak = 1.0;
-
-                // 第一天作为基准日 (Base Day)
-                const baseDay = alignedDates[0];
                 
                 for (let i = 1; i < alignedDates.length; i++) {
                     const today = alignedDates[i];
                     const yesterday = alignedDates[i-1];
 
-                    // 计算基准今日涨跌幅并累计净值
                     const benchTodayPrice = dataStore[benchmarkCode][today];
                     const benchYestPrice = dataStore[benchmarkCode][yesterday];
                     const benchReturn = (benchTodayPrice - benchYestPrice) / benchYestPrice;
                     benchPrices.push(benchPrices[i-1] * (1 + benchReturn));
 
-                    // 计算投资组合综合收益 (权重 * 单只股票当日涨跌幅)
                     let portTodayReturn = 0;
                     for (let asset of assets) {
                         const code = asset.code;
-                        const weight = asset.weight / 100; // 转为小数
+                        const weight = asset.weight / 100;
                         const todayPrice = dataStore[code][today];
                         const yestPrice = dataStore[code][yesterday];
                         const assetReturn = (todayPrice - yestPrice) / yestPrice;
@@ -268,52 +222,145 @@ async function fetchAssetData(code) {
                     const currentNetValue = portPrices[i-1] * (1 + portTodayReturn);
                     portPrices.push(currentNetValue);
 
-                    // 记录最大回撤
                     if (currentNetValue > peak) peak = currentNetValue;
                     let dd = (peak - currentNetValue) / peak;
                     if (dd > maxDrawdown) maxDrawdown = dd;
                 }
 
-                // 4. 更新面板与图表
                 const metrics = calculateMetrics(portDailyReturns);
                 const fmtNum = (num) => (num * 100).toFixed(2) + '%';
-                const setHtml = (id, val, isPct = false) => {
-                    const el = document.getElementById(id);
-                    el.innerText = isPct ? fmtNum(val) : val.toFixed(2);
-                    el.className = 'stat-val ' + (val >= 0 ? 'positive' : 'negative');
-                };
-
-                setHtml('val-return', metrics.annReturn, true);
+                
+                document.getElementById('val-return').innerText = fmtNum(metrics.annReturn);
+                document.getElementById('val-return').className = 'stat-val ' + (metrics.annReturn >= 0 ? 'positive' : 'negative');
+                
                 document.getElementById('val-drawdown').innerText = fmtNum(maxDrawdown);
                 document.getElementById('val-drawdown').className = 'stat-val negative'; 
-                setHtml('val-sharpe', metrics.sharpe);
-                setHtml('val-sortino', metrics.sortino);
+                
+                document.getElementById('val-sharpe').innerText = metrics.sharpe.toFixed(2);
+                document.getElementById('val-sharpe').className = 'stat-val ' + (metrics.sharpe >= 0 ? 'positive' : 'negative');
+                
+                document.getElementById('val-sortino').innerText = metrics.sortino.toFixed(2);
+                document.getElementById('val-sortino').className = 'stat-val ' + (metrics.sortino >= 0 ? 'positive' : 'negative');
 
-                renderChart(alignedDates, portPrices, benchPrices, document.getElementById('portfolio-name').value, benchmarkCode);
+                // 准备要印在图表上的文本数据
+                const displayMetrics = {
+                    annReturn: fmtNum(metrics.annReturn),
+                    maxDrawdown: fmtNum(maxDrawdown),
+                    sharpe: metrics.sharpe.toFixed(2),
+                    sortino: metrics.sortino.toFixed(2)
+                };
+
+                renderChart(alignedDates, portPrices, benchPrices, portName, benchmarkCode, displayMetrics);
 
             } catch (error) {
-                console.error("回测执行失败:", error);
+                console.error(error);
             } finally {
                 document.getElementById('loading-overlay').style.display = 'none';
             }
         }
 
-        function renderChart(dates, portData, benchData, portName, benchName) {
+        function renderChart(dates, portData, benchData, portName, benchName, metricsObj) {
+            // 清除之前的发光动画，防止每次点击执行后动画加速叠加
+            if (glowInterval) clearInterval(glowInterval);
+
             const option = {
-                title: { text: `净值走势对比: ${portName}`, subtext: '起始净值: 1.0', left: 'center' },
+                title: { text: `净值走势对比: ${portName}`, subtext: '起始净值: 1.0', left: 'center', top: 10 },
                 tooltip: { trigger: 'axis' },
                 legend: { data: ['组合净值', `基准(${benchName})`], bottom: 0 },
-                toolbox: { feature: { saveAsImage: { name: `回测_${portName}` } }, right: 20 },
-                grid: { left: '5%', right: '5%', bottom: '10%', containLabel: true },
+                // backgroundColor: '#ffffff', // 确保下载图片时背景是白色而不是透明
+                toolbox: { 
+                    feature: { 
+                        saveAsImage: { 
+                            name: `回测结果_${portName}`, 
+                            pixelRatio: 2, // 提高下载图片的清晰度
+                            backgroundColor: '#fff'
+                        } 
+                    }, 
+                    right: 20 
+                },
+                grid: { left: '5%', right: '5%', bottom: '10%', top: '18%', containLabel: true },
                 xAxis: { type: 'category', boundaryGap: false, data: dates },
                 yAxis: { type: 'value', scale: true },
                 dataZoom: [{ type: 'inside', start: 0, end: 100 }, { show: true, type: 'slider', bottom: '2%' }],
+                
+                // 📊 亮点功能：图内水印浮窗 (完美附带在下载的图片中)
+                graphic: [
+                    {
+                        type: 'group',
+                        left: '8%',
+                        top: '15%',
+                        children: [
+                            {
+                                type: 'rect', z: 100, shape: { width: 170, height: 100, r: 8 },
+                                style: { fill: 'rgba(255, 255, 255, 0.9)', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.1)' }
+                            },
+                            {
+                                type: 'text', z: 100, left: 15, top: 15,
+                                style: {
+                                    fill: '#334155',
+                                    text: `【核心指标分析】\n\n年化收益率: ${metricsObj.annReturn}\n最大回撤:    ${metricsObj.maxDrawdown}\n夏普比率:    ${metricsObj.sharpe}\n索提诺比率: ${metricsObj.sortino}`,
+                                    font: 'bold 12px sans-serif',
+                                    lineHeight: 18
+                                }
+                            }
+                        ]
+                    }
+                ],
+
                 series: [
-                    { name: '组合净值', type: 'line', data: portData, smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#ef4444' } },
-                    { name: `基准(${benchName})`, type: 'line', data: benchData, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#64748b', type: 'dashed' } }
+                    { 
+                        name: '组合净值', 
+                        type: 'line', 
+                        data: portData, 
+                        smooth: true, 
+                        symbol: 'none', 
+                        zlevel: 1, // 确保这条红线永远在虚线之上
+                        lineStyle: { width: 4, color: '#ef4444' } // 初始鲜红色加粗
+                    },
+                    { 
+                        name: `基准(${benchName})`, 
+                        type: 'line', 
+                        data: benchData, 
+                        smooth: true, 
+                        symbol: 'none', 
+                        zlevel: 0,
+                        // 对比度优化：基准线设为灰色、变细、虚线
+                        lineStyle: { width: 2, color: '#94a3b8', type: 'dashed' } 
+                    }
                 ]
             };
+            
+            // 首次渲染
             myChart.setOption(option, true);
+
+            // 🌟 亮点功能：每隔一秒由浅入深的呼吸灯动画
+            let startTime = Date.now();
+            glowInterval = setInterval(() => {
+                const timeElapsed = Date.now() - startTime;
+                
+                // 正弦波形计算：周期 2000 毫秒 (1秒变深，1秒变浅)
+                const phase = (Math.sin(timeElapsed / 1000 * Math.PI) + 1) / 2; 
+
+                // 颜色通道混合：在 亮红 (239, 68, 68) 和 暗深红 (127, 29, 29) 之间过渡
+                const r = Math.round(239 - phase * (239 - 127));
+                const g = Math.round(68 - phase * (68 - 29));
+                const b = Math.round(68 - phase * (68 - 29));
+                
+                // 光晕大小动态收缩
+                const shadowSize = 3 + phase * 12;
+
+                // 局部刷新机制：只更新颜色和光晕，不消耗额外性能
+                myChart.setOption({
+                    series: [{
+                        name: '组合净值',
+                        lineStyle: {
+                            color: `rgb(${r}, ${g}, ${b})`,
+                            shadowBlur: shadowSize,
+                            shadowColor: `rgba(${r}, ${g}, ${b}, 0.8)`
+                        }
+                    }]
+                });
+            }, 50); // 每 50ms (即20帧/秒) 渲染一帧动画
         }
 
         renderAssets();
