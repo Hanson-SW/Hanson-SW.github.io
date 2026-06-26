@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马科维茨有效边界优化器 (Markowitz Efficient Frontier)</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        :root { --primary: #0f172a; --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; box-sizing: border-box; }
+        
+        /* 左侧控制台 */
+        .sidebar { width: 350px; background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; border: 1px solid var(--border); }
+        .sidebar h3 { margin: 0 0 10px 0; font-size: 18px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; color: #1e293b; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 12px; font-weight: bold; color: #64748b; }
+        input[type="text"], input[type="number"], input[type="date"] { padding: 10px; border: 1px solid var(--border); border-radius: 8px; outline: none; transition: border-color 0.2s; }
+        input:focus { border-color: var(--accent); }
+        
+        .asset-list { display: flex; flex-direction: column; gap: 10px; }
+        .asset-item { display: flex; gap: 10px; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; }
+        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+        
+        .btn-add { background: transparent; border: 2px dashed #cbd5e1; padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; color: #64748b; font-weight: bold; transition: all 0.2s; }
+        .btn-add:hover { border-color: var(--accent); color: var(--accent); background: #f5f3ff; }
+        .btn-run { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); transition: transform 0.1s; }
+        .btn-run:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4); }
+
+        /* 右侧内容区 */
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+        .stats-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .stat-card { background: var(--card); padding: 18px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+        .stat-title { font-size: 13px; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
+        .stat-val { font-size: 24px; font-weight: bold; color: #1e293b; }
+        
+        /* 智能权重输出框 */
+        .optimal-weights { font-size: 14px; color: #475569; margin-top: 8px; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; }
+
+        #chart-container { flex: 1; background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 18px; font-weight: bold; color: var(--accent); }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <datalist id="stock-database">
+        <option value="sh000001">上证指数</option>
+        <option value="sz399001">深证成指</option>
+        <option value="sz399006">创业板指</option>
+        <option value="sh000300">沪深300</option>
+        <option value="sh000016">上证50</option>
+        <option value="sh000905">中证500</option>
+        <option value="sh000852">中证1000</option>
+        <option value="sz399300">沪深300(深)</option>
+        <option value="sh000688">科创50</option>
+    </datalist>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div>正在进行蒙特卡洛矩阵运算，请稍候...</div>
+    </div>
+
+    <div class="sidebar">
+        <h3>🧠 智能资产优化器</h3>
+        <p style="font-size: 12px; color: #64748b; margin-top: -5px;">利用蒙特卡洛模拟寻找最优风险收益比组合</p>
+        
+        <div class="form-group" style="flex-direction: row; gap: 10px;">
+            <div style="flex: 1;"><label>开始提取日期</label><input type="date" id="start-date" value="2022-01-01" style="width:100%"></div>
+            <div style="flex: 1;"><label>结束提取日期</label><input type="date" id="end-date" value="2023-12-31" style="width:100%"></div>
+        </div>
+        
+        <div class="form-group">
+            <label>蒙特卡洛模拟次数 (次)</label>
+            <input type="number" id="sim-count" value="3000" min="1000" max="10000" step="500">
+            <span style="font-size:11px; color:#94a3b8;">*次数越多图形越丰满，但计算越耗时</span>
+        </div>
+
+        <h3>📦 候选资产池 (无需配平)</h3>
+        <div class="asset-list" id="assets-container"></div>
+        
+        <div style="display: flex; gap: 5px;">
+            <input type="text" id="new-asset-code" list="stock-database" placeholder="输入股票/指数代码" style="flex: 1;">
+            <button class="btn-add" onclick="addAsset()" style="padding: 10px; border: none; background: #e2e8f0; color: #475569;">添加</button>
+        </div>
+
+        <button class="btn-run" onclick="runOptimization()">🎯 一键寻找最优组合</button>
+    </div>
+
+    <div class="main-content">
+        <div class="stats-container">
+            <div class="stat-card" style="border-left-color: #f59e0b;">
+                <div class="stat-title">最优组合 - 预期年化收益率</div>
+                <div class="stat-val" id="opt-return">--</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #3b82f6;">
+                <div class="stat-title">最优组合 - 预期年化波动率(风险)</div>
+                <div class="stat-val" id="opt-vol">--</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #ef4444;">
+                <div class="stat-title">全局最高夏普比率 (最优解)</div>
+                <div class="stat-val" id="opt-sharpe">--</div>
+                <div class="optimal-weights" id="opt-weights">运行后显示各资产最佳配置比例...</div>
+            </div>
+        </div>
+        <div id="chart-container"></div>
+    </div>
+
+    <script>
+        const myChart = echarts.init(document.getElementById('chart-container'));
+        
+        // 初始候选资产池
+        let assetPool = ['sh000300', 'sz399006', 'sh000688'];
+
+        function renderAssets() {
+            const container = document.getElementById('assets-container');
+            container.innerHTML = '';
+            assetPool.forEach((code, index) => {
+                const div = document.createElement('div');
+                div.className = 'asset-item';
+                div.innerHTML = `
+                    <span style="flex:1;">🏷️ ${code}</span>
+                    <button class="btn-remove" onclick="removeAsset(${index})"><i class="fas fa-times"></i> 删除</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addAsset() {
+            const codeInput = document.getElementById('new-asset-code');
+            const code = codeInput.value.trim().toLowerCase();
+            if(code && !assetPool.includes(code)) {
+                assetPool.push(code);
+                codeInput.value = '';
+                renderAssets();
+            }
+        }
+        
+        function removeAsset(index) {
+            assetPool.splice(index, 1);
+            renderAssets();
+        }
+
+        // ==========================================
+        // 核心一：数据拉取 (复用安全去NaN版本)
+        // ==========================================
+        async function fetchAssetData(code) {
+            const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) return null;
+                const textData = await response.text();
+                if (textData.trim().startsWith("<")) return null;
+                const cleanTextData = textData.replace(/NaN/g, 'null');
+                const data = JSON.parse(cleanTextData);
+                const priceDict = {};
+                for (let i = 0; i < data.dates.length; i++) {
+                    priceDict[data.dates[i]] = data.values[i][1]; 
+                }
+                return priceDict;
+            } catch (error) { return null; }
+        }
+
+        // ==========================================
+        // 核心二：协方差矩阵与底层数学引擎 (JS硬核实现)
+        // ==========================================
+        function calculateDailyReturns(priceArray) {
+            let returns = [];
+            for(let i=1; i<priceArray.length; i++) {
+                returns.push((priceArray[i] - priceArray[i-1]) / priceArray[i-1]);
+            }
+            return returns;
+        }
+
+        function mean(arr) { return arr.reduce((a,b) => a+b, 0) / arr.length; }
+
+        function covariance(arr1, arr2, mean1, mean2) {
+            let cov = 0;
+            for(let i=0; i<arr1.length; i++) cov += (arr1[i] - mean1) * (arr2[i] - mean2);
+            return cov / (arr1.length - 1);
+        }
+
+        async function runOptimization() {
+            if (assetPool.length < 2) return alert("请至少添加2只以上资产进行组合优化！");
+            
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const numSimulations = parseInt(document.getElementById('sim-count').value);
+            
+            document.getElementById('loading-overlay').style.display = 'flex';
+
+            try {
+                // 1. 获取并对齐数据
+                const dataStore = {};
+                await Promise.all(assetPool.map(async (code) => {
+                    const dict = await fetchAssetData(code);
+                    if(dict) dataStore[code] = dict;
+                }));
+
+                let alignedDates = Object.keys(dataStore[assetPool[0]]).filter(d => d >= startDate && d <= endDate).sort();
+                for (let code of assetPool) {
+                    if(!dataStore[code]) throw new Error(`${code} 数据缺失`);
+                    alignedDates = alignedDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
+                }
+
+                if (alignedDates.length < 30) throw new Error("有效重合交易日少于30天，无法计算协方差！");
+
+                // 2. 提取日线对齐价格矩阵并计算收益率
+                const returnsMatrix = [];
+                for (let code of assetPool) {
+                    const prices = alignedDates.map(d => dataStore[code][d]);
+                    returnsMatrix.push(calculateDailyReturns(prices));
+                }
+
+                const numAssets = assetPool.length;
+                const TRADING_DAYS = 252;
+                const RISK_FREE_RATE = 0.02;
+
+                // 3. 计算期望收益向量 (年化) 和 协方差矩阵 (年化)
+                const expectedReturns = [];
+                for(let i=0; i<numAssets; i++) expectedReturns.push(mean(returnsMatrix[i]) * TRADING_DAYS);
+
+                const covMatrix = Array(numAssets).fill(0).map(() => Array(numAssets).fill(0));
+                for(let i=0; i<numAssets; i++) {
+                    for(let j=0; j<numAssets; j++) {
+                        covMatrix[i][j] = covariance(returnsMatrix[i], returnsMatrix[j], expectedReturns[i]/TRADING_DAYS, expectedReturns[j]/TRADING_DAYS) * TRADING_DAYS;
+                    }
+                }
+
+                // 4. 蒙特卡洛随机碰撞算法 (Monte Carlo Simulation)
+                const scatterData = []; // 保存所有散点：[波动率, 收益率, 夏普, 权重...]
+                let maxSharpe = -Infinity;
+                let optimalPoint = null;
+
+                for (let sim=0; sim<numSimulations; sim++) {
+                    // 生成随机权重，使其和为1
+                    let weights = Array.from({length: numAssets}, () => Math.random());
+                    let sumWeights = weights.reduce((a,b)=>a+b,0);
+                    weights = weights.map(w => w / sumWeights);
+
+                    // 组合收益： w^T * R
+                    let portReturn = 0;
+                    for(let i=0; i<numAssets; i++) portReturn += weights[i] * expectedReturns[i];
+
+                    // 组合方差： w^T * Cov * w
+                    let portVar = 0;
+                    for(let i=0; i<numAssets; i++) {
+                        for(let j=0; j<numAssets; j++) {
+                            portVar += weights[i] * weights[j] * covMatrix[i][j];
+                        }
+                    }
+                    let portVol = Math.sqrt(portVar);
+                    let sharpe = (portReturn - RISK_FREE_RATE) / portVol;
+
+                    const dataPoint = [portVol, portReturn, sharpe, ...weights];
+                    scatterData.push(dataPoint);
+
+                    if (sharpe > maxSharpe) {
+                        maxSharpe = sharpe;
+                        optimalPoint = dataPoint;
+                    }
+                }
+
+                // 5. 更新UI展示
+                const fmtPct = (v) => (v * 100).toFixed(2) + '%';
+                document.getElementById('opt-return').innerText = fmtPct(optimalPoint[1]);
+                document.getElementById('opt-vol').innerText = fmtPct(optimalPoint[0]);
+                document.getElementById('opt-sharpe').innerText = optimalPoint[2].toFixed(3);
+                
+                // 解析最优权重
+                const optW = optimalPoint.slice(3);
+                let weightStr = assetPool.map((code, i) => `${code.toUpperCase()}: ${fmtPct(optW[i])}`).join(' | ');
+                document.getElementById('opt-weights').innerText = `最优配比：${weightStr}`;
+
+                // 6. 渲染精美散点图 (有效边界)
+                renderScatterChart(scatterData, optimalPoint, assetPool);
+
+            } catch (error) {
+                alert("运算失败：" + error.message);
+            } finally {
+                document.getElementById('loading-overlay').style.display = 'none';
+            }
+        }
+
+        function renderScatterChart(scatterData, optPoint, assets) {
+            // ECharts视觉映射散点图
+            const option = {
+                title: { text: '组合有效边界 (Efficient Frontier)', subtext: '通过蒙特卡洛寻找最优风险收益比' },
+                tooltip: {
+                    formatter: function (params) {
+                        if (params.componentType !== 'series') return '';
+                        const data = params.data;
+                        let tip = `<b>收益率:</b> ${(data[1]*100).toFixed(2)}%<br/><b>波动率(风险):</b> ${(data[0]*100).toFixed(2)}%<br/><b>夏普比率:</b> ${data[2].toFixed(2)}<br/><hr/>`;
+                        for(let i=0; i<assets.length; i++) {
+                            tip += `${assets[i]}: ${(data[3+i]*100).toFixed(1)}%<br/>`;
+                        }
+                        return tip;
+                    }
+                },
+                toolbox: { feature: { saveAsImage: { name: '有效边界分析', pixelRatio: 2, backgroundColor: '#fff' } } },
+                xAxis: { type: 'value', name: '年化波动率 (风险)', scale: true, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' } },
+                yAxis: { type: 'value', name: '年化收益率', scale: true, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' } },
+                // 核心视觉映射：通过夏普比率上色 (深蓝代表低夏普，紫红代表高夏普)
+                visualMap: {
+                    min: Math.min(...scatterData.map(d=>d[2])),
+                    max: optPoint[2],
+                    dimension: 2, // 绑定数组中的第三项 (夏普比率)
+                    orient: 'horizontal',
+                    right: 10,
+                    top: 10,
+                    text: ['高夏普 (优质)', '低夏普'],
+                    calculable: true,
+                    inRange: { color: ['#cbd5e1', '#3b82f6', '#8b5cf6', '#ef4444'] } // 渐变色系
+                },
+                series: [
+                    {
+                        name: '模拟组合',
+                        type: 'scatter',
+                        symbolSize: 4, // 几千个点，稍微画小一点
+                        data: scatterData,
+                        itemStyle: { opacity: 0.7 }
+                    },
+                    {
+                        name: '最优切点', // 突出显示夏普比率最大的那一颗星
+                        type: 'scatter',
+                        symbol: 'star',
+                        symbolSize: 20,
+                        itemStyle: { color: '#fbbf24', shadowBlur: 10, shadowColor: 'rgba(251, 191, 36, 0.8)' },
+                        data: [optPoint],
+                        label: { show: true, formatter: '最高夏普解', position: 'right', fontWeight: 'bold' }
+                    }
+                ]
+            };
+            myChart.setOption(option, true);
+        }
+
+        renderAssets();
+    </script>
+</body>
+</html>
