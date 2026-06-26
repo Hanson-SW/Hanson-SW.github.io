@@ -118,13 +118,16 @@
         function addAssetRow() { assets.push({ code: '', weight: 0 }); renderAssets(); }
         function removeAsset(index) { assets.splice(index, 1); renderAssets(); }
 
-        // ==========================================
-        // 核心一：从 GitHub 拉取并解析真实 JSON 数据
-        // ==========================================
-        async function fetchAssetData(code) {
-            try {
-                // 读取同仓库下 data 文件夹的静态文件
-                const response = await fetch(`./data/${code}.json`);
+ // ==========================================
+// 核心一：从 GitHub 拉取并解析真实 JSON 数据
+// ==========================================
+async function fetchAssetData(code) {
+    try {
+        // 终极修复：使用 GitHub 绝对路径，无视本地测试的跨域拦截！
+        const url = `https://hanson-sw.github.io/data/${code}.json`;
+        console.log("正在尝试拉取数据:", url); // 在控制台打印出来方便我们观察
+        
+        const response = await fetch(url);
                 if (!response.ok) throw new Error(`未找到 ${code} 的数据`);
                 const data = await response.json();
                 
