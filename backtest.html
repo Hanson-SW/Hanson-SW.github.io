@@ -117,33 +117,53 @@
         function updateAsset(index, key, value) { assets[index][key] = key === 'weight' ? parseFloat(value) || 0 : value; renderAssets(); }
         function addAssetRow() { assets.push({ code: '', weight: 0 }); renderAssets(); }
         function removeAsset(index) { assets.splice(index, 1); renderAssets(); }
-
- // ==========================================
-// 核心一：从 GitHub 拉取并解析真实 JSON 数据
+// ==========================================
+// 核心一：从 GitHub 拉取并解析真实 JSON 数据 (极限 Debug 诊断版)
 // ==========================================
 async function fetchAssetData(code) {
+    if (!code) return null;
+    
+    // 1. 强制清理隐形空格和大小写问题
+    const cleanCode = code.trim().toLowerCase();
+    
+    // 2. 强制使用最安全的字符串拼接
+    const url = "https://hanson-sw.github.io/data/" + cleanCode + ".json";
+    
     try {
-        // 终极修复：使用 GitHub 绝对路径，无视本地测试的跨域拦截！
-        const url = `https://hanson-sw.github.io/data/${code}.json`;
-        console.log("正在尝试拉取数据:", url); // 在控制台打印出来方便我们观察
+        // 3. 核心大招：追加动态时间戳，强制每次都绕过浏览器缓存请求最新文件！
+        const fetchUrl = url + "?t=" + new Date().getTime();
         
-        const response = await fetch(url);
-                if (!response.ok) throw new Error(`未找到 ${code} 的数据`);
-                const data = await response.json();
-                
-                // 将数据转换为 Dictionary 格式，方便通过日期快速查找收盘价 O(1) 复杂度
-                // values 数组索引1代表收盘价: [open, close, low, high]
-                const priceDict = {};
-                for (let i = 0; i < data.dates.length; i++) {
-                    priceDict[data.dates[i]] = data.values[i][1]; 
-                }
-                return priceDict;
-            } catch (error) {
-                console.error(error);
-                alert(`数据加载失败: ${code}。请确保 GitHub Actions 已成功抓取该指数。`);
-                return null;
-            }
+        const response = await fetch(fetchUrl);
+        
+        // 检查 HTTP 状态码
+        if (!response.ok) {
+            alert("❌ HTTP 状态报错: " + response.status + "\n请检查: " + cleanCode + " 文件是否真的在仓库里。");
+            return null;
         }
+        
+        const textData = await response.text();
+        
+        // 检查是不是被 GitHub 错误地返回了 404 HTML 网页
+        if (textData.trim().startsWith("<")) {
+            alert("❌ 数据异常！\n服务器返回了网页(HTML)而不是JSON数据！这说明路径依旧不对。\n请求的URL: " + url);
+            return null;
+        }
+        
+        const data = JSON.parse(textData);
+        
+        const priceDict = {};
+        for (let i = 0; i < data.dates.length; i++) {
+            priceDict[data.dates[i]] = data.values[i][1]; 
+        }
+        return priceDict;
+        
+    } catch (error) {
+        // 4. 捕获最底层的网络/代码崩溃，并直接把致命错误抛到您的屏幕上！
+        alert("🚨 底层网络或解析崩溃！\n【错误类型】: " + error.name + "\n【详细原因】: " + error.message + "\n【试图拉取的URL】: " + url);
+        console.error("深度诊断日志:", error);
+        return null;
+    }
+}
 
         // 高阶指标计算 (同上一版)
         function calculateMetrics(dailyReturns) {
