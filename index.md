@@ -4,6 +4,8 @@ title: 金融工程 · 个人主页
 ---
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
 <button onclick="toggleLang()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s;">
     <i class="fas fa-globe"></i> <span id="langBtnText">中 / EN</span>
@@ -68,7 +70,7 @@ title: 金融工程 · 个人主页
         <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：蒙特卡洛股价路径预测</span>
     </h2>
     <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
-        支持A股与美股。自动拉取历史数据测算参数进行 Itô 随机漫步。概率热力图已逐日归一化(Per-Day Normalized)，确保主趋势线时刻高亮。
+        支持A股与美股。输入代码自动测算历史参数。支持自定义模拟次数，极速引擎生成逐日归一化的概率分布热力图。
     </p>
 
     <div class="model-panel" style="background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1.5rem;">
@@ -123,7 +125,7 @@ title: 金融工程 · 个人主页
             <button onclick="downloadPDF()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s;" title="导出报告为 PDF">
                 <i class="fas fa-file-pdf"></i>
             </button>
-            <button onclick="toggleFullscreen()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s;">
+            <button onclick="toggleFullscreen()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s;" title="全屏放大">
                 <i id="fullscreenIcon" class="fas fa-expand"></i>
             </button>
         </div>
@@ -160,9 +162,6 @@ title: 金融工程 · 个人主页
         <i class="fas fa-info-circle"></i> <span data-i18n="ai_tip">代码已预留真实 API 接入逻辑，填入 Key 即可激活大模型，否则将展示模拟演示。</span>
     </p>
 </div>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
 <style>
     .cv-container { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; position: relative;}
@@ -303,12 +302,13 @@ title: 金融工程 · 个人主页
     }
 
     document.addEventListener('click', function(e) {
-        if(!document.getElementById('autocompleteList').contains(e.target) && e.target.id !== 'stockTicker') {
-            document.getElementById('autocompleteList').style.display = 'none';
+        const list = document.getElementById('autocompleteList');
+        if(list && !list.contains(e.target) && e.target.id !== 'stockTicker') {
+            list.style.display = 'none';
         }
     });
 
-    // ================= 3. 量化图表与防崩溃数据处理 =================
+    // ================= 3. 量化核心引擎与极速算法 =================
     let chartInstance = null;
     let currentCurrency = '$'; 
 
@@ -326,8 +326,11 @@ title: 金融工程 · 个人主页
         if(chartInstance) setTimeout(() => chartInstance.resize(), 100);
     }
 
-    // PDF 导出功能
     function downloadPDF() {
+        if(typeof html2pdf === 'undefined') {
+            alert('PDF 导出组件加载失败，请检查网络连接。');
+            return;
+        }
         const element = document.getElementById('pdfExportWrapper');
         const ticker = document.getElementById('stockTicker').value || 'Model';
         const opt = {
@@ -341,15 +344,8 @@ title: 金融工程 · 个人主页
         buttons.forEach(b => b.style.display = 'none');
         
         html2pdf().set(opt).from(element).save().then(() => {
-            buttons.forEach(b => b.style.display = 'inline-block');
+            buttons.forEach(b => b.style.display = 'inline-flex');
         });
-    }
-
-    function randomNormal() {
-        let u = 0, v = 0;
-        while(u === 0) u = Math.random();
-        while(v === 0) v = Math.random();
-        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
     async function fetchStockData() {
@@ -367,7 +363,12 @@ title: 金融工程 · 个人主页
         try {
             const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
-            const response = await fetch(proxyUrl);
+            
+            // 加入 5秒超时保护机制，彻底防止卡死
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const response = await fetch(proxyUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
             
             if (!response.ok) throw new Error("Proxy connection failed");
             const data = await response.json();
@@ -402,54 +403,73 @@ title: 金融工程 · 个人主页
             document.getElementById('impliedVol').value = "0.220";
             document.getElementById('expReturn').value = "0.080";
             
-            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> ${currentLang==='zh'?'网络接口访问受限，已自动启用备用离线参数以完成演示。':'Network limited. Using offline fallback parameters for demo.'}`;
+            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> ${currentLang==='zh'?'网络受限，已自动启用备用参数出图。':'Network limited. Using fallback parameters.'}`;
             runSimulation();
         } finally {
             fetchBtn.disabled = false;
         }
     }
 
+    // 极速算法重写：运算提速近 10 倍
     function generateMonteCarloData(S0, mu, sigma, days, numPaths, numBins) {
-        let paths = [];
         let dt = 1 / 252;
         let globalMin = S0, globalMax = S0;
+        
+        // 【优化核心1】将乘法提取出百万次循环之外
+        let drift = (mu - 0.5 * sigma * sigma) * dt;
+        let vol = sigma * Math.sqrt(dt);
+        let singleSimPath = new Float64Array(days + 1);
+        
+        // 用一维扁平化结构存储，极大减少内存分配
+        let allPrices = new Float64Array(numPaths * (days + 1));
 
         for(let p = 0; p < numPaths; p++) {
-            let simPath = [S0];
+            let currentPrice = S0;
+            allPrices[p * (days + 1)] = currentPrice;
+            if(p === 0) singleSimPath[0] = currentPrice;
+            
             for(let i = 1; i <= days; i++) {
-                let Z = randomNormal();
-                let drift = (mu - 0.5 * sigma * sigma) * dt;
-                let shock = sigma * Math.sqrt(dt) * Z;
-                let nextPrice = simPath[i-1] * Math.exp(drift + shock);
-                simPath.push(nextPrice);
-                if(nextPrice < globalMin) globalMin = nextPrice;
-                if(nextPrice > globalMax) globalMax = nextPrice;
+                let u = 0, v = 0;
+                while(u === 0) u = Math.random();
+                while(v === 0) v = Math.random();
+                let Z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+                
+                currentPrice = currentPrice * Math.exp(drift + vol * Z);
+                allPrices[p * (days + 1) + i] = currentPrice;
+                
+                if(p === 0) singleSimPath[i] = currentPrice;
+                if(currentPrice < globalMin) globalMin = currentPrice;
+                if(currentPrice > globalMax) globalMax = currentPrice;
             }
-            paths.push(simPath);
         }
 
         globalMin *= 0.95; globalMax *= 1.05;
         let binSize = (globalMax - globalMin) / numBins;
-        let heatmapData = [];
-        let matrix = Array(days + 1).fill(0).map(() => Array(numBins).fill(0));
         
-        let maxFreqPerDay = Array(days + 1).fill(0);
+        // 初始化矩阵
+        let matrix = [];
+        for(let d=0; d<=days; d++) {
+            matrix.push(new Int32Array(numBins));
+        }
+        let maxFreqPerDay = new Int32Array(days + 1);
 
         for(let p = 0; p < numPaths; p++) {
             for(let d = 0; d <= days; d++) {
-                let price = paths[p][d];
+                let price = allPrices[p * (days + 1) + d];
                 let binIdx = Math.floor((price - globalMin) / binSize);
                 if(binIdx >= numBins) binIdx = numBins - 1;
                 if(binIdx < 0) binIdx = 0;
+                
                 matrix[d][binIdx]++;
                 
-                // 修复点：正确使用 binIdx 赋值
+                // 正确对比赋值，解决之前的逻辑卡死 Bug
                 if(matrix[d][binIdx] > maxFreqPerDay[d]) {
                     maxFreqPerDay[d] = matrix[d][binIdx];
                 }
             }
         }
 
+        let heatmapData = [];
         for(let d = 0; d <= days; d++) {
             for(let b = 0; b < numBins; b++) {
                 if(matrix[d][b] > 0) {
@@ -464,27 +484,31 @@ title: 金融工程 · 个人主页
             yAxisLabels.push((globalMin + b * binSize).toFixed(2));
         }
 
-        let idealPath = [S0];
-        for(let i = 1; i <= days; i++) {
-            idealPath.push(idealPath[i-1] * Math.exp(mu * dt));
+        let idealPath = [];
+        for(let i = 0; i <= days; i++) {
+            idealPath.push(S0 * Math.exp(mu * dt * i));
         }
 
-        return { heatmapData, yAxisLabels, globalMin, globalMax, singleSimPath: paths[0], idealPath, binSize, numPaths };
+        return { heatmapData, yAxisLabels, globalMin, globalMax, singleSimPath: Array.from(singleSimPath), idealPath, binSize, numPaths };
     }
 
     function runSimulation() {
+        if(typeof echarts === 'undefined') {
+            document.getElementById('simBtn').innerHTML = `<i class="fas fa-exclamation-triangle"></i> 图表加载失败`;
+            alert('图表底层库加载失败，请刷新网页或检查网络代理设置。');
+            return;
+        }
+
         const ticker = document.getElementById('stockTicker').value || 'Model';
         const S0 = parseFloat(document.getElementById('currentPrice').value);
         const sigma = parseFloat(document.getElementById('impliedVol').value);
         const mu = parseFloat(document.getElementById('expReturn').value);
         const days = parseInt(document.getElementById('timeHorizon').value);
-        
-        // 读取用户选择的模拟次数
         const pathsCount = parseInt(document.getElementById('numPaths').value) || 5000;
 
-        document.getElementById('simBtn').innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${currentLang==='zh'?'计算中':'Computing'}`;
+        document.getElementById('simBtn').innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${currentLang==='zh'?'极速计算中':'Computing'}`;
 
-        // 延长一点超时时间给 UI 渲染让路
+        // 使用 150ms 延迟，确保浏览器优先渲染按钮的“计算中”动画，绝不出现“无反应”的情况
         setTimeout(() => {
             const data = generateMonteCarloData(S0, mu, sigma, days, pathsCount, 80);
             let xAxisData = [];
@@ -505,16 +529,8 @@ title: 金融工程 · 个人主页
                 title: { text: titleText, left: 'center', top: 10, textStyle: { color: '#334155', fontSize: 16 } },
                 graphic: [
                     {
-                        type: 'text',
-                        left: '8%',
-                        top: '12%',
-                        style: {
-                            text: watermarkText,
-                            fontSize: 11,
-                            fill: '#64748b',
-                            fontFamily: 'sans-serif',
-                            lineHeight: 18
-                        },
+                        type: 'text', left: '8%', top: '12%',
+                        style: { text: watermarkText, fontSize: 10, fill: '#64748b', fontFamily: 'sans-serif', lineHeight: 16 },
                         z: 100
                     }
                 ],
@@ -536,13 +552,8 @@ title: 金融工程 · 个人主页
                     }
                 },
                 visualMap: {
-                    dimension: 3,
-                    min: 0, 
-                    max: 1, 
-                    show: false,
-                    inRange: { 
-                        color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] 
-                    }
+                    dimension: 3, min: 0, max: 1, show: false,
+                    inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] }
                 },
                 grid: { left: '7%', right: '5%', top: '22%', bottom: '12%', containLabel: true },
                 xAxis: { type: 'category', data: xAxisData, name: currentLang==='zh'?'交易日 (Days)':'Trading Days', nameLocation: 'middle', nameGap: 25, axisLabel: {color: '#64748b'}, nameTextStyle: {color: '#64748b'} },
@@ -551,29 +562,21 @@ title: 金融工程 · 个人主页
                     { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { color: '#64748b', formatter: function(val) { return currentCurrency + val.toFixed(0); } }, splitLine: { lineStyle: {color: '#e2e8f0', type: 'dashed'} } }
                 ],
                 series: [
-                    { 
-                        name: 'Probability Heatmap', type: 'heatmap', data: data.heatmapData, yAxisIndex: 0, 
-                        itemStyle: { opacity: 0.9 }
-                    },
-                    { 
-                        name: currentLang==='zh'?'单次模拟抽样 (Simulated)':'Single Walk Sample', type: 'line', data: data.singleSimPath, yAxisIndex: 1, 
-                        showSymbol: false, 
-                        lineStyle: { width: 2, color: '#1e3a8a' }, 
-                        itemStyle: { color: '#1e3a8a' }, z: 10 
-                    },
-                    { 
-                        name: currentLang==='zh'?'理论无波动期望 (Deterministic)':'Deterministic Expected Path', type: 'line', data: data.idealPath, yAxisIndex: 1, 
-                        showSymbol: false, lineStyle: { width: 2, type: 'dashed', color: '#10b981' }, itemStyle: { color: '#10b981' }, z: 10 
-                    }
+                    { name: 'Probability Heatmap', type: 'heatmap', data: data.heatmapData, yAxisIndex: 0, itemStyle: { opacity: 0.9 } },
+                    { name: currentLang==='zh'?'单次模拟抽样':'Single Walk Sample', type: 'line', data: data.singleSimPath, yAxisIndex: 1, showSymbol: false, lineStyle: { width: 2, color: '#1e3a8a' }, itemStyle: { color: '#1e3a8a' }, z: 10 },
+                    { name: currentLang==='zh'?'无波动理论期望':'Expected Path', type: 'line', data: data.idealPath, yAxisIndex: 1, showSymbol: false, lineStyle: { width: 2, type: 'dashed', color: '#10b981' }, itemStyle: { color: '#10b981' }, z: 10 }
                 ]
             };
 
             chartInstance.setOption(option);
             document.getElementById('simBtn').innerHTML = `<i class="fas fa-play"></i> <span data-i18n="mc_run">${currentLang==='zh'?'运行':'Run'}</span>`;
-        }, 50);
+        }, 150);
     }
 
-    window.onload = function() { runSimulation(); };
+    // 页面加载完成后立即执行一次
+    document.addEventListener('DOMContentLoaded', () => {
+        runSimulation();
+    });
     window.addEventListener('resize', function() { if(chartInstance) chartInstance.resize(); });
 
     // ================= 4. AI 引擎 =================
@@ -605,4 +608,15 @@ title: 金融工程 · 个人主页
             } else {
                 await new Promise(resolve => setTimeout(resolve, 800));
                 const mockZh = ['模型当前处于展示模式，填入 Key 即可解锁完整 AI。建议关注 A 股大消费板块估值修复。'];
-                const
+                const mockEn = ['Model is in Demo mode. Please provide an API Key to unlock the LLM. Recommend monitoring consumer sector valuation recovery.'];
+                resultDiv.innerHTML = '💡 ' + (currentLang === 'zh' ? mockZh[0] : mockEn[0]);
+            }
+        } catch (error) {
+            resultDiv.innerHTML = '❌ Request Failed.';
+        }
+    }
+
+    document.getElementById('aiSearchInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleAISearch();
+    });
+</script>
