@@ -141,7 +141,7 @@ async function fetchAssetData(code) {
             return null;
         }
         
-        const textData = await response.text();
+    const textData = await response.text();
         
         // 检查是不是被 GitHub 错误地返回了 404 HTML 网页
         if (textData.trim().startsWith("<")) {
@@ -149,7 +149,11 @@ async function fetchAssetData(code) {
             return null;
         }
         
-        const data = JSON.parse(textData);
+        // 🌟 终极去污粉：把 Python 导出的非法 NaN 替换为合法的 null
+        const cleanTextData = textData.replace(/NaN/g, 'null');
+        
+        // 现在解析绝对不会再崩溃了！
+        const data = JSON.parse(cleanTextData);
         
         const priceDict = {};
         for (let i = 0; i < data.dates.length; i++) {
