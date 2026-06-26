@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股量化回测系统 - 双均线策略</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .header { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;}
+        #chart-container { width: 100%; height: 700px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 10px; box-sizing: border-box;}
+        .stats { display: flex; gap: 20px; font-weight: bold; }
+        .stats div { background: #e6f7ff; padding: 10px 15px; border-radius: 4px; color: #0050b3; border: 1px solid #91d5ff; }
+        button { padding: 10px 20px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #40a9ff; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h2 style="margin:0 0 10px 0;">双均线策略回测 (MA5 & MA20)</h2>
+            <button onclick="runBacktestAndRender()">开始执行回测</button>
+        </div>
+        <div class="stats" id="stats-container">
+            <div>初始资金: 100,000</div>
+            <div>最终资金: -</div>
+            <div>总收益率: -</div>
+        </div>
+    </div>
+
+    <div id="chart-container"></div>
+
+    <script>
+        const chartDom = document.getElementById('chart-container');
+        const myChart = echarts.init(chartDom);
+
+        // 1. 核心数学与指标计算函数
+        function calculateMA(dayCount, dataValues) {
+            let result = [];
+            for (let i = 0; i < dataValues.length; i++) {
+                if (i < dayCount - 1) {
+                    result.push("-"); // 周期不足时无数据
+                    continue;
+                }
+                let sum = 0;
+                for (let j = 0; j < dayCount; j++) {
+                    sum += dataValues[i - j][1]; // 索引 1 是收盘价 (Open, Close, Low, High)
+                }
+                result.push(+(sum / dayCount).toFixed(2));
+            }
+            return result;
+        }
+
+        // 2. 回测逻辑执行引擎
+        function runStrategy(dates, dataValues, maShort, maLong) {
+            let initialCapital = 100000; // 初始资金 10万
+            let cash = initialCapital;
+            let holdings = 0; // 持股数量
+            
+            let equityCurve = []; // 每日总资产曲线
+            let buySignals = [];  // 记录买入点位用于图表标记
+            let sellSignals = []; // 记录卖出点位用于图表标记
+
+            for (let i = 0; i < dataValues.length; i++) {
+                let closePrice = dataValues[i][1]; // 当日收盘价
+                let currentDate = dates[i];
+
+                // 确保均线数据存在
+                if (maShort[i] !== "-" && maLong[i] !== "-" && i > 0) {
+                    // 金叉：短期均线上穿长期均线 -> 全仓买入
+                    if (maShort[i] > maLong[i] && maShort[i-1] <= maLong[i-1] && cash > 0) {
+                        holdings = Math.floor(cash / closePrice); // 能买多少股
+                        cash = cash - (holdings * closePrice);    // 扣除现金 (此处忽略手续费)
+                        buySignals.push({ coord: [currentDate, dataValues[i][2]], value: '买入', itemStyle: {color: '#ef232a'} }); // 标记在最低价处
+                    }
+                    // 死叉：短期均线下穿长期均线 -> 清仓卖出
+                    else if (maShort[i] < maLong[i] && maShort[i-1] >= maLong[i-1] && holdings > 0) {
+                        cash = cash + (holdings * closePrice);
+                        holdings = 0;
+                        sellSignals.push({ coord: [currentDate, dataValues[i][3]], value: '卖出', itemStyle: {color: '#14b143'} }); // 标记在最高价处
+                    }
+                }
+
+                // 每日结算总资产 = 现金 + (股票数 * 当日收盘价)
+                let currentEquity = cash + (holdings * closePrice);
+                equityCurve.push(currentEquity.toFixed(2));
+            }
+
+            let finalEquity = equityCurve[equityCurve.length - 1];
+            let returnRate = (((finalEquity - initialCapital) / initialCapital) * 100).toFixed(2);
+
+            // 更新顶部统计面板
+            document.getElementById('stats-container').innerHTML = `
+                <div>初始资金: ¥100,000</div>
+                <div>最终资金: ¥${finalEquity}</div>
+                <div style="color: ${returnRate >= 0 ? '#ef232a' : '#14b143'}">总收益率: ${returnRate}%</div>
+            `;
+
+            return { equityCurve, buySignals, sellSignals };
+        }
+
+        // 3. 获取数据并渲染
+        async function runBacktestAndRender() {
+            myChart.showLoading();
+            try {
+                // 读取由 GitHub Actions 每日生成的静态数据
+                // 测试期间，如果您本地没有这个文件，请确保路径正确，或使用模拟数据
+                const response = await fetch('./data/sh000001.json'); 
+                const data = await response.json();
+
+                const dates = data.dates;
+                const values = data.values; // [open, close, low, high]
+
+                // 计算指标
+                const ma5 = calculateMA(5, values);
+                const ma20 = calculateMA(20, values);
+
+                // 执行回测
+                const backtestResult = runStrategy(dates, values, ma5, ma20);
+
+                // 渲染图表
+                renderChart(dates, values, ma5, ma20, backtestResult);
+
+            } catch (error) {
+                console.error("加载数据失败。请确保您已在 GitHub Actions 中生成了 ./data/sh000001.json", error);
+                alert("未找到历史数据文件。如果您在本地测试，请确保 data/sh000001.json 存在。");
+            } finally {
+                myChart.hideLoading();
+            }
+        }
+
+        // 4. ECharts 双窗格图表配置 (K线 + 资金曲线)
+        function renderChart(dates, dataValues, ma5, ma20, backtestResult) {
+            const option = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                legend: { data: ['日K', 'MA5', 'MA20', '资金权益'] },
+                grid: [
+                    { left: '5%', right: '5%', height: '50%' }, // 上半部分：K线图
+                    { left: '5%', right: '5%', top: '65%', height: '25%' } // 下半部分：资金曲线
+                ],
+                xAxis: [
+                    { type: 'category', data: dates, scale: true, gridIndex: 0, axisLabel: { show: false } },
+                    { type: 'category', data: dates, scale: true, gridIndex: 1 }
+                ],
+                yAxis: [
+                    { scale: true, gridIndex: 0, splitArea: { show: true } }, // K线 Y轴
+                    { scale: true, gridIndex: 1, splitNumber: 3 } // 资金曲线 Y轴
+                ],
+                dataZoom: [
+                    { type: 'inside', xAxisIndex: [0, 1], start: 50, end: 100 },
+                    { show: true, xAxisIndex: [0, 1], type: 'slider', bottom: '2%' }
+                ],
+                series: [
+                    // K线
+                    {
+                        name: '日K', type: 'candlestick', data: dataValues,
+                        xAxisIndex: 0, yAxisIndex: 0,
+                        itemStyle: { color: '#ef232a', color0: '#14b143', borderColor: '#ef232a', borderColor0: '#14b143' },
+                        // 标记买卖点
+                        markPoint: {
+                            symbol: 'arrow', symbolSize: 15,
+                            data: [
+                                ...backtestResult.buySignals.map(item => ({...item, symbolRotate: 0, symbolOffset: [0, 10]})),  // 箭头向上
+                                ...backtestResult.sellSignals.map(item => ({...item, symbolRotate: 180, symbolOffset: [0, -10]})) // 箭头向下
+                            ]
+                        }
+                    },
+                    // 均线
+                    { name: 'MA5', type: 'line', data: ma5, smooth: true, lineStyle: { width: 1 }, xAxisIndex: 0, yAxisIndex: 0 },
+                    { name: 'MA20', type: 'line', data: ma20, smooth: true, lineStyle: { width: 1 }, xAxisIndex: 0, yAxisIndex: 0 },
+                    // 资金权益曲线 (在下方 Grid)
+                    {
+                        name: '资金权益', type: 'line', data: backtestResult.equityCurve,
+                        xAxisIndex: 1, yAxisIndex: 1,
+                        itemStyle: { color: '#1890ff' }, areaStyle: { color: 'rgba(24, 144, 255, 0.2)' }
+                    }
+                ]
+            };
+            myChart.setOption(option, true);
+        }
+    </script>
+</body>
+</html>
