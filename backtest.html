@@ -3,245 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>量化投资组合回测系统</title>
+    <title>Pro版 资产配置回测终端 (真实数据对接)</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
-        /* 现代化 UI 样式 */
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-        }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 30px; }
-        .dashboard { max-width: 1200px; margin: 0 auto; }
-        .header-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; color: var(--text-main); }
+        :root { --primary: #0f172a; --accent: #3b82f6; --bg: #f1f5f9; --card: #ffffff; --border: #cbd5e1; --text: #334155; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; box-sizing: border-box; }
         
-        /* 控制面板卡片 */
-        .control-panel { background: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; border: 1px solid var(--border); }
-        .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
-        .input-group label { font-size: 14px; font-weight: 600; color: var(--text-muted); }
-        .portfolio-item { display: flex; gap: 10px; }
-        .portfolio-item input { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; transition: border-color 0.2s; outline: none; }
-        .portfolio-item input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        .portfolio-item input[type="text"] { flex: 2; }
-        .portfolio-item input[type="number"] { flex: 1; }
+        .sidebar { width: 350px; background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .sidebar h3 { margin: 0 0 10px 0; font-size: 18px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 12px; font-weight: bold; color: #64748b; }
+        input[type="text"], input[type="number"], input[type="date"] { padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
         
-        button { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 10px rgba(37,99,235,0.2); }
-        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .asset-list { display: flex; flex-direction: column; gap: 10px; }
+        .asset-item { display: flex; gap: 5px; align-items: center; background: var(--bg); padding: 8px; border-radius: 6px; }
+        .asset-item input { width: 100%; }
+        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+        
+        .btn-add { background: var(--bg); border: 1px dashed var(--border); padding: 10px; border-radius: 6px; cursor: pointer; text-align: center; color: var(--text); font-weight: bold; }
+        .btn-add:hover { background: #e2e8f0; }
+        .btn-run { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-run:hover { background: #2563eb; }
 
-        /* 数据统计卡片 */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid var(--border); }
-        .stat-title { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 24px; font-weight: 700; margin-top: 8px; }
-        .up-trend { color: #10b981; } /* 绿色代表上涨 (根据国际惯例或A股习惯可修改) */
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+        .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .stat-title { font-size: 12px; color: #64748b; margin-bottom: 5px; }
+        .stat-val { font-size: 20px; font-weight: bold; }
+        .positive { color: #ef4444; } 
+        .negative { color: #10b981; }
+        #chart-container { flex: 1; background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         
-        /* 图表容器 */
-        #chart-container { width: 100%; height: 550px; background: var(--card-bg); border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); padding: 20px; box-sizing: border-box; border: 1px solid var(--border); }
+        /* 加载动画蒙版 */
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: none; justify-content: center; align-items: center; z-index: 999; font-size: 20px; font-weight: bold; color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <div class="dashboard">
-        <div class="header-title">📊 资产配置回测实验室</div>
+    <datalist id="stock-database">
+        <option value="sh000001">上证指数</option>
+        <option value="sz399001">深证成指</option>
+        <option value="sz399006">创业板指</option>
+        <option value="sh000300">沪深300</option>
+        <option value="sh000016">上证50</option>
+        <option value="sh000905">中证500</option>
+        <option value="sh000852">中证1000</option>
+        <option value="sz399300">沪深300(深)</option>
+        <option value="sh000688">科创50</option>
+    </datalist>
 
-        <div class="control-panel">
-            <div class="input-group">
-                <label>资产 1 (代码 & 权重%)</label>
-                <div class="portfolio-item">
-                    <input type="text" id="asset1-code" value="sh000001" placeholder="股票/指数代码">
-                    <input type="number" id="asset1-weight" value="60" placeholder="权重" min="0" max="100">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>资产 2 (代码 & 权重%)</label>
-                <div class="portfolio-item">
-                    <input type="text" id="asset2-code" value="sz399006" placeholder="股票/指数代码">
-                    <input type="number" id="asset2-weight" value="40" placeholder="权重" min="0" max="100">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>初始本金 (¥)</label>
-                <input type="number" id="initial-capital" value="1000000" style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
-            </div>
-            <button onclick="executePortfolioBacktest()">运行组合回测</button>
+    <div id="loading-overlay">正在拉取真实数据并对齐日历...</div>
+
+    <div class="sidebar">
+        <h3>🛠️ 组合构建器</h3>
+        <div class="form-group">
+            <label>组合名称</label>
+            <input type="text" id="portfolio-name" value="我的全天候策略">
+        </div>
+        <div class="form-group" style="flex-direction: row; gap: 10px;">
+            <div style="flex: 1;"><label>开始日期</label><input type="date" id="start-date" value="2020-01-01" style="width:100%"></div>
+            <div style="flex: 1;"><label>结束日期</label><input type="date" id="end-date" value="2023-12-31" style="width:100%"></div>
+        </div>
+        <div class="form-group">
+            <label>基准标的</label>
+            <input type="text" id="benchmark-code" value="sh000300" list="stock-database" placeholder="输入代码联想">
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-title">期末总资产</div>
-                <div class="stat-value" id="res-final-value">¥ --</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">组合总收益率</div>
-                <div class="stat-value" id="res-return">--%</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">最大回撤 (评估风险)</div>
-                <div class="stat-value" id="res-drawdown">--%</div>
-            </div>
-        </div>
+        <h3>📦 资产配置 (权重须为100%)</h3>
+        <div class="asset-list" id="assets-container"></div>
+        <button class="btn-add" onclick="addAssetRow()">+ 添加一只股票/指数</button>
+        <button class="btn-run" onclick="runBacktest()">🚀 执行回测计算</button>
+        <div id="weight-warning" style="color:#ef4444; font-size:12px; display:none;">总权重不等于100%！当前: <span id="current-weight"></span>%</div>
+    </div>
 
+    <div class="main-content">
+        <div class="stats-container">
+            <div class="stat-card"><div class="stat-title">年化收益率 (Ann. Return)</div><div class="stat-val" id="val-return">--</div></div>
+            <div class="stat-card"><div class="stat-title">最大回撤 (Max Drawdown)</div><div class="stat-val" id="val-drawdown">--</div></div>
+            <div class="stat-card"><div class="stat-title">夏普比率 (Sharpe Ratio)</div><div class="stat-val" id="val-sharpe">--</div></div>
+            <div class="stat-card"><div class="stat-title">索提诺比率 (Sortino Ratio)</div><div class="stat-val" id="val-sortino">--</div></div>
+        </div>
         <div id="chart-container"></div>
     </div>
 
     <script>
         const myChart = echarts.init(document.getElementById('chart-container'));
+        let assets = [
+            { code: 'sh000001', weight: 60 },
+            { code: 'sz399006', weight: 40 }
+        ];
+
+        // UI 渲染逻辑
+        function renderAssets() {
+            const container = document.getElementById('assets-container');
+            container.innerHTML = '';
+            let totalWeight = 0;
+            assets.forEach((asset, index) => {
+                totalWeight += asset.weight;
+                const div = document.createElement('div');
+                div.className = 'asset-item';
+                div.innerHTML = `
+                    <input type="text" list="stock-database" placeholder="代码 (如sh000001)" value="${asset.code}" onchange="updateAsset(${index}, 'code', this.value)" style="flex:2">
+                    <input type="number" placeholder="权重%" value="${asset.weight}" onchange="updateAsset(${index}, 'weight', this.value)" style="flex:1">
+                    <button class="btn-remove" onclick="removeAsset(${index})">X</button>
+                `;
+                container.appendChild(div);
+            });
+            const warningBox = document.getElementById('weight-warning');
+            warningBox.style.display = totalWeight !== 100 ? 'block' : 'none';
+            if(totalWeight !== 100) document.getElementById('current-weight').innerText = totalWeight;
+        }
+
+        function updateAsset(index, key, value) { assets[index][key] = key === 'weight' ? parseFloat(value) || 0 : value; renderAssets(); }
+        function addAssetRow() { assets.push({ code: '', weight: 0 }); renderAssets(); }
+        function removeAsset(index) { assets.splice(index, 1); renderAssets(); }
 
         // ==========================================
-        // 核心回测逻辑：计算投资组合收益
-        // 公式: 组合每日资产 = 资产1净值 + 资产2净值
+        // 核心一：从 GitHub 拉取并解析真实 JSON 数据
         // ==========================================
-        function calculatePortfolio(dates, asset1Data, asset2Data, weight1, weight2, capital) {
-            let equityCurve = [];
-            let maxDrawdown = 0;
-            let peakValue = capital;
-
-            // 分配初始资金
-            let cap1 = capital * (weight1 / 100);
-            let cap2 = capital * (weight2 / 100);
-
-            // 获取第一天的基准收盘价，用于计算后续涨跌幅
-            let basePrice1 = asset1Data[0][1]; 
-            let basePrice2 = asset2Data[0][1]; 
-
-            for (let i = 0; i < dates.length; i++) {
-                // 计算每个资产相对第一天的涨跌倍数
-                let currentPrice1 = asset1Data[i][1];
-                let currentPrice2 = asset2Data[i][1];
+        async function fetchAssetData(code) {
+            try {
+                // 读取同仓库下 data 文件夹的静态文件
+                const response = await fetch(`./data/${code}.json`);
+                if (!response.ok) throw new Error(`未找到 ${code} 的数据`);
+                const data = await response.json();
                 
-                let value1 = cap1 * (currentPrice1 / basePrice1);
-                let value2 = cap2 * (currentPrice2 / basePrice2);
-                
-                let totalValue = value1 + value2;
-                equityCurve.push(+(totalValue.toFixed(2)));
-
-                // 计算最大回撤 (Max Drawdown)
-                if (totalValue > peakValue) peakValue = totalValue;
-                let currentDrawdown = (peakValue - totalValue) / peakValue;
-                if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
+                // 将数据转换为 Dictionary 格式，方便通过日期快速查找收盘价 O(1) 复杂度
+                // values 数组索引1代表收盘价: [open, close, low, high]
+                const priceDict = {};
+                for (let i = 0; i < data.dates.length; i++) {
+                    priceDict[data.dates[i]] = data.values[i][1]; 
+                }
+                return priceDict;
+            } catch (error) {
+                console.error(error);
+                alert(`数据加载失败: ${code}。请确保 GitHub Actions 已成功抓取该指数。`);
+                return null;
             }
+        }
 
-            return { equityCurve, maxDrawdown };
+        // 高阶指标计算 (同上一版)
+        function calculateMetrics(dailyReturns) {
+            if(dailyReturns.length === 0) return { annReturn: 0, sharpe: 0, sortino: 0 };
+            const TRADING_DAYS = 252;
+            const RISK_FREE_RATE = 0.02; 
+            let cumulativeReturn = 1;
+            for(let r of dailyReturns) cumulativeReturn *= (1 + r);
+            const years = dailyReturns.length / TRADING_DAYS;
+            const annReturn = Math.pow(cumulativeReturn, 1 / years) - 1;
+            const meanReturn = dailyReturns.reduce((a,b)=>a+b,0) / dailyReturns.length;
+            let variance = dailyReturns.reduce((acc, val) => acc + Math.pow(val - meanReturn, 2), 0) / dailyReturns.length;
+            const annVolatility = Math.sqrt(variance) * Math.sqrt(TRADING_DAYS);
+            const sharpe = annVolatility === 0 ? 0 : (annReturn - RISK_FREE_RATE) / annVolatility;
+            const negativeReturns = dailyReturns.filter(r => r < 0);
+            let downsideVariance = negativeReturns.length > 0 ? negativeReturns.reduce((acc, val) => acc + Math.pow(val, 2), 0) / dailyReturns.length : 0;
+            const downsideVolatility = Math.sqrt(downsideVariance) * Math.sqrt(TRADING_DAYS);
+            const sortino = downsideVolatility === 0 ? 0 : (annReturn - RISK_FREE_RATE) / downsideVolatility;
+            return { annReturn, sharpe, sortino };
         }
 
         // ==========================================
-        // 生成模拟数据 (当无法获取真实 JSON 时使用，防止白屏报错)
+        // 核心二：执行回测 (解决日期对齐问题)
         // ==========================================
-        function generateMockData(days, volatility, trend) {
-            let dates = [];
-            let values = [];
-            let basePrice = 3000;
-            let now = new Date();
-            
-            for (let i = days; i > 0; i--) {
-                let d = new Date(now.getTime() - i * 24 * 3600 * 1000);
-                dates.push(d.toISOString().split('T')[0]);
-                
-                // 模拟K线生成公式 (加入随机波动和长期趋势)
-                let change = (Math.random() - 0.5) * volatility + trend;
-                let open = basePrice;
-                let close = open * (1 + change);
-                let high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5);
-                let low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5);
-                
-                values.push([open, close, low, high]);
-                basePrice = close;
-            }
-            return { dates, values };
-        }
+        async function runBacktest() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const benchmarkCode = document.getElementById('benchmark-code').value;
+            const totalWeight = assets.reduce((sum, a) => sum + a.weight, 0);
 
-        async function executePortfolioBacktest() {
-            myChart.showLoading();
-            
-            const w1 = parseFloat(document.getElementById('asset1-weight').value);
-            const w2 = parseFloat(document.getElementById('asset2-weight').value);
-            const capital = parseFloat(document.getElementById('initial-capital').value);
+            if (totalWeight !== 100) return alert("组合权重总和必须等于 100%");
 
-            if (w1 + w2 !== 100) {
-                alert("温馨提示：资产权重之和必须等于 100%");
-                myChart.hideLoading();
-                return;
-            }
+            document.getElementById('loading-overlay').style.display = 'flex';
 
             try {
-                // 这里本应获取两个资产的真实数据。
-                // 鉴于目前是演示环境且为避免找不到文件的报错，我们采用智能降级，直接生成两组模拟的走势数据。
-                // 资产1：模拟大盘股（波动小，稳健）
-                // 资产2：模拟科技股（波动大，高增长）
-                console.log("尝试读取数据... 使用智能模拟器生成行情...");
-                const mockDays = 250; // 回测过去一年的交易日
-                const data1 = generateMockData(mockDays, 0.02, 0.0005); 
-                const data2 = generateMockData(mockDays, 0.04, 0.001);
+                // 1. 并发拉取基准和所有投资组合成分股的数据
+                const codesToFetch = [benchmarkCode, ...assets.map(a => a.code)];
+                // 过滤掉空字符串去重
+                const uniqueCodes = [...new Set(codesToFetch.filter(c => c))]; 
+                
+                const dataStore = {};
+                // 并发请求，极大地提升前端响应速度
+                await Promise.all(uniqueCodes.map(async (code) => {
+                    const dict = await fetchAssetData(code);
+                    if(dict) dataStore[code] = dict;
+                }));
 
-                const dates = data1.dates;
-                
-                // 执行资产组合计算引擎
-                const result = calculatePortfolio(dates, data1.values, data2.values, w1, w2, capital);
+                // 确保基准数据存在
+                if (!dataStore[benchmarkCode]) throw new Error("基准数据缺失终止回测");
 
-                // 更新前端统计卡片数据
-                const finalCapital = result.equityCurve[result.equityCurve.length - 1];
-                const totalReturn = (((finalCapital - capital) / capital) * 100).toFixed(2);
+                // 2. 日期对齐算法 (取交集)
+                // 先获取基准在 [startDate, endDate] 区间内的所有日期
+                let alignedDates = Object.keys(dataStore[benchmarkCode]).filter(date => date >= startDate && date <= endDate).sort();
                 
-                document.getElementById('res-final-value').innerText = `¥ ${finalCapital.toLocaleString()}`;
-                
-                const returnEl = document.getElementById('res-return');
-                returnEl.innerText = `${totalReturn}%`;
-                returnEl.className = totalReturn >= 0 ? 'stat-value up-trend' : 'stat-value';
-                
-                document.getElementById('res-drawdown').innerText = `${(result.maxDrawdown * 100).toFixed(2)}%`;
+                // 遍历每个资产，保留大家都共同拥有的交易日 (剔除某一只停牌的日期)
+                for (let asset of assets) {
+                    if (!dataStore[asset.code]) continue;
+                    alignedDates = alignedDates.filter(date => dataStore[asset.code][date] !== undefined);
+                }
 
-                // 渲染精美图表
-                renderChart(dates, result.equityCurve, capital);
+                if (alignedDates.length === 0) {
+                    alert("在该时间段内，所选资产没有共同的有效交易日数据！");
+                    return;
+                }
+
+                // 3. 计算每日净值
+                let portPrices = [1.0];
+                let benchPrices = [1.0];
+                let portDailyReturns = [];
+                let maxDrawdown = 0;
+                let peak = 1.0;
+
+                // 第一天作为基准日 (Base Day)
+                const baseDay = alignedDates[0];
+                
+                for (let i = 1; i < alignedDates.length; i++) {
+                    const today = alignedDates[i];
+                    const yesterday = alignedDates[i-1];
+
+                    // 计算基准今日涨跌幅并累计净值
+                    const benchTodayPrice = dataStore[benchmarkCode][today];
+                    const benchYestPrice = dataStore[benchmarkCode][yesterday];
+                    const benchReturn = (benchTodayPrice - benchYestPrice) / benchYestPrice;
+                    benchPrices.push(benchPrices[i-1] * (1 + benchReturn));
+
+                    // 计算投资组合综合收益 (权重 * 单只股票当日涨跌幅)
+                    let portTodayReturn = 0;
+                    for (let asset of assets) {
+                        const code = asset.code;
+                        const weight = asset.weight / 100; // 转为小数
+                        const todayPrice = dataStore[code][today];
+                        const yestPrice = dataStore[code][yesterday];
+                        const assetReturn = (todayPrice - yestPrice) / yestPrice;
+                        portTodayReturn += weight * assetReturn;
+                    }
+
+                    portDailyReturns.push(portTodayReturn);
+                    const currentNetValue = portPrices[i-1] * (1 + portTodayReturn);
+                    portPrices.push(currentNetValue);
+
+                    // 记录最大回撤
+                    if (currentNetValue > peak) peak = currentNetValue;
+                    let dd = (peak - currentNetValue) / peak;
+                    if (dd > maxDrawdown) maxDrawdown = dd;
+                }
+
+                // 4. 更新面板与图表
+                const metrics = calculateMetrics(portDailyReturns);
+                const fmtNum = (num) => (num * 100).toFixed(2) + '%';
+                const setHtml = (id, val, isPct = false) => {
+                    const el = document.getElementById(id);
+                    el.innerText = isPct ? fmtNum(val) : val.toFixed(2);
+                    el.className = 'stat-val ' + (val >= 0 ? 'positive' : 'negative');
+                };
+
+                setHtml('val-return', metrics.annReturn, true);
+                document.getElementById('val-drawdown').innerText = fmtNum(maxDrawdown);
+                document.getElementById('val-drawdown').className = 'stat-val negative'; 
+                setHtml('val-sharpe', metrics.sharpe);
+                setHtml('val-sortino', metrics.sortino);
+
+                renderChart(alignedDates, portPrices, benchPrices, document.getElementById('portfolio-name').value, benchmarkCode);
 
             } catch (error) {
-                console.error("执行回测失败:", error);
-                alert("回测引擎发生错误，请检查输入参数。");
+                console.error("回测执行失败:", error);
             } finally {
-                myChart.hideLoading();
+                document.getElementById('loading-overlay').style.display = 'none';
             }
         }
 
-        function renderChart(dates, equityCurve, baseCapital) {
+        function renderChart(dates, portData, benchData, portName, benchName) {
             const option = {
-                tooltip: { 
-                    trigger: 'axis',
-                    formatter: function (params) {
-                        return `${params[0].name}<br/>总资产: ¥${params[0].value.toLocaleString()}`;
-                    }
-                },
-                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                title: { text: `净值走势对比: ${portName}`, subtext: '起始净值: 1.0', left: 'center' },
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['组合净值', `基准(${benchName})`], bottom: 0 },
+                toolbox: { feature: { saveAsImage: { name: `回测_${portName}` } }, right: 20 },
+                grid: { left: '5%', right: '5%', bottom: '10%', containLabel: true },
                 xAxis: { type: 'category', boundaryGap: false, data: dates },
-                yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
+                yAxis: { type: 'value', scale: true },
+                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { show: true, type: 'slider', bottom: '2%' }],
                 series: [
-                    {
-                        name: '组合总资产',
-                        type: 'line',
-                        data: equityCurve,
-                        smooth: true,
-                        symbol: 'none',
-                        lineStyle: { width: 3, color: '#2563eb' },
-                        areaStyle: {
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: 'rgba(37, 99, 235, 0.3)' },
-                                { offset: 1, color: 'rgba(37, 99, 235, 0.0)' }
-                            ])
-                        },
-                        markLine: {
-                            data: [{ yAxis: baseCapital, name: '初始本金线', lineStyle: { color: '#64748b', type: 'dashed' } }]
-                        }
-                    }
+                    { name: '组合净值', type: 'line', data: portData, smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#ef4444' } },
+                    { name: `基准(${benchName})`, type: 'line', data: benchData, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#64748b', type: 'dashed' } }
                 ]
             };
             myChart.setOption(option, true);
         }
 
-        // 页面加载完毕后自动运行一次展示效果
-        window.onload = executePortfolioBacktest;
+        renderAssets();
     </script>
 </body>
 </html>
