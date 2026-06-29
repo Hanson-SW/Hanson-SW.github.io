@@ -7,14 +7,21 @@ title: 金融工程 · 个人主页
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
-<div class="cv-container">
-    
-    <div class="top-utility-bar">
-        <button onclick="toggleLang()" class="lang-toggle-btn">
-            <i class="fas fa-globe"></i> <span id="langBtnText">中 / EN</span>
-        </button>
+<div id="intro-overlay">
+    <canvas id="intro-canvas"></canvas>
+    <div class="intro-text">
+        <div id="intro-loading-text">INITIALIZING QUANT ENGINE...</div>
+        <div class="intro-progress-bar"><div class="intro-progress"></div></div>
     </div>
+</div>
 
+<div class="top-utility-bar">
+    <button onclick="toggleLang()" class="lang-toggle-btn btn-bubble">
+        <i class="fas fa-globe"></i> <span id="langBtnText">中 / EN</span>
+    </button>
+</div>
+
+<div class="cv-container" id="main-content-container" style="opacity: 0;">
     <div class="header-section">
         <div class="avatar-gradient">王</div>
         <div>
@@ -28,13 +35,13 @@ title: 金融工程 · 个人主页
     <h2 class="section-title">
         <i class="fas fa-file-pdf"></i> <span data-i18n="resume_title">我的简历</span>
     </h2>
-    <div class="info-card">
+    <div class="info-card glass-card">
         <div class="card-left">
             <i class="fas fa-file-pdf card-icon"></i>
             <span class="card-text" data-i18n="resume_name">金融工程简历</span>
             <span class="card-tag" data-i18n="resume_tag">· 2026 最新版</span>
         </div>
-        <button onclick="window.open('王盛烨简历.pdf', '_blank')" class="btn btn-primary">
+        <button onclick="window.open('王盛烨简历.pdf', '_blank')" class="btn btn-primary btn-bubble">
             <i class="fas fa-eye"></i> <span data-i18n="resume_btn">查看简历</span>
         </button>
     </div>
@@ -43,41 +50,41 @@ title: 金融工程 · 个人主页
         <i class="fas fa-code-branch"></i> <span data-i18n="project_title">项目展示</span>
     </h2>
 
-    <div class="info-card">
-        <div class="card-left">
-            <i class="fas fa-chart-pie card-icon"></i>
-            <span class="card-text" data-i18n="proj1_name">基金组合分析工具</span>
-            <span class="card-tag" data-i18n="proj1_tag">· Python 回测 & 归因</span>
-        </div>
-        <div class="card-buttons">
-            <button onclick="window.open('https://github.com/hanson-sw/fund-analysis', '_blank')" class="btn btn-outline">
-                <i class="fab fa-github"></i> Repository
-            </button>
-        </div>
-    </div>
-
-    <div class="info-card">
+    <div class="info-card glass-card">
         <div class="card-left">
             <i class="fas fa-chart-line card-icon"></i>
             <span class="card-text" data-i18n="proj_backtest_name">A股回测模型</span>
             <span class="card-tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</span>
         </div>
         <div class="card-buttons">
-            <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary">
+            <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary btn-bubble">
                 <i class="fas fa-play"></i> <span data-i18n="proj_backtest_btn">运行回测模型</span>
             </button>
         </div>
     </div>
 
-    <div class="info-card">
+    <div class="info-card glass-card">
         <div class="card-left">
             <i class="fas fa-pie-chart card-icon" style="color: #8b5cf6;"></i>
             <span class="card-text" data-i18n="proj_markowitz_name">Markowitz 资产轮动与量化配置模型</span>
             <span class="card-tag" data-i18n="proj_markowitz_tag">· 现代投资组合理论 (MPT)</span>
         </div>
         <div class="card-buttons">
-            <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary" style="background: #8b5cf6;">
+            <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary btn-bubble" style="background: #8b5cf6;">
                 <i class="fas fa-play"></i> <span data-i18n="proj_markowitz_btn">运行配置模型</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="info-card glass-card">
+        <div class="card-left">
+            <i class="fas fa-bolt card-icon"></i>
+            <span class="card-text" data-i18n="proj2_name">A股择时策略</span>
+            <span class="card-tag" data-i18n="proj2_tag">· 宏观 + 情绪指标</span>
+        </div>
+        <div class="card-buttons">
+            <button onclick="window.open('https://github.com/hanson-sw/astock-strategy', '_blank')" class="btn btn-outline btn-bubble">
+                <i class="fab fa-github"></i> Repository
             </button>
         </div>
     </div>
@@ -89,13 +96,13 @@ title: 金融工程 · 个人主页
         系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
     </p>
 
-    <div class="model-panel">
+    <div class="model-panel glass-card">
         <div class="param-grid">
             <div class="grid-col-span-2 relative-box">
                 <label class="param-label" data-i18n="mc_ticker">股票/指数代码 (Ticker)</label>
                 <div class="flex-input-group">
                     <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" class="param-input uppercase-text" placeholder="输入 AAPL 或指数代码..." />
-                    <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline fetch-btn">
+                    <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline fetch-btn btn-bubble">
                         <i class="fas fa-cloud-download-alt"></i> <span data-i18n="mc_pull">拉取</span>
                     </button>
                 </div>
@@ -128,7 +135,7 @@ title: 金融工程 · 个人主页
             </div>
 
             <div class="grid-col-btn">
-                <button onclick="runSimulation()" id="simBtn" class="btn btn-primary run-sim-btn">
+                <button onclick="runSimulation()" id="simBtn" class="btn btn-primary run-sim-btn btn-bubble">
                     <i class="fas fa-play"></i> <span data-i18n="mc_run">运行</span>
                 </button>
             </div>
@@ -138,10 +145,10 @@ title: 金融工程 · 个人主页
 
     <div id="chartExportWrapper" class="chart-wrapper">
         <div class="chart-tools">
-            <button onclick="downloadImage()" class="icon-btn" title="导出高清图片">
+            <button onclick="downloadImage()" class="icon-btn btn-bubble" title="导出高清图片">
                 <i class="fas fa-download"></i>
             </button>
-            <button onclick="toggleFullscreen()" class="icon-btn" title="全屏放大">
+            <button onclick="toggleFullscreen()" class="icon-btn btn-bubble" title="全屏放大">
                 <i id="fullscreenIcon" class="fas fa-expand"></i>
             </button>
         </div>
@@ -152,13 +159,10 @@ title: 金融工程 · 个人主页
         <i class="fas fa-paper-plane"></i> <span data-i18n="contact_title">联系我</span>
     </h2>
     <div class="contact-wrapper">
-        <a href="mailto:sw6245@nyu.edu" class="contact-tag">
+        <a href="mailto:sw6245@nyu.edu" class="contact-tag btn-bubble">
             <i class="fas fa-envelope"></i> sw6245@nyu.edu
-            </a>
-        <a href="tel:+8615908963789" class="contact-tag">
-            <i class="fas fa-phone"></i> +86 159 0896 3789
         </a>
-        <button onclick="window.open('https://github.com/Hanson-SW', '_blank')" class="btn btn-outline github-contact-btn">
+        <button onclick="window.open('https://github.com/Hanson-SW', '_blank')" class="btn btn-outline github-contact-btn btn-bubble">
             <i class="fab fa-github"></i> <span data-i18n="contact_gh">GitHub 主页</span>
         </button>
     </div>
@@ -168,7 +172,7 @@ title: 金融工程 · 个人主页
     </h2>
     <div class="search-wrapper">
         <input type="text" id="aiSearchInput" placeholder="输入你想问的金融问题…" />
-        <button onclick="handleAISearch()" class="btn btn-primary search-btn">
+        <button onclick="handleAISearch()" class="btn btn-primary search-btn btn-bubble">
             <i class="fas fa-paper-plane"></i> <span data-i18n="ai_btn">提问</span>
         </button>
     </div>
@@ -181,67 +185,120 @@ title: 金融工程 · 个人主页
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    .cv-container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #0f172a; position: relative; }
+    /* ================= 动画特效核心层 ================= */
+
+    /* 1. 动态流光渐变背景 */
+    body {
+        margin: 0;
+        background: linear-gradient(-45deg, #e0e7ff, #f8fafc, #f1f5f9, #dbeafe);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        overflow-x: hidden;
+    }
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* 2. 磨砂玻璃质感 (Glassmorphism) */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.65) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    }
+    .cv-container {
+        max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; 
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+        color: #0f172a; position: relative;
+    }
+
+    /* 3. 泡泡呼吸回弹特效 (Hover Bubble) */
+    .btn-bubble {
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; /* 物理回弹曲线 */
+    }
+    .btn-bubble:hover {
+        transform: scale(1.08) translateY(-2px);
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2) !important;
+    }
+
+    /* 4. 无人机坠落拉近动画 (Drone Landing) */
+    .landing-anim {
+        animation: droneDrop 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes droneDrop {
+        0% { transform: scale(3) translateY(150px) rotateX(10deg); opacity: 0; filter: blur(10px); }
+        60% { opacity: 1; filter: blur(0px); }
+        100% { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; filter: blur(0px); }
+    }
+
+    /* 5. 开场时间穿梭遮罩层 */
+    #intro-overlay {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #000000; z-index: 999999;
+        display: flex; justify-content: center; align-items: center; flex-direction: column;
+        transition: opacity 0.8s ease-out;
+    }
+    #intro-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    .intro-text { position: relative; z-index: 2; text-align: center; }
+    #intro-loading-text { color: #38bdf8; font-family: monospace; font-size: 1.5rem; letter-spacing: 4px; margin-bottom: 20px; text-shadow: 0 0 10px #38bdf8; }
+    .intro-progress-bar { width: 300px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin: 0 auto;}
+    .intro-progress { width: 0%; height: 100%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; animation: progress 2s ease-in forwards; }
+    @keyframes progress { to { width: 100%; } }
+
+    /* ================= 基础 UI 样式 (保留原有自适应结构) ================= */
+    .top-utility-bar { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 0.5rem; position: relative; z-index: 10;}
+    .lang-toggle-btn { background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; backdrop-filter: blur(5px);}
     
-    /* 优化 3 对应的流式靠右控制栏 */
-    .top-utility-bar { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 0.5rem; }
-    .lang-toggle-btn { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; }
-    .lang-toggle-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
-    
-    .header-section { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid #eef2f6; }
+    .header-section { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(0,0,0,0.05); }
     .avatar-gradient { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 600; color: white; flex-shrink: 0; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2); }
     .main-title { font-size: 2.2rem; font-weight: 700; margin: 0; background: linear-gradient(135deg, #0f172a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px; }
     .sub-title { font-size: 1.05rem; color: #475569; margin: 0.4rem 0 0 0; }
     .section-title { font-size: 1.25rem; font-weight: 600; margin-top: 3rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.6rem; }
     .section-title i { color: #2563eb; width: 1.5rem; }
     
-    .info-card { background: #ffffff; border-radius: 16px; padding: 1.25rem 1.5rem; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.25s ease; }
-    .info-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05); border-color: #cbd5e1; }
+    .info-card { border-radius: 16px; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
     .card-left { display: flex; align-items: center; gap: 0.75rem; }
     .card-icon { font-size: 1.3rem; color: #2563eb; }
     .card-text { font-weight: 600; color: #1e293b; }
     .card-tag { font-size: 0.9rem; color: #64748b; }
     .card-buttons { display: flex; gap: 0.5rem; }
     
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 1.2rem; border-radius: 40px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.2s; border: none; text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 1.2rem; border-radius: 40px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; text-decoration: none; }
     .btn-primary { background: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); }
-    .btn-primary:hover { background: #1d4ed8; }
     .btn-outline { background: transparent; color: #334155; border: 1px solid #cbd5e1; }
-    .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; }
 
-    .model-panel { background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1rem; }
+    .model-panel { border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 8px 30px rgba(0,0,0,0.04); }
     .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; align-items: end; }
     .grid-col-span-2 { grid-column: span 2; }
     .relative-box { position: relative; }
     .param-label { display: block; font-size: 0.85rem; color: #475569; margin-bottom: 0.4rem; font-weight: 600; white-space: nowrap; }
-    .param-input { width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; transition: border-color 0.2s; }
-    .param-input:focus { border-color: #2563eb; }
-    .bg-gray { background: #f8fafc; }
+    .param-input { width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid rgba(203,213,225,0.6); outline: none; transition: border-color 0.2s; background: rgba(255,255,255,0.5); backdrop-filter: blur(4px);}
+    .param-input:focus { border-color: #2563eb; background: #fff;}
+    .bg-gray { background: rgba(248,250,252,0.6); }
     .uppercase-text { text-transform: uppercase; }
     .flex-input-group { display: flex; gap: 0.5rem; }
-    .fetch-btn { padding: 0 1rem; flex-shrink: 0; }
+    .fetch-btn { padding: 0 1rem; flex-shrink: 0; background: rgba(255,255,255,0.8);}
     .run-sim-btn { height: 42px; width: 100%; }
     .data-status-text { font-size: 0.8rem; color: #2563eb; margin-top: 1rem; font-weight: 500; min-height: 1.2rem; }
     
-    .autocomplete-dropdown { display:none; position:absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 4px; max-height: 220px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #334155; line-height: 1.4; }
+    .autocomplete-dropdown { display:none; position:absolute; top: 100%; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 4px; max-height: 220px; overflow-y: auto; z-index: 999; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 0.85rem; color: #334155; line-height: 1.4; }
     .autocomplete-item:hover { background: #eff6ff; color: #2563eb; }
 
-    /* 优化 4b：通过让容器宽度 100% 满幅并优化内边距，确保图表的展示空间最大化 */
-    .chart-wrapper { background: #ffffff; border-radius: 12px; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; margin-bottom: 1.5rem; width: 100%; overflow: hidden; }
+    .chart-wrapper { background: #ffffff; border-radius: 12px; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.06); position: relative; margin-bottom: 1.5rem; width: 100%; overflow: hidden; }
     .chart-tools { position: absolute; top: 1rem; right: 1rem; z-index: 100; display: flex; gap: 0.5rem; }
-    .icon-btn { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s; }
-    .icon-btn:hover { background: #e2e8f0; }
+    .icon-btn { background: rgba(241,245,249,0.8); backdrop-filter: blur(4px); border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; }
 
     .contact-wrapper { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; align-items: center; }
-    .contact-tag { display: inline-flex; align-items: center; gap: 0.5rem; color: #334155; text-decoration: none; font-size: 0.9rem; font-weight: 500; background: #f1f5f9; padding: 0.5rem 1.2rem; border-radius: 30px; transition: all 0.2s; height: 38px;}
-    .contact-tag:hover { background: #e2e8f0; color: #0f172a; }
+    .contact-tag { display: inline-flex; align-items: center; gap: 0.5rem; color: #334155; text-decoration: none; font-size: 0.9rem; font-weight: 500; background: rgba(241,245,249,0.8); backdrop-filter: blur(4px); padding: 0.5rem 1.2rem; border-radius: 30px; height: 38px;}
     .github-contact-btn { border-radius: 30px; padding: 0.5rem 1.2rem; height: 38px; font-size: 0.9rem; font-weight: 500;}
 
-    .ai-top-border { padding-top: 2rem; border-top: 1px solid #eef2f6; }
+    .ai-top-border { padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.05); }
     .search-wrapper { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-    #aiSearchInput { flex: 1; min-width: 260px; padding: 0.75rem 1.2rem; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 0.95rem; background: #f8fafc; outline: none; }
-    #aiSearchInput:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    #aiSearchInput { flex: 1; min-width: 260px; padding: 0.75rem 1.2rem; border-radius: 40px; border: 1px solid rgba(203,213,225,0.6); font-size: 0.95rem; background: rgba(255,255,255,0.5); backdrop-filter: blur(4px); outline: none; }
+    #aiSearchInput:focus { border-color: #2563eb; background: #ffffff; }
     #aiSearchResult { margin-top: 1.2rem; font-size: 0.95rem; color: #334155; padding: 0 0.5rem; line-height: 1.5; }
     .search-tip { font-size: 0.8rem; color: #94a3b8; margin-top: 0.6rem; }
     
@@ -258,15 +315,90 @@ title: 金融工程 · 个人主页
         .search-wrapper { flex-direction: column; }
         #aiSearchInput, .search-btn { width: 100% !important; }
     }
-    
-    @media (max-width: 480px) {
-        .param-grid { grid-template-columns: 1fr; }
-        .grid-col-span-2, .grid-col-btn { grid-column: span 1; }
-    }
 </style>
 
 <script>
-    // i18n 字典，同步加入了 Markowitz 模块的多语言支持
+    // ================= 5. 开场数学模型时间穿梭动画 (Canvas Warp Speed) =================
+    function initIntroAnimation() {
+        const canvas = document.getElementById('intro-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const mathSymbols = ['σ', 'μ', '∫', 'Δ', 'π', 'W(t)', 'dZ', 'lim', 'Σ', '0', '1', 'α', 'β', 'γ', 'E(R)', 'S_0'];
+        const stars = [];
+        const numStars = 200;
+        let speedMultiplier = 1; // 初始速度
+        let animationFrameId;
+
+        class Star {
+            constructor() {
+                this.x = (Math.random() - 0.5) * canvas.width * 2;
+                this.y = (Math.random() - 0.5) * canvas.height * 2;
+                this.z = Math.random() * canvas.width;
+                this.symbol = mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
+                this.color = Math.random() > 0.5 ? '#38bdf8' : '#8b5cf6'; // 科技蓝与量化紫
+            }
+            update() {
+                this.z -= 10 * speedMultiplier; // Z轴不断拉近
+                if (this.z <= 0) {
+                    this.x = (Math.random() - 0.5) * canvas.width * 2;
+                    this.y = (Math.random() - 0.5) * canvas.height * 2;
+                    this.z = canvas.width;
+                    this.symbol = mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
+                }
+            }
+            draw() {
+                let x = (this.x / this.z) * canvas.width + canvas.width / 2;
+                let y = (this.y / this.z) * canvas.height + canvas.height / 2;
+                let size = (1 - this.z / canvas.width) * 20; // 越近越大
+                let opacity = 1 - this.z / canvas.width;
+
+                ctx.fillStyle = `rgba(${this.color === '#38bdf8' ? '56,189,248' : '139,92,246'}, ${opacity})`;
+                ctx.font = `${size}px monospace`;
+                ctx.fillText(this.symbol, x, y);
+            }
+        }
+
+        for (let i = 0; i < numStars; i++) stars.push(new Star());
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 形成拖影效果
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            speedMultiplier += 0.02; // 速度不断加快，模拟时空穿梭加速
+            
+            stars.forEach(star => { star.update(); star.draw(); });
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // 2.2 秒后白光一闪，触发无人机坠地 Landing
+        setTimeout(() => {
+            const overlay = document.getElementById('intro-overlay');
+            const mainContent = document.getElementById('main-content-container');
+            
+            // 白光爆闪
+            overlay.style.background = '#ffffff';
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+            cancelAnimationFrame(animationFrameId);
+            
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none'; // 防止遮挡点击
+                
+                // 触发主内容 Landing 物理回弹
+                mainContent.classList.add('landing-anim');
+            }, 100);
+
+        }, 2200);
+    }
+
+    // 页面加载即刻触发动画
+    window.addEventListener('load', initIntroAnimation);
+
+
+    // ================= 基础逻辑 (多语言/量化拉取/图表生成 - 完全保留) =================
     const i18nDict = {
         name: { zh: "王 盛 烨", en: "Shengye Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
@@ -275,7 +407,7 @@ title: 金融工程 · 个人主页
         resume_tag: { zh: "· 2026 最新版", en: "· 2026 Updated" },
         resume_btn: { zh: "查看简历", en: "View PDF" },
         project_title: { zh: "项目展示", en: "Projects" },
-        proj1_name: { zh: "基金组合 analysis 工具", en: "Fund Portfolio Analyzer" },
+        proj1_name: { zh: "基金组合分析工具", en: "Fund Portfolio Analyzer" },
         proj1_tag: { zh: "· Python 回测 & 归因", en: "· Python Backtesting & Attribution" },
         proj_backtest_name: { zh: "A股回测模型", en: "A-Share Backtesting Model" },
         proj_backtest_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
@@ -283,8 +415,10 @@ title: 金融工程 · 个人主页
         proj_markowitz_name: { zh: "Markowitz 资产轮动与量化配置模型", en: "Markowitz Portfolio Allocation Model" },
         proj_markowitz_tag: { zh: "· 现代投资组合理论 (MPT)", en: "· Modern Portfolio Theory (MPT)" },
         proj_markowitz_btn: { zh: "运行配置模型", en: "Run Allocation Model" },
+        proj2_name: { zh: "A股择时策略", en: "A-Share Timing Strategy" },
+        proj2_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
         mc_title: { zh: "实盘量化引擎：股价路径预测", en: "Live Quant Engine: Monte Carlo Prediction" },
-        mc_desc: { zh: "系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，生成逐日概率热力图。", en: "Auto-fetches live data. Per-Day Normalized heatmap." },
+        mc_desc: { zh: "系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。", en: "Auto-fetches live data. Per-Day Normalized heatmap." },
         mc_ticker: { zh: "股票/指数代码 (Ticker)", en: "Stock/Index Ticker" },
         mc_pull: { zh: "拉取", en: "Fetch" },
         mc_vol: { zh: "波动率 (σ)", en: "Volatility (σ)" },
@@ -318,7 +452,6 @@ title: 金融工程 · 个人主页
 
     function markCustom() { currentDataSource = currentLang === 'zh' ? '用户自定义 (Custom Input)' : 'User Custom Input'; }
 
-    // 优化 4a：引入了更多核心的中国与美国大盘大盘指数代码（支持 Yahoo 真实接口拉取）
     const localTickerDB = [
         { symbol: '000300.SS', name: '沪深300指数 (CSI 300 Index)' },
         { symbol: '000905.SS', name: '中证500指数 (CSI 500 Index)' },
@@ -376,8 +509,10 @@ title: 金融工程 · 个人主页
             icon.className = 'fas fa-expand';
             document.body.style.overflow = 'auto';
         }
+        if(chartInstance) setTimeout(() => chartInstance.resize(), 100);
     }
 
+    // 依然保留极速原生图片导出功能
     function downloadImage() {
         if(!chartInstance) return;
         const url = chartInstance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#ffffff' });
@@ -538,8 +673,6 @@ title: 金融工程 · 个人主页
                     }
                 },
                 visualMap: { dimension: 3, min: 0, max: 1, show: false, inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] } },
-                
-                // 优化 4b：开启 containLabel: true 确保任何长数字均自动留白缩进，并拉伸绘图主网格空间
                 grid: { left: '1%', right: '2%', top: 60, bottom: 10, containLabel: true },
                 xAxis: { type: 'category', data: xAxisData },
                 yAxis: [
@@ -548,10 +681,7 @@ title: 金融工程 · 个人主页
                         type: 'value', 
                         min: data.globalMin, 
                         max: data.globalMax, 
-                        // 优化 4b：强制加入高精度的 toFixed(2) 截断格式化函数，彻底解决浮点数无限小数导致侵占图表空间的问题
-                        axisLabel: { 
-                            formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } 
-                        } 
+                        axisLabel: { formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } 
                     }
                 ],
                 series: [
@@ -564,8 +694,6 @@ title: 金融工程 · 个人主页
         }, 50);
     }
 
-    document.addEventListener('DOMContentLoaded', () => { runSimulation(); });
-    
     const resizeObserver = new ResizeObserver(() => {
         if (chartInstance) chartInstance.resize();
     });
@@ -577,9 +705,9 @@ title: 金融工程 · 个人主页
         if(!query) return;
         resultDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing...`;
         setTimeout(() => {
-            resultDiv.innerHTML = `<div style="background:#f8fafc; padding:1rem; border-left:4px solid #2563eb; border-radius:4px;">
+            resultDiv.innerHTML = `<div style="background:rgba(255,255,255,0.7); backdrop-filter:blur(5px); padding:1rem; border-left:4px solid #2563eb; border-radius:4px;">
                 <strong>[模拟演示效果]</strong><br>您输入的问题是："${query}"<br><br>
-                在实际生成环境中，此模块将通过安全的后端云函数反向代理调用 OpenAI / Claude / DeepSeek API 进行实时的微调语义检索与定量归因报告生成。
+                在实际生成环境中，此模块将通过安全的后端云函数反向代理调用 OpenAI API。
             </div>`;
         }, 800);
     }
