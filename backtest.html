@@ -4,35 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A股量化策略回测系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    /* ===== 移动端响应式极简优化 ===== */
-        @media (max-width: 768px) {
-            body { 
-                flex-direction: column; /* 手机端自动变为上下排列 */
-                height: auto; /* 取消高度锁死，允许手机原生滑动 */
-                padding: 10px;
-            }
-            .sidebar { 
-                width: 100%; /* 侧边栏填满屏幕宽度 */
-                box-sizing: border-box;
-            }
-            .main-content { 
-                width: 100%; 
-            }
-            .stats-container { 
-                grid-template-columns: 1fr 1fr; /* 数据卡片在手机上变成两列 */
-            }
-            #chart-container {
-                min-height: 400px; /* 适当压缩图表在手机上的高度 */
-            }
-        }
-        @media (max-width: 480px) {
-            .stats-container { 
-                grid-template-columns: 1fr; /* 极小屏幕数据卡片变成单列 */
-            }
-        }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <style>
-        
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; box-sizing: border-box; }
         
@@ -47,7 +20,6 @@
         .asset-list { display: flex; flex-direction: column; gap: 10px; }
         .asset-item { display: flex; gap: 10px; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
         .asset-item span { flex: 1; font-weight: bold; color: #1e293b; }
-        /* 取消 min 限制以支持负数权重做空 */
         .weight-input { width: 70px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; text-align: center; }
         .btn-remove { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 12px; }
         
@@ -67,6 +39,18 @@
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 17px; font-weight: bold; color: var(--accent); }
         .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ===== 完美修复的移动端响应式代码 ===== */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: auto; padding: 10px; }
+            .sidebar { width: 100%; box-sizing: border-box; }
+            .main-content { width: 100%; }
+            .stats-container { grid-template-columns: 1fr 1fr; }
+            #chart-container { min-height: 450px; }
+        }
+        @media (max-width: 480px) {
+            .stats-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -145,7 +129,6 @@
         const myChart = echarts.init(document.getElementById('chart-container'));
         let glowInterval = null; 
         
-        // 💎 核心资产字典：双重映射名称与代码
         const ASSET_DICT = {
             'sh000001': '上证指数',
             'sz399001': '深证成指',
@@ -158,11 +141,8 @@
             'sz399300': '沪深300(深)'
         };
 
-        function getAssetName(code) {
-            return ASSET_DICT[code] || code.toUpperCase();
-        }
+        function getAssetName(code) { return ASSET_DICT[code] || code.toUpperCase(); }
 
-        // 🎯 初始设置：多空组合 (-10% 做空对冲)
         let portfolioConfig = [
             { code: 'sh000001', weight: 50 },
             { code: 'sh000688', weight: -10 },
@@ -170,9 +150,6 @@
         ];
         let cachedDataStore = null;
 
-        // ==========================================
-        // 🔬 内生高保真数仓生成器（2025全年）
-        // ==========================================
         function generateDeterministic2025Data() {
             const store = {};
             const assets = ['sh000300', 'sh000001', 'sh000688', 'sz399006'];
@@ -226,7 +203,6 @@
             portfolioConfig.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'asset-item';
-                // 💎 UI 升级：同时显示名称与代码，代码字体缩小颜色变淡
                 div.innerHTML = `
                     <span>🏷️ ${getAssetName(item.code)} <br><span style="font-size:11px; color:#94a3b8; font-weight:normal;">${item.code.toUpperCase()}</span></span>
                     <input type="number" class="weight-input" value="${item.weight}" step="1" onchange="updateWeightValue(${index}, this.value)">
@@ -274,9 +250,7 @@
                 if (textData.trim().startsWith("<")) return null;
                 const cleanData = JSON.parse(textData.replace(/NaN/g, 'null'));
                 const priceDict = {};
-                for (let i = 0; i < cleanData.dates.length; i++) {
-                    priceDict[cleanData.dates[i]] = cleanData.values[i][1];
-                }
+                for (let i = 0; i < cleanData.dates.length; i++) priceDict[cleanData.dates[i]] = cleanData.values[i][1];
                 return priceDict;
             } catch { return null; }
         }
@@ -375,9 +349,7 @@
                     calmar: pMetrics.calmar.toFixed(2)
                 };
                 
-                // 整理用于图表显示的权重字符串（包含中文名与代码）
                 let weightStr = portfolioConfig.map(item => `${getAssetName(item.code)}(${item.code.toUpperCase()}): ${item.weight}%`).join('\n');
-
                 let benchName = getAssetName(benchmarkCode);
                 renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, benchName, displayMetrics, weightStr);
 
@@ -395,22 +367,24 @@
             const genDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
             const safeImageName = '多空策略回测研报_' + genDate.split('/').join('');
 
+            // 💎 移动端智能判定：如果是手机屏，隐藏右侧文字框，把图表拉宽！
+            const isMobile = window.innerWidth <= 768;
+
             const option = {
                 animation: false, 
                 title: { text: '多资产多空策略回测与超额归因 (NAV & Alpha)', left: 'center', top: 5 },
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
                 
-                // 图例往左靠，绝对避开右侧数据面板
-                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢/跑输)'], top: 35, left: '25%' },
+                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢/跑输)'], top: 35, left: isMobile ? 'center' : '25%' },
                 toolbox: { 
                     feature: { saveAsImage: { name: safeImageName, pixelRatio: 2, backgroundColor: '#fff' } },
                     right: 20, top: 10
                 },
                 
-                // 💎 绝对物理安全网格：把右侧生生留出 320 像素的无人区
+                // 💎 如果是手机，取消右侧留白 (留 20px 即可)，如果是电脑，留 320px 给悬浮框
                 grid: [
-                    { left: 60, right: 320, top: '15%', height: '50%', containLabel: true },
-                    { left: 60, right: 320, top: '70%', height: '22%', containLabel: true }
+                    { left: 45, right: isMobile ? 20 : 320, top: '15%', height: '50%', containLabel: true },
+                    { left: 45, right: isMobile ? 20 : 320, top: '70%', height: '22%', containLabel: true }
                 ],
                 xAxis: [
                     { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } },
@@ -425,8 +399,8 @@
                     { show: true, type: 'slider', bottom: '1%', xAxisIndex: [0, 1] }
                 ],
                 
-                // 💎 超大号悬浮数据卡片，被死死钉在右侧无人区，绝不越界
-                graphic: [
+                // 💎 如果是手机，自动隐藏悬浮框（因为上方已经有数据卡片了）
+                graphic: isMobile ? [] : [
                     {
                         type: 'group', right: 20, top: '13%',
                         children: [
@@ -480,7 +454,6 @@
             
             myChart.setOption(option, true);
 
-            // 🌟 纯净呼吸灯特效 (仅对红色组合净值生效)
             let startTime = Date.now();
             glowInterval = setInterval(() => {
                 const timeElapsed = Date.now() - startTime;
@@ -501,13 +474,15 @@
 
         renderPortfolioDOM();
         runBacktest(true); 
+
         // ===== 监听窗口缩放，自动重绘图表 =====
         window.addEventListener('resize', function() {
             if (typeof myChart !== 'undefined' && myChart) {
+                // 如果调整窗口大小导致手机和电脑视图切换，重新运行以加载不同的排版
+                runBacktest(true);
                 myChart.resize();
             }
         });
     </script>
-    
 </body>
 </html>
