@@ -378,7 +378,7 @@ title: 金融工程 · 个人主页
     // ================= 2. 基础多语言与量化配置引擎数据 =================
     const i18nDict = {
         name: { zh: "王 盛 烨", en: "Shengye (Hanson) Wang" },
-        degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
+        degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Business Analytics)" },
         resume_title: { zh: "我的简历", en: "My Resume" },
         resume_name: { zh: "金融工程简历 (中文版)", en: "Financial Engineering Resume (CN)" },
         resume_tag: { zh: "· 2026 最新版", en: "· 2026 Updated" },
