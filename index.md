@@ -43,11 +43,11 @@ title: 金融工程 · 个人主页
 
         <div class="info-card glass-card">
             <div class="card-left">
-                <i class="fas fa-file-pdf card-icon" style="color: #10b981;"></i>
+                <i class="fas fa-file-pdf card-icon"></i>
                 <span class="card-text" data-i18n="resume_en_name">金融工程简历 (English)</span>
                 <span class="card-tag" data-i18n="resume_en_tag">· 2026 Updated</span>
             </div>
-            <button onclick="window.open('SWresume.pdf', '_blank')" class="btn btn-outline btn-bubble" style="color: #10b981; border-color: #10b981;">
+            <button onclick="window.open('SWresume.pdf', '_blank')" class="btn btn-outline btn-bubble" style="color: #2563eb; border-color: #2563eb;">
                 <i class="fas fa-eye"></i> <span data-i18n="resume_en_btn">View PDF</span>
             </button>
         </div>
@@ -56,30 +56,30 @@ title: 金融工程 · 个人主页
             <i class="fas fa-code-branch"></i> <span data-i18n="project_title">项目展示</span>
         </h2>
 
-        <div class="info-card glass-card">
-            <div class="card-left">
-                <i class="fas fa-chart-line card-icon"></i>
-                <span class="card-text" data-i18n="proj_backtest_name">A股回测模型</span>
-                <span class="card-tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</span>
-            </div>
-            <div class="card-buttons">
-                <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary btn-bubble">
+        <div class="project-grid">
+            
+            <div class="project-card glass-card">
+                <div class="header">
+                    <div class="title" data-i18n="proj_backtest_name">A股回测模型</div>
+                    <div class="tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</div>
+                </div>
+                <div class="spacer"></div>
+                <button onclick="window.open('./backtest.html', '_blank')" class="btn project-btn btn-bubble">
                     <i class="fas fa-play"></i> <span data-i18n="proj_backtest_btn">运行回测模型</span>
                 </button>
             </div>
-        </div>
 
-        <div class="info-card glass-card">
-            <div class="card-left">
-                <i class="fas fa-pie-chart card-icon" style="color: #8b5cf6;"></i>
-                <span class="card-text" data-i18n="proj_markowitz_name">Markowitz 资产轮动与量化配置模型</span>
-                <span class="card-tag" data-i18n="proj_markowitz_tag">· 现代投资组合理论 (MPT)</span>
-            </div>
-            <div class="card-buttons">
-                <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary btn-bubble" style="background: #8b5cf6;">
+            <div class="project-card glass-card">
+                <div class="header">
+                    <div class="title" data-i18n="proj_markowitz_name">Markowitz 资产轮动与量化配置模型</div>
+                    <div class="tag" data-i18n="proj_markowitz_tag">· 现代投资组合理论 (MPT)</div>
+                </div>
+                <div class="spacer"></div>
+                <button onclick="window.open('./markowitz.html', '_blank')" class="btn project-btn btn-bubble">
                     <i class="fas fa-play"></i> <span data-i18n="proj_markowitz_btn">运行配置模型</span>
                 </button>
             </div>
+
         </div>
 
         <h2 class="section-title" style="margin-top: 3.5rem;">
@@ -276,6 +276,18 @@ title: 金融工程 · 个人主页
     .btn-primary { background: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); }
     .btn-outline { background: transparent; color: #334155; border: 1px solid #cbd5e1; }
 
+    /* ================= 项目卡片展示样式 (统一 Markowitz 风格) ================= */
+    .project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1rem; }
+    .project-card { border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+    .project-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15); }
+    .project-card .header { display: flex; flex-direction: column; gap: 0.6rem; }
+    .project-card .title { font-size: 1.15rem; font-weight: 700; color: #1e293b; }
+    .project-card .tag { align-self: flex-start; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; padding: 0.25rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; border-left: 3px solid #8b5cf6; }
+    .project-card .spacer { flex-grow: 1; }
+    .project-card .project-btn { width: 100%; background: #8b5cf6; color: white; border: none; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2); font-size: 0.95rem; padding: 0.6rem 1.2rem; }
+    .project-card .project-btn:hover { background: #7c3aed; }
+
+    /* ================= 模型面板及其他组件 ================= */
     .model-panel { border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 8px 30px rgba(0,0,0,0.04); }
     .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; align-items: end; }
     .grid-col-span-2 { grid-column: span 2; }
