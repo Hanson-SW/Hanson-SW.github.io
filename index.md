@@ -154,6 +154,9 @@ title: 金融工程 · 个人主页
     <div class="contact-wrapper">
         <a href="mailto:sw6245@nyu.edu" class="contact-tag">
             <i class="fas fa-envelope"></i> sw6245@nyu.edu
+            </a>
+        <a href="tel:+8615908963789" class="contact-tag">
+            <i class="fas fa-phone"></i> +86 159 0896 3789
         </a>
         <button onclick="window.open('https://github.com/Hanson-SW', '_blank')" class="btn btn-outline github-contact-btn">
             <i class="fab fa-github"></i> <span data-i18n="contact_gh">GitHub 主页</span>
