@@ -3,14 +3,18 @@ layout: default
 title: 金融工程 · 个人主页
 ---
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
-<button onclick="toggleLang()" class="lang-toggle-btn">
-    <i class="fas fa-globe"></i> <span id="langBtnText">中 / EN</span>
-</button>
-
 <div class="cv-container">
+    
+    <div class="top-utility-bar">
+        <button onclick="toggleLang()" class="lang-toggle-btn">
+            <i class="fas fa-globe"></i> <span id="langBtnText">中 / EN</span>
+        </button>
+    </div>
+
     <div class="header-section">
         <div class="avatar-gradient">王</div>
         <div>
@@ -59,11 +63,21 @@ title: 金融工程 · 个人主页
             <span class="card-tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</span>
         </div>
         <div class="card-buttons">
-            <button onclick="window.open('https://github.com/hanson-sw/astock-strategy', '_blank')" class="btn btn-outline">
-                <i class="fab fa-github"></i> Repository
-            </button>
             <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary">
                 <i class="fas fa-play"></i> <span data-i18n="proj_backtest_btn">运行回测模型</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <div class="card-left">
+            <i class="fas fa-pie-chart card-icon" style="color: #8b5cf6;"></i>
+            <span class="card-text" data-i18n="proj_markowitz_name">Markowitz 资产轮动与量化配置模型</span>
+            <span class="card-tag" data-i18n="proj_markowitz_tag">· 现代投资组合理论 (MPT)</span>
+        </div>
+        <div class="card-buttons">
+            <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary" style="background: #8b5cf6;">
+                <i class="fas fa-play"></i> <span data-i18n="proj_markowitz_btn">运行配置模型</span>
             </button>
         </div>
     </div>
@@ -78,9 +92,9 @@ title: 金融工程 · 个人主页
     <div class="model-panel">
         <div class="param-grid">
             <div class="grid-col-span-2 relative-box">
-                <label class="param-label" data-i18n="mc_ticker">股票代码 (Ticker)</label>
+                <label class="param-label" data-i18n="mc_ticker">股票/指数代码 (Ticker)</label>
                 <div class="flex-input-group">
-                    <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" class="param-input uppercase-text" placeholder="输入 AAPL..." />
+                    <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" class="param-input uppercase-text" placeholder="输入 AAPL 或指数代码..." />
                     <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline fetch-btn">
                         <i class="fas fa-cloud-download-alt"></i> <span data-i18n="mc_pull">拉取</span>
                     </button>
@@ -89,7 +103,7 @@ title: 金融工程 · 个人主页
             </div>
 
             <div class="grid-col">
-                <label id="priceLabel" class="param-label">当前股价 ($)</label>
+                <label id="priceLabel" class="param-label">当前价格 ($)</label>
                 <input type="number" id="currentPrice" value="175.00" step="0.01" oninput="markCustom()" class="param-input bg-gray" />
             </div>
 
@@ -141,9 +155,9 @@ title: 金融工程 · 个人主页
         <a href="mailto:sw6245@nyu.edu" class="contact-tag">
             <i class="fas fa-envelope"></i> sw6245@nyu.edu
         </a>
-        <a href="https://github.com/hanson-sw" target="_blank" class="contact-tag">
+        <button onclick="window.open('https://github.com/Hanson-SW', '_blank')" class="btn btn-outline github-contact-btn">
             <i class="fab fa-github"></i> <span data-i18n="contact_gh">GitHub 主页</span>
-        </a>
+        </button>
     </div>
 
     <h2 class="section-title ai-top-border">
@@ -162,14 +176,14 @@ title: 金融工程 · 个人主页
 </div>
 
 <style>
-    /* 核心修复 1：全局启用 border-box 盒模型，防止边距撑爆容器 */
     *, *::before, *::after { box-sizing: border-box; }
 
-    /* 基础样式 */
-    .cv-container { max-width: 900px; margin: 0 auto; padding: 4rem 1.5rem 2rem 1.5rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; position: relative; }
+    .cv-container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #0f172a; position: relative; }
     
-    /* 修复 2：语言切换按钮脱离文档流优化，防重叠 */
-    .lang-toggle-btn { position: absolute; top: 1rem; right: 1.5rem; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; }
+    /* 优化 3 对应的流式靠右控制栏 */
+    .top-utility-bar { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 0.5rem; }
+    .lang-toggle-btn { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; }
+    .lang-toggle-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
     
     .header-section { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid #eef2f6; }
     .avatar-gradient { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 600; color: white; flex-shrink: 0; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2); }
@@ -186,13 +200,12 @@ title: 金融工程 · 个人主页
     .card-tag { font-size: 0.9rem; color: #64748b; }
     .card-buttons { display: flex; gap: 0.5rem; }
     
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 1.2rem; border-radius: 40px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.2s; border: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 1.2rem; border-radius: 40px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.2s; border: none; text-decoration: none; }
     .btn-primary { background: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); }
     .btn-primary:hover { background: #1d4ed8; }
     .btn-outline { background: transparent; color: #334155; border: 1px solid #cbd5e1; }
     .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; }
 
-    /* 核心修复 3：使用 CSS Grid 彻底重构模型参数面板 */
     .model-panel { background: #ffffff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 1rem; }
     .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; align-items: end; }
     .grid-col-span-2 { grid-column: span 2; }
@@ -206,20 +219,22 @@ title: 金融工程 · 个人主页
     .fetch-btn { padding: 0 1rem; flex-shrink: 0; }
     .run-sim-btn { height: 42px; width: 100%; }
     .data-status-text { font-size: 0.8rem; color: #2563eb; margin-top: 1rem; font-weight: 500; min-height: 1.2rem; }
-    .autocomplete-dropdown { display:none; position:absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #334155; }
+    
+    .autocomplete-dropdown { display:none; position:absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 4px; max-height: 220px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #334155; line-height: 1.4; }
     .autocomplete-item:hover { background: #eff6ff; color: #2563eb; }
 
-    /* 图表容器 */
-    .chart-wrapper { background: #ffffff; border-radius: 12px; padding: 1rem 0; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; margin-left: -1.5rem; margin-right: -1.5rem; overflow: hidden; }
+    /* 优化 4b：通过让容器宽度 100% 满幅并优化内边距，确保图表的展示空间最大化 */
+    .chart-wrapper { background: #ffffff; border-radius: 12px; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; margin-bottom: 1.5rem; width: 100%; overflow: hidden; }
     .chart-tools { position: absolute; top: 1rem; right: 1rem; z-index: 100; display: flex; gap: 0.5rem; }
     .icon-btn { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; transition: all 0.2s; }
     .icon-btn:hover { background: #e2e8f0; }
 
-    /* 搜索及其他 */
-    .contact-wrapper { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; }
-    .contact-tag { display: inline-flex; align-items: center; gap: 0.5rem; color: #334155; text-decoration: none; font-size: 0.9rem; font-weight: 500; background: #f1f5f9; padding: 0.5rem 1.1rem; border-radius: 30px; transition: all 0.2s; }
+    .contact-wrapper { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; align-items: center; }
+    .contact-tag { display: inline-flex; align-items: center; gap: 0.5rem; color: #334155; text-decoration: none; font-size: 0.9rem; font-weight: 500; background: #f1f5f9; padding: 0.5rem 1.2rem; border-radius: 30px; transition: all 0.2s; height: 38px;}
     .contact-tag:hover { background: #e2e8f0; color: #0f172a; }
+    .github-contact-btn { border-radius: 30px; padding: 0.5rem 1.2rem; height: 38px; font-size: 0.9rem; font-weight: 500;}
+
     .ai-top-border { padding-top: 2rem; border-top: 1px solid #eef2f6; }
     .search-wrapper { display: flex; gap: 0.6rem; flex-wrap: wrap; }
     #aiSearchInput { flex: 1; min-width: 260px; padding: 0.75rem 1.2rem; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 0.95rem; background: #f8fafc; outline: none; }
@@ -230,33 +245,25 @@ title: 金融工程 · 个人主页
     .chart-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; margin: 0 !important; padding: 2rem !important; background: #ffffff !important; overflow-y: auto;}
     .chart-fullscreen #itoChart { height: 95% !important; }
 
-    /* 核心修复 4：极致的移动端适配媒体查询 */
     @media (max-width: 768px) {
-        .cv-container { padding: 4rem 1rem 1rem 1rem; }
-        .lang-toggle-btn { top: 1rem; right: 1rem; } /* 调整按钮防碰撞 */
+        .cv-container { padding: 1.5rem 1rem; }
         .header-section { flex-direction: column; align-items: flex-start; gap: 1rem; }
         .info-card { flex-direction: column; align-items: flex-start; padding: 1.25rem; }
-        .card-buttons, .btn { width: 100%; justify-content: center; }
-        
-        /* 移动端打断网格，垂直堆叠，100% 杜绝重叠 */
+        .card-buttons, .btn, .contact-tag { width: 100%; justify-content: center; }
         .param-grid { grid-template-columns: 1fr 1fr; }
-        .grid-col-span-2 { grid-column: span 2; }
-        .grid-col-btn { grid-column: span 2; }
-        
-        .chart-wrapper { margin-left: -1rem; margin-right: -1rem; border-radius: 0; border-left: none; border-right: none;}
+        .grid-col-span-2, .grid-col-btn { grid-column: span 2; }
         .search-wrapper { flex-direction: column; }
         #aiSearchInput, .search-btn { width: 100% !important; }
     }
     
     @media (max-width: 480px) {
-        /* 极小屏幕完全单列 */
         .param-grid { grid-template-columns: 1fr; }
         .grid-col-span-2, .grid-col-btn { grid-column: span 1; }
     }
 </style>
 
 <script>
-    // i18n 多语言系统
+    // i18n 字典，同步加入了 Markowitz 模块的多语言支持
     const i18nDict = {
         name: { zh: "王 盛 烨", en: "Shengye Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
@@ -265,14 +272,17 @@ title: 金融工程 · 个人主页
         resume_tag: { zh: "· 2026 最新版", en: "· 2026 Updated" },
         resume_btn: { zh: "查看简历", en: "View PDF" },
         project_title: { zh: "项目展示", en: "Projects" },
-        proj1_name: { zh: "基金组合分析工具", en: "Fund Portfolio Analyzer" },
+        proj1_name: { zh: "基金组合 analysis 工具", en: "Fund Portfolio Analyzer" },
         proj1_tag: { zh: "· Python 回测 & 归因", en: "· Python Backtesting & Attribution" },
         proj_backtest_name: { zh: "A股回测模型", en: "A-Share Backtesting Model" },
         proj_backtest_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
         proj_backtest_btn: { zh: "运行回测模型", en: "Run Backtest Model" },
+        proj_markowitz_name: { zh: "Markowitz 资产轮动与量化配置模型", en: "Markowitz Portfolio Allocation Model" },
+        proj_markowitz_tag: { zh: "· 现代投资组合理论 (MPT)", en: "· Modern Portfolio Theory (MPT)" },
+        proj_markowitz_btn: { zh: "运行配置模型", en: "Run Allocation Model" },
         mc_title: { zh: "实盘量化引擎：股价路径预测", en: "Live Quant Engine: Monte Carlo Prediction" },
         mc_desc: { zh: "系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，生成逐日概率热力图。", en: "Auto-fetches live data. Per-Day Normalized heatmap." },
-        mc_ticker: { zh: "股票代码 (Ticker)", en: "Stock Ticker" },
+        mc_ticker: { zh: "股票/指数代码 (Ticker)", en: "Stock/Index Ticker" },
         mc_pull: { zh: "拉取", en: "Fetch" },
         mc_vol: { zh: "波动率 (σ)", en: "Volatility (σ)" },
         mc_mu: { zh: "期望收益 (μ)", en: "Expected Ret (μ)" },
@@ -293,9 +303,9 @@ title: 金融工程 · 个人主页
             const key = el.getAttribute('data-i18n');
             if(i18nDict[key]) el.innerHTML = i18nDict[key][currentLang];
         });
-        document.getElementById('stockTicker').placeholder = currentLang === 'zh' ? "输入 AAPL, 600519.SS..." : "Type AAPL, TSLA...";
+        document.getElementById('stockTicker').placeholder = currentLang === 'zh' ? "输入 AAPL 或指数代码..." : "Type AAPL, ^GSPC...";
         document.getElementById('aiSearchInput').placeholder = currentLang === 'zh' ? "输入你想问的金融问题…" : "Ask a financial question...";
-        document.getElementById('priceLabel').innerText = currentLang === 'zh' ? `当前股价 (${currentCurrency})` : `Current Price (${currentCurrency})`;
+        document.getElementById('priceLabel').innerText = currentLang === 'zh' ? `当前价格 (${currentCurrency})` : `Current Price (${currentCurrency})`;
         if(chartInstance) runSimulation(); 
     }
 
@@ -305,12 +315,20 @@ title: 金融工程 · 个人主页
 
     function markCustom() { currentDataSource = currentLang === 'zh' ? '用户自定义 (Custom Input)' : 'User Custom Input'; }
 
+    // 优化 4a：引入了更多核心的中国与美国大盘大盘指数代码（支持 Yahoo 真实接口拉取）
     const localTickerDB = [
+        { symbol: '000300.SS', name: '沪深300指数 (CSI 300 Index)' },
+        { symbol: '000905.SS', name: '中证500指数 (CSI 500 Index)' },
+        { symbol: '^GSPC', name: '标普500指数 (S&P 500 Index)' },
+        { symbol: '^IXIC', name: '纳斯达克综合指数 (Nasdaq Composite)' },
+        { symbol: '^DJI', name: '道琼斯工业指数 (Dow Jones Index)' },
+        { symbol: '^HSI', name: '恒生指数 (Hang Seng Index)' },
         { symbol: 'AAPL', name: '苹果公司 (Apple)' },
         { symbol: 'MSFT', name: '微软 (Microsoft)' },
         { symbol: 'NVDA', name: '英伟达 (NVIDIA)' },
         { symbol: 'TSLA', name: '特斯拉 (Tesla)' },
-        { symbol: 'SPY', name: '标普500 ETF' },
+        { symbol: 'SPY', name: '标普500 ETF (SPY)' },
+        { symbol: 'QQQ', name: '纳斯达克100 ETF (QQQ)' },
         { symbol: '600519.SS', name: '贵州茅台 (Moutai)' }
     ];
 
@@ -323,7 +341,7 @@ title: 金融工程 · 个人主页
         if(results.length > 0) {
             let html = results.map(item => 
                 `<div class="autocomplete-item" onclick="selectTicker('${item.symbol}')">
-                    <strong>${item.symbol}</strong> - ${item.name}
+                    <strong>${item.symbol}</strong><br><small style="color:#64748b">${item.name}</small>
                  </div>`
             ).join('');
             listDiv.innerHTML = html;
@@ -370,7 +388,7 @@ title: 金融工程 · 个人主页
         const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
         if(!ticker) return;
         currentCurrency = (ticker.endsWith('.SS') || ticker.endsWith('.SZ')) ? '¥' : '$';
-        document.getElementById('priceLabel').innerText = currentLang === 'zh' ? `当前股价 (${currentCurrency})` : `Current Price (${currentCurrency})`;
+        document.getElementById('priceLabel').innerText = currentLang === 'zh' ? `当前价格 (${currentCurrency})` : `Current Price (${currentCurrency})`;
 
         const statusDiv = document.getElementById('dataStatus');
         const fetchBtn = document.getElementById('fetchBtn');
@@ -414,7 +432,7 @@ title: 金融工程 · 个人主页
                 statusDiv.innerHTML = `<i class="fas fa-check-circle" style="color: #2563eb;"></i> 使用本地每日缓存 [${currentDataSource}]`;
                 runSimulation();
             } catch(e2) {
-                document.getElementById('currentPrice').value = ticker.includes('600519') ? "1500.00" : "175.00";
+                document.getElementById('currentPrice').value = ticker.includes('600519') ? "1500.00" : (ticker.startsWith('000')?"3500.00":"175.00");
                 document.getElementById('impliedVol').value = "0.220";
                 document.getElementById('expReturn').value = "0.080";
                 currentDataSource = currentLang === 'zh' ? '离线备用数据' : 'Offline Fallback';
@@ -517,11 +535,21 @@ title: 金融工程 · 个人主页
                     }
                 },
                 visualMap: { dimension: 3, min: 0, max: 1, show: false, inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] } },
-                grid: { left: '2%', right: '3%', top: 45, bottom: 25, containLabel: true },
+                
+                // 优化 4b：开启 containLabel: true 确保任何长数字均自动留白缩进，并拉伸绘图主网格空间
+                grid: { left: '1%', right: '2%', top: 60, bottom: 10, containLabel: true },
                 xAxis: { type: 'category', data: xAxisData },
                 yAxis: [
                     { type: 'category', data: data.yAxisLabels, show: false }, 
-                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { formatter: currentCurrency+'{value}' } }
+                    { 
+                        type: 'value', 
+                        min: data.globalMin, 
+                        max: data.globalMax, 
+                        // 优化 4b：强制加入高精度的 toFixed(2) 截断格式化函数，彻底解决浮点数无限小数导致侵占图表空间的问题
+                        axisLabel: { 
+                            formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } 
+                        } 
+                    }
                 ],
                 series: [
                     { name: 'Heatmap', type: 'heatmap', data: data.heatmapData, yAxisIndex: 0 },
@@ -535,12 +563,21 @@ title: 金融工程 · 个人主页
 
     document.addEventListener('DOMContentLoaded', () => { runSimulation(); });
     
-    // 核心修复 5：使用现代 ResizeObserver 监听容器缩放，彻底杜绝图表溢出
     const resizeObserver = new ResizeObserver(() => {
         if (chartInstance) chartInstance.resize();
     });
     resizeObserver.observe(document.getElementById('chartExportWrapper'));
 
-    // AI 代码省略保持一致...
-    async function handleAISearch() { /* ...同前... */ }
+    async function handleAISearch() {
+        const query = document.getElementById('aiSearchInput').value.trim();
+        const resultDiv = document.getElementById('aiSearchResult');
+        if(!query) return;
+        resultDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing...`;
+        setTimeout(() => {
+            resultDiv.innerHTML = `<div style="background:#f8fafc; padding:1rem; border-left:4px solid #2563eb; border-radius:4px;">
+                <strong>[模拟演示效果]</strong><br>您输入的问题是："${query}"<br><br>
+                在实际生成环境中，此模块将通过安全的后端云函数反向代理调用 OpenAI / Claude / DeepSeek API 进行实时的微调语义检索与定量归因报告生成。
+            </div>`;
+        }, 800);
+    }
 </script>
