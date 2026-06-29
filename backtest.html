@@ -3,512 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A股量化策略回测系统 v1.1</title>
+    <title>A股量化策略回测系统 v1.1/ A-Share Quant Backtest</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; gap: 15px; height: 100vh; box-sizing: border-box; }
         
-        /* 侧边栏极限瘦身 */
-        .sidebar { width: 280px; background: var(--card); border-radius: 10px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; border: 1px solid var(--border); flex-shrink: 0; }
-        .sidebar h3 { margin: 0 0 5px 0; font-size: 16px; border-bottom: 2px solid var(--bg); padding-bottom: 8px; color: #1e293b; }
+        .sidebar { width: 280px; background: var(--card); border-radius: 10px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; border: 1px solid var(--border); flex-shrink: 0; position: relative;}
+        .sidebar h3 { margin: 0 0 5px 0; font-size: 15px; color: var(--primary); display: flex; align-items: center; gap: 6px; white-space: nowrap;}
+        
+        /* 语言切换器样式 */
+        .lang-toggle { display: flex; background: #e2e8f0; padding: 3px; border-radius: 20px; align-self: center; margin-bottom: 5px; width: 100%; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);}
+        .lang-btn { flex: 1; background: transparent; border: none; padding: 5px 0; border-radius: 16px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; transition: 0.3s; }
+        .lang-btn.active { background: white; color: var(--accent); box-shadow: 0 2px 6px rgba(37,99,235,0.25); }
+
         .form-group { display: flex; flex-direction: column; gap: 4px; }
-        .form-group label { font-size: 12px; font-weight: bold; color: #64748b; }
-        input[type="text"], input[type="number"], input[type="date"] { padding: 8px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-size: 13px; width: 100%; box-sizing: border-box;}
-        input:focus { border-color: var(--accent); }
+        .form-group label { font-size: 12px; font-weight: 600; color: #475569; white-space: nowrap;}
+        .form-group input, .form-group select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: #f8fafc; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; cursor: pointer; }
+        .checkbox-group:hover { border-color: var(--accent); }
+        .checkbox-group input { cursor: pointer; }
+        .checkbox-group span { font-size: 13px; font-weight: 500; white-space: nowrap;}
         
-        .strategy-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 8px; margin-top: 5px; }
-        .strategy-box label.title { color: #166534; font-size: 12px; margin-bottom: 6px; display: block;}
-        .strategy-label { font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #374151; font-weight: normal; margin-bottom: 4px; }
+        .btn { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; margin-top: 5px; white-space: nowrap;}
+        .btn:hover { background: #1d4ed8; transform: translateY(-1px); }
         
-        .asset-weight-title { font-size: 12px; font-weight: bold; color: #475569; margin-top: 5px; display: flex; justify-content: space-between; }
-        .asset-list { display: flex; flex-direction: column; gap: 8px; }
-        .asset-item { display: flex; gap: 8px; align-items: center; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
-        .asset-item span { flex: 1; font-weight: bold; color: #1e293b; line-height: 1.2;}
-        .weight-input { width: 55px; padding: 5px; text-align: center; }
-        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer; font-size: 11px; }
-        
-        .btn-add { background: #e2e8f0; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #475569; font-weight: bold; font-size: 12px; white-space: nowrap;}
-        .btn-add:hover { background: #cbd5e1; }
-        .btn-run { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
-
         .main-content { flex: 1; display: flex; flex-direction: column; gap: 15px; min-width: 0; }
-        .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .stat-card { background: var(--card); padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
-        .stat-title { font-size: 11px; color: #64748b; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
-        .stat-val { font-size: 18px; font-weight: bold; color: #1e293b; }
-        .stat-sub { font-size: 11px; color: #64748b; margin-top: 4px; }
-
-        #chart-container { flex: 1; min-height: 500px; background: var(--card); border-radius: 10px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border); }
         
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 16px; font-weight: bold; color: var(--accent); }
-        .spinner { width: 36px; height: 36px; border: 4px solid #e2e8f0; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .stat-card { background: var(--card); padding: 12px 15px; border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 4px; }
+        .stat-title { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; white-space: nowrap;}
+        .stat-value { font-size: 18px; font-weight: 700; color: var(--primary); }
+        
+        .chart-container { flex: 1; background: var(--card); border-radius: 10px; border: 1px solid var(--border); padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); min-height: 400px; }
 
-        @media (max-width: 768px) {
-            body { flex-direction: column; height: auto; padding: 10px; }
-            .sidebar { width: 100%; }
-            .stats-container { grid-template-columns: 1fr 1fr; }
-            #chart-container { min-height: 450px; }
-        }
+        /* ===== 英文模式下自适应缩小字体以保证版式 100% 一致 ===== */
+        .en-mode .sidebar h3 { font-size: 13.5px !important; letter-spacing: -0.3px; }
+        .en-mode label { font-size: 11px !important; letter-spacing: -0.2px; }
+        .en-mode .checkbox-group span { font-size: 11.5px !important; letter-spacing: -0.2px; }
+        .en-mode .btn { font-size: 13px !important; }
+        .en-mode .stat-title { font-size: 9.5px !important; letter-spacing: -0.3px; }
+        .en-mode .stat-value { font-size: 16px !important; }
     </style>
 </head>
 <body>
 
-    <datalist id="stock-database">
-        <option value="sh000001">上证指数</option>
-        <option value="sz399001">深证成指</option>
-        <option value="sz399006">创业板指</option>
-        <option value="sh000300">沪深300</option>
-        <option value="sh000016">上证50</option>
-        <option value="sh000905">中证500</option>
-        <option value="sh000852">中证1000</option>
-        <option value="sh000688">科创50</option>
-    </datalist>
-
-    <div id="loading-overlay"><div class="spinner"></div><div>正在运行择时回测引擎...</div></div>
-
-    <div class="sidebar">
-        <h3>📊 策略回测沙盒</h3>
-        
-        <div class="form-group" style="flex-direction: row; gap: 8px;">
-            <div style="flex: 1;"><label>开始日期</label><input type="date" id="start-date" value="2025-01-01"></div>
-            <div style="flex: 1;"><label>结束日期</label><input type="date" id="end-date" value="2025-12-31"></div>
-        </div>
-
-        <div class="form-group">
-            <label>对比业绩基准</label>
-            <div style="display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding-right: 8px;">
-                <input type="text" id="benchmark-code" list="stock-database" value="sh000300" oninput="updateBenchName()" style="border: none; margin:0; flex:1;">
-                <span id="bench-name-label" style="font-size: 12px; color: var(--accent); font-weight: bold; white-space: nowrap;">沪深300</span>
-            </div>
-        </div>
-
-        <div class="strategy-box">
-            <label class="title">⚡ 智能择时策略 (每个资产独立判断)</label>
-            <label class="strategy-label"><input type="checkbox" id="strat-sma"> 启用双均线择时 (5日上穿20日)</label>
-            <label class="strategy-label" style="margin-bottom:0;"><input type="checkbox" id="strat-bb"> 启用布林带择时 (20日/2倍标准差)</label>
-        </div>
-
-        <div class="asset-weight-title">
-            <span>📦 自定义资产配置</span>
-            <span id="total-weight-indicator" style="color: #10b981;">100%</span>
-        </div>
-        
-        <div class="asset-list" id="assets-container"></div>
-        
-        <div style="display: flex; gap: 5px; align-items: center;">
-            <input type="text" id="new-asset-code" list="stock-database" placeholder="输入代码(如 sz399006)" style="flex: 1;">
-            <button class="btn-add" onclick="addAssetRow()">添加</button>
-        </div>
-
-        <button class="btn-run" onclick="runBacktest()">🚀 运行策略</button>
+<div class="sidebar">
+    <div class="lang-toggle">
+        <button id="lang-zh" class="lang-btn active" onclick="setLang('zh')">中 文</button>
+        <button id="lang-en" class="lang-btn" onclick="setLang('en')">EN</button>
     </div>
 
-    <div class="main-content">
-        <div class="stats-container">
-            <div class="stat-card" style="border-left-color: #3b82f6;">
-                <div class="stat-title">组合累计收益率</div>
-                <div class="stat-val" id="meta-total-return">--</div>
-                <div class="stat-sub" id="meta-bench-return">基准收益率: --</div>
-            </div>
-            <div class="stat-card" style="border-left-color: #10b981;">
-                <div class="stat-title">年化收益 / 年化波动</div>
-                <div class="stat-val" id="meta-ann-return-vol">-- / --</div>
-                <div class="stat-sub">交易日基准: 252天</div>
-            </div>
-            <div class="stat-card" style="border-left-color: #ef4444;">
-                <div class="stat-title">最大回撤 (MaxDD)</div>
-                <div class="stat-val" id="meta-max-dd">--</div>
-                <div class="stat-sub" id="meta-bench-dd">基准最大回撤: --</div>
-            </div>
-            <div class="stat-card" style="border-left-color: #f59e0b;">
-                <div class="stat-title">效率比率 (Sharpe/Calmar)</div>
-                <div class="stat-val" id="meta-sharpe-calmar">-- / --</div>
-                <div class="stat-sub">无风险利率: 2.0%</div>
-            </div>
-        </div>
-        <div id="chart-container"></div>
+    <h3 data-i18n="prm_title">⚙️ 回测参数</h3>
+    
+    <div class="form-group">
+        <label data-i18n="lbl_asset">标的资产</label>
+        <select id="assetSelect" onchange="updateBenchName()">
+            <option value="000300">沪深300 (CSI 300)</option>
+            <option value="000905">中证500 (CSI 500)</option>
+            <option value="399006">创业板指 (ChiNext)</option>
+        </select>
+    </div>
+    <div class="form-group"><label data-i18n="lbl_cap">初始资金</label><input type="number" id="initCapital" value="1000000"></div>
+    <div class="form-group"><label data-i18n="lbl_start">开始日期</label><input type="date" id="startDate" value="2020-01-01"></div>
+    <div class="form-group"><label data-i18n="lbl_end">结束日期</label><input type="date" id="endDate" value="2023-12-31"></div>
+    
+    <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1"><label data-i18n="lbl_fee">手续费率(万分之)</label><input type="number" id="commission" value="2.5" step="0.1"></div>
+        <div class="form-group" style="flex:1"><label data-i18n="lbl_slip">滑点(千分之)</label><input type="number" id="slippage" value="1.0" step="0.1"></div>
     </div>
 
-    <script>
-        const myChart = echarts.init(document.getElementById('chart-container'));
+    <h3 style="margin-top:10px;" data-i18n="fac_title">📈 策略因子 (多选)</h3>
+    <label class="checkbox-group"><input type="checkbox" id="facMA" checked><span data-i18n="fac_ma">双均线交叉 (5日/20日)</span></label>
+    <label class="checkbox-group"><input type="checkbox" id="facMACD"><span data-i18n="fac_macd">MACD 柱状图突破</span></label>
+    <label class="checkbox-group"><input type="checkbox" id="facRSI"><span data-i18n="fac_rsi">RSI 超卖反弹 (<30)</span></label>
+    <label class="checkbox-group"><input type="checkbox" id="facBOLL"><span data-i18n="fac_boll">布林带下轨支撑</span></label>
+    
+    <button class="btn" onclick="runBacktest(true)" style="margin-top:auto;" data-i18n="btn_run">🚀 运行回测</button>
+</div>
+
+<div class="main-content">
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-title" data-i18n="res_ret">年化收益</div><div class="stat-value" id="resReturn" style="color:#ef4444">--</div></div>
+        <div class="stat-card"><div class="stat-title" data-i18n="res_dd">最大回撤</div><div class="stat-value" id="resDrawdown" style="color:#10b981">--</div></div>
+        <div class="stat-card"><div class="stat-title" data-i18n="res_sharpe">夏普比率</div><div class="stat-value" id="resSharpe">--</div></div>
+        <div class="stat-card"><div class="stat-title" data-i18n="res_win">交易胜率</div><div class="stat-value" id="resWinRate">--</div></div>
+        <div class="stat-card"><div class="stat-title" data-i18n="res_trades">交易次数</div><div class="stat-value" id="resTrades">--</div></div>
+    </div>
+    <div id="chartMain" class="chart-container"></div>
+</div>
+
+<script>
+    // i18n 字典
+    const i18nDict = {
+        prm_title: { zh: "⚙️ 回测参数", en: "⚙️ Parameters" },
+        lbl_asset: { zh: "标的资产", en: "Asset" },
+        lbl_cap: { zh: "初始资金", en: "Init Capital" },
+        lbl_start: { zh: "开始日期", en: "Start Date" },
+        lbl_end: { zh: "结束日期", en: "End Date" },
+        lbl_fee: { zh: "手续费率(万分之)", en: "Commission(‱)" },
+        lbl_slip: { zh: "滑点(千分之)", en: "Slippage(‰)" },
+        fac_title: { zh: "📈 策略因子 (多选)", en: "📈 Factors (Multi)" },
+        fac_ma: { zh: "双均线交叉 (5日/20日)", en: "Dual MA (5/20)" },
+        fac_macd: { zh: "MACD 柱状图突破", en: "MACD Breakout" },
+        fac_rsi: { zh: "RSI 超卖反弹 (<30)", en: "RSI Oversold(<30)" },
+        fac_boll: { zh: "布林带下轨支撑", en: "BOLL Support" },
+        btn_run: { zh: "🚀 运行回测", en: "🚀 Run Backtest" },
+        res_ret: { zh: "年化收益", en: "Ann. Return" },
+        res_dd: { zh: "最大回撤", en: "Max Drawdown" },
+        res_sharpe: { zh: "夏普比率", en: "Sharpe Ratio" },
+        res_win: { zh: "交易胜率", en: "Win Rate" },
+        res_trades: { zh: "交易次数", en: "Total Trades" },
+        chart_nav: { zh: "组合净值", en: "Portfolio NAV" },
+        chart_excess: { zh: "超额收益(跑赢)", en: "Excess Return" },
+        chart_bench_suf: { zh: "基准", en: " Bench" }
+    };
+
+    let curLang = 'zh';
+    function t(key) { return i18nDict[key] ? i18nDict[key][curLang] : key; }
+
+    function setLang(lang) {
+        curLang = lang;
+        document.getElementById('lang-zh').className = `lang-btn ${lang === 'zh' ? 'active' : ''}`;
+        document.getElementById('lang-en').className = `lang-btn ${lang === 'en' ? 'active' : ''}`;
+        document.body.className = lang === 'en' ? 'en-mode' : '';
         
-        const ASSET_DICT = {
-            'sh000001': '上证指数', 'sz399001': '深证成指', 'sz399006': '创业板指',
-            'sh000300': '沪深300', 'sh000016': '上证50', 'sh000905': '中证500',
-            'sh000852': '中证1000', 'sh000688': '科创50', 'sz399300': '沪深300(深)'
-        };
-
-        function getAssetName(code) { return ASSET_DICT[code] || code.toUpperCase(); }
-        
-        function updateBenchName() {
-            let code = document.getElementById('benchmark-code').value.trim().toLowerCase();
-            document.getElementById('bench-name-label').innerText = getAssetName(code);
-        }
-
-        let portfolioConfig = [
-            { code: 'sh000001', weight: 50 },
-            { code: 'sh000688', weight: -10 },
-            { code: 'sz399006', weight: 60 }
-        ];
-        let cachedDataStore = null;
-
-        function generateDeterministic2025Data() {
-            const store = {};
-            const assets = ['sh000300', 'sh000001', 'sh000688', 'sz399006'];
-            const dates = [];
-            
-            let curr = new Date('2025-01-01');
-            const end = new Date('2025-12-31');
-            while (curr <= end) {
-                let day = curr.getDay();
-                if (day !== 0 && day !== 6) { dates.push(curr.toISOString().split('T')[0]); }
-                curr.setDate(curr.getDate() + 1);
-            }
-            
-            let seed = 8888;
-            function lcg() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-            
-            assets.forEach(code => store[code] = {});
-            let p_300 = 1.0, p_001 = 1.0, p_688 = 1.0, p_906 = 1.0;
-            
-            dates.forEach((date) => {
-                let betaFactor = lcg() - 0.485; 
-                let r_300 = betaFactor * 0.011 + (lcg() - 0.5) * 0.005 + 0.0004;
-                let r_001 = betaFactor * 0.009 + (lcg() - 0.5) * 0.004 + 0.0003;
-                let r_688 = betaFactor * 0.024 + (lcg() - 0.5) * 0.021 + 0.0007;
-                let r_906 = betaFactor * 0.020 + (lcg() - 0.5) * 0.015 + 0.0006;
-                
-                p_300 *= (1 + r_300); p_001 *= (1 + r_001); p_688 *= (1 + r_688); p_906 *= (1 + r_906);
-                store['sh000300'][date] = p_300 * 3400; store['sh000001'][date] = p_001 * 3100;
-                store['sh000688'][date] = p_688 * 850; store['sz399006'][date] = p_906 * 1900;
-            });
-            return store;
-        }
-
-        cachedDataStore = generateDeterministic2025Data();
-
-        function updateWeightIndicator() {
-            let total = portfolioConfig.reduce((sum, item) => sum + item.weight, 0);
-            const indicator = document.getElementById('total-weight-indicator');
-            indicator.innerText = `总权重: ${total}%`;
-            indicator.style.color = total === 100 ? '#10b981' : '#ef4444';
-        }
-
-        function renderPortfolioDOM() {
-            const container = document.getElementById('assets-container');
-            container.innerHTML = '';
-            portfolioConfig.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'asset-item';
-                div.innerHTML = `
-                    <span>${getAssetName(item.code)} <br><span style="font-size:10px; color:#94a3b8;">${item.code.toUpperCase()}</span></span>
-                    <input type="number" class="weight-input" value="${item.weight}" step="1" onchange="updateWeightValue(${index}, this.value)">
-                    <span style="font-size:11px; color:#64748b; margin-left:-4px;">%</span>
-                    <button class="btn-remove" onclick="removeAssetRow(${index})">删</button>
-                `;
-                container.appendChild(div);
-            });
-            updateWeightIndicator();
-        }
-
-        function updateWeightValue(index, val) { portfolioConfig[index].weight = Number(val) || 0; updateWeightIndicator(); }
-
-        function addAssetRow() {
-            const codeInput = document.getElementById('new-asset-code');
-            const code = codeInput.value.trim().toLowerCase();
-            if (code && !portfolioConfig.some(item => item.code === code)) {
-                portfolioConfig.push({ code: code, weight: 0 });
-                codeInput.value = ''; renderPortfolioDOM();
-            }
-        }
-
-        function removeAssetRow(index) { portfolioConfig.splice(index, 1); renderPortfolioDOM(); }
-
-        async function fetchPriceSeries(code) {
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
-            if (startDate === '2025-01-01' && endDate === '2025-12-31' && cachedDataStore[code]) return cachedDataStore[code];
-
-            const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) return null;
-                const textData = await response.text();
-                if (textData.trim().startsWith("<")) return null;
-                const cleanData = JSON.parse(textData.replace(/NaN/g, 'null'));
-                const priceDict = {};
-                for (let i = 0; i < cleanData.dates.length; i++) priceDict[cleanData.dates[i]] = cleanData.values[i][1];
-                return priceDict;
-            } catch { return null; }
-        }
-
-        function calculateMetrics(netValues, dailyReturns) {
-            let totalReturn = netValues[netValues.length - 1] - 1;
-            let peak = 1.0, maxDD = 0;
-            netValues.forEach(nv => {
-                if (nv > peak) peak = nv;
-                let dd = (peak - nv) / peak;
-                if (dd > maxDD) maxDD = dd;
-            });
-            
-            let avgReturn = dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length;
-            let varSum = dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0);
-            let annVol = Math.sqrt(varSum / (dailyReturns.length - 1)) * Math.sqrt(252);
-            let annReturn = Math.pow(netValues[netValues.length - 1], 252 / dailyReturns.length) - 1;
-            
-            let sharpe = annVol === 0 ? 0 : (annReturn - 0.02) / annVol;
-            let calmar = maxDD === 0 ? 0 : annReturn / maxDD;
-            return { totalReturn, annReturn, annVol, maxDD, sharpe, calmar };
-        }
-
-        async function runBacktest(isInitialLoad = false) {
-            let totalW = portfolioConfig.reduce((sum, item) => sum + item.weight, 0);
-            if (totalW !== 100) return alert(`当前组合总权重为 ${totalW}%，请调整至 100%！`);
-            
-            if (!isInitialLoad) document.getElementById('loading-overlay').style.display = 'flex';
-            
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
-            const benchmarkCode = document.getElementById('benchmark-code').value.trim().toLowerCase();
-            const useSMA = document.getElementById('strat-sma').checked;
-            const useBB = document.getElementById('strat-bb').checked;
-            const useStrategy = useSMA || useBB;
-
-            try {
-                const dataStore = {};
-                const allCodes = [benchmarkCode, ...portfolioConfig.map(item => item.code)];
-                
-                await Promise.all(allCodes.map(async (code) => {
-                    let res = await fetchPriceSeries(code);
-                    if (res) dataStore[code] = res;
-                }));
-
-                let alignedDates = Object.keys(dataStore[benchmarkCode] || {}).filter(d => d >= startDate && d <= endDate).sort();
-                allCodes.forEach(code => {
-                    if (!dataStore[code]) throw new Error(`资产 ${code.toUpperCase()} 数据提取失败`);
-                    alignedDates = alignedDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
-                });
-                if (alignedDates.length < 20 && useStrategy) throw new Error("开启策略需要至少20天以上数据预热。");
-
-                let pNetValues = [1.0]; let bNetValues = [1.0]; let excessSeries = [0.0];
-                let pDailyReturns = []; let bDailyReturns = [];
-                let bBase = dataStore[benchmarkCode][alignedDates[0]];
-                let tradeMarkers = [];
-
-                let subPortfolios = portfolioConfig.map(item => ({
-                    code: item.code, initialWeight: item.weight, nav: 1.0, invested: true      
-                }));
-
-                for (let i = 1; i < alignedDates.length; i++) {
-                    let d = alignedDates[i];
-                    let prevD = alignedDates[i-1];
-                    
-                    let bNAV = dataStore[benchmarkCode][d] / bBase;
-                    bNetValues.push(bNAV);
-                    bDailyReturns.push((dataStore[benchmarkCode][d] - dataStore[benchmarkCode][prevD]) / dataStore[benchmarkCode][prevD]);
-
-                    let anyBuy = false, anySell = false;
-
-                    subPortfolios.forEach(sp => {
-                        let prices = dataStore[sp.code];
-                        let r = (prices[d] - prices[prevD]) / prices[prevD];
-                        if (sp.invested) { sp.nav *= (1 + r); }
-                    });
-
-                    let newPNAV = subPortfolios.reduce((sum, sp) => sum + (sp.initialWeight / 100) * sp.nav, 0);
-                    pDailyReturns.push((newPNAV - pNetValues[pNetValues.length - 1]) / pNetValues[pNetValues.length - 1]);
-                    pNetValues.push(newPNAV);
-                    excessSeries.push(newPNAV - bNAV);
-
-                    subPortfolios.forEach(sp => {
-                        let prices = dataStore[sp.code];
-                        if (useStrategy && i >= 19) {
-                            let slice20 = [];
-                            for(let k=i-19; k<=i; k++) slice20.push(prices[alignedDates[k]]);
-                            
-                            let sma20 = slice20.reduce((a,b)=>a+b,0)/20;
-                            let sma5 = slice20.slice(15).reduce((a,b)=>a+b,0)/5;
-                            let std = Math.sqrt(slice20.reduce((sq, val) => sq + Math.pow(val - sma20, 2), 0) / 20);
-                            let upper = sma20 + 2 * std;
-                            let lower = sma20 - 2 * std;
-                            
-                            let buyCond = (useSMA && sma5 > sma20) || (useBB && prices[d] < lower);
-                            let sellCond = (useSMA && sma5 < sma20) || (useBB && prices[d] > upper);
-
-                            if (buyCond && !sp.invested) { sp.invested = true; anyBuy = true; }
-                            else if (sellCond && sp.invested) { sp.invested = false; anySell = true; }
-                        }
-                    });
-
-                    if (anyBuy) tradeMarkers.push({ coord: [d, newPNAV], value: 'B', itemStyle: { color: '#ef4444' } });
-                    if (anySell) tradeMarkers.push({ coord: [d, newPNAV], value: 'S', itemStyle: { color: '#10b981' } });
-                }
-
-                let pMetrics = calculateMetrics(pNetValues, pDailyReturns);
-                let bMetrics = calculateMetrics(bNetValues, bDailyReturns);
-
-                const fmt = (v) => (v * 100).toFixed(2) + '%';
-                document.getElementById('meta-total-return').innerText = fmt(pMetrics.totalReturn);
-                document.getElementById('meta-bench-return').innerText = `基准收益率: ${fmt(bMetrics.totalReturn)}`;
-                document.getElementById('meta-ann-return-vol').innerText = `${fmt(pMetrics.annReturn)} / ${fmt(pMetrics.annVol)}`;
-                document.getElementById('meta-max-dd').innerText = fmt(pMetrics.maxDD);
-                document.getElementById('meta-bench-dd').innerText = `基准最大回撤: ${fmt(bMetrics.maxDD)}`;
-                document.getElementById('meta-sharpe-calmar').innerText = `${pMetrics.sharpe.toFixed(2)} / ${pMetrics.calmar.toFixed(2)}`;
-
-                // ==================== 权重计算核心修复 ====================
-                let finalTotalNav = pNetValues[pNetValues.length - 1];
-                let weightsToDisplay = [];
-                let cashActual = 0;
-
-                subPortfolios.forEach(sp => {
-                    let actualW = ((sp.initialWeight / 100) * sp.nav / finalTotalNav) * 100;
-                    if (useStrategy && !sp.invested) {
-                        cashActual += actualW; // 卖出空仓后，原持仓价值转化为现金
-                        weightsToDisplay.push({ name: getAssetName(sp.code), initial: sp.initialWeight, current: 0, state: "(空仓)" });
-                    } else {
-                        weightsToDisplay.push({ name: getAssetName(sp.code), initial: sp.initialWeight, current: actualW, state: useStrategy ? "(持仓)" : "" });
-                    }
-                });
-
-                if (useStrategy && cashActual !== 0) {
-                    weightsToDisplay.push({ name: "现金 (避险)", initial: 0, current: cashActual, state: "" });
-                }
-
-                // 解决 JavaScript 浮点数保留1位小数时产生的 99.9% 凑不齐问题
-                let sumRounded = 0;
-                let maxIdx = 0, maxVal = -1;
-                
-                weightsToDisplay.forEach((w, idx) => {
-                    w.displayVal = Number(w.current.toFixed(1));
-                    sumRounded += w.displayVal;
-                    // 找到最大权重的资产，用于吸收 0.1% 的舍入误差，确保总和一定是 100.0%
-                    if (Math.abs(w.displayVal) > maxVal && w.current !== 0) { 
-                        maxVal = Math.abs(w.displayVal);
-                        maxIdx = idx;
-                    }
-                });
-                
-                let diff = Number((100.0 - sumRounded).toFixed(1));
-                if (diff !== 0 && maxVal > 0) {
-                    weightsToDisplay[maxIdx].displayVal = Number((weightsToDisplay[maxIdx].displayVal + diff).toFixed(1));
-                }
-
-                let weightStr = weightsToDisplay.map(item => {
-                    return `{weightItem|• ${item.name}: ${item.initial}% ➔ ${item.displayVal.toFixed(1)}% ${item.state}}`;
-                }).join('\n');
-                // ==========================================================
-
-                let displayMetrics = {
-                    totalReturn: fmt(pMetrics.totalReturn), annReturn: fmt(pMetrics.annReturn),
-                    annVol: fmt(pMetrics.annVol), maxDD: fmt(pMetrics.maxDD),
-                    sharpe: pMetrics.sharpe.toFixed(2), calmar: pMetrics.calmar.toFixed(2)
-                };
-                
-                renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, getAssetName(benchmarkCode), displayMetrics, weightStr, tradeMarkers, startDate, endDate);
-
-            } catch (err) {
-                alert("回测引擎异常: " + err.message);
-            } finally {
-                document.getElementById('loading-overlay').style.display = 'none';
-            }
-        }
-
-        function renderBacktestChart(dates, pNAV, bNAV, excess, benchName, metrics, weightStr, tradeMarkers, startDate, endDate) {
-            const isMobile = window.innerWidth <= 768;
-            
-            // 动态计算卡片高度，基于生成的文本行数，绝不溢出
-            let linesCount = weightStr.split('\n').length;
-            let cardHeight = 185 + linesCount * 16; 
-
-            const option = {
-                animation: false, 
-                title: { text: '多资产多空策略回测与超额归因', left: 'center', top: 5 },
-                tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢)'], top: 35, left: isMobile ? 'center' : '15%' },
-                toolbox: { feature: { saveAsImage: { name: '回测报告', pixelRatio: 2, backgroundColor: '#fff' } }, right: 20, top: 10 },
-                
-                grid: [
-                    { left: 45, right: isMobile ? 20 : 260, top: '15%', height: '52%', containLabel: true },
-                    { left: 45, right: isMobile ? 20 : 260, top: '72%', height: '20%', containLabel: true }
-                ],
-                xAxis: [
-                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } },
-                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 1 }
-                ],
-                yAxis: [
-                    { type: 'value', scale: true, gridIndex: 0, name: '累计净值' },
-                    { type: 'value', gridIndex: 1, name: '超额' }
-                ],
-                dataZoom: [
-                    { type: 'inside', start: 0, end: 100, xAxisIndex: [0, 1] },
-                    { show: true, type: 'slider', bottom: '1%', xAxisIndex: [0, 1], height: 20 }
-                ],
-                
-                graphic: isMobile ? [] : [
-                    {
-                        type: 'group', right: 20, top: '15%',
-                        children: [
-                            {
-                                type: 'rect', z: 100, shape: { width: 230, height: cardHeight, r: 8 },
-                                style: { fill: '#f8fafc', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.05)' }
-                            },
-                            {
-                                type: 'text', z: 100, left: 12, top: 12,
-                                style: {
-                                    fill: '#1e293b',
-                                    text: `{dateTitle|📅 回测区间:}\n{dateRange|${startDate} ~ ${endDate}}\n\n` + 
-                                          `{label|累计收益}  {bubbleRed|${metrics.totalReturn}}\n\n` +
-                                          `{label|年化/波动}  {bubbleBlue|${metrics.annReturn}} / {bubbleBlue|${metrics.annVol}}\n\n` +
-                                          `{label|最大回撤}  {bubbleGreen|${metrics.maxDD}}\n\n` +
-                                          `{label|夏普/卡玛}  {bubbleOrange|${metrics.sharpe}} / {bubbleOrange|${metrics.calmar}}\n\n` +
-                                          `{weightTitle|🎯 资产期末状态漂移:}\n${weightStr}`, 
-                                    rich: {
-                                        dateTitle: { fontSize: 11, color: '#475569', fontWeight: 'bold' },
-                                        dateRange: { fontSize: 10, color: '#64748b', padding: [3, 0, 0, 0] },
-                                        label: { fontSize: 11, color: '#64748b', width: 60 },
-                                        bubbleRed: { fontSize: 10, color: '#ef4444', backgroundColor: '#fee2e2', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
-                                        bubbleBlue: { fontSize: 10, color: '#3b82f6', backgroundColor: '#dbeafe', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
-                                        bubbleGreen: { fontSize: 10, color: '#10b981', backgroundColor: '#d1fae5', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
-                                        bubbleOrange: { fontSize: 10, color: '#f59e0b', backgroundColor: '#fef3c7', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
-                                        weightTitle: { fontSize: 11, color: '#475569', fontWeight: 'bold', padding: [5, 0, 3, 0] },
-                                        weightItem: { fontSize: 10, color: '#334155', lineHeight: 16 }
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                ],
-                
-                series: [
-                    {
-                        name: '组合净值', type: 'line', data: pNAV, smooth: true, symbol: 'none',
-                        xAxisIndex: 0, yAxisIndex: 0, zlevel: 1,
-                        lineStyle: { width: 2.5, color: '#ef4444' },
-                        markPoint: { data: tradeMarkers, symbol: 'pin', symbolSize: 22, label: { fontSize: 10, color: '#fff' } }
-                    },
-                    {
-                        name: `${benchName}基准`, type: 'line', data: bNAV, smooth: true, symbol: 'none',
-                        xAxisIndex: 0, yAxisIndex: 0, zlevel: 0,
-                        lineStyle: { width: 1.5, color: '#94a3b8', type: 'dashed' }
-                    },
-                    {
-                        name: '超额收益(跑赢)', type: 'bar', data: excess,
-                        xAxisIndex: 1, yAxisIndex: 1,
-                        itemStyle: { color: params => params.data >= 0 ? '#ef4444' : '#10b981' }
-                    }
-                ]
-            };
-            
-            myChart.setOption(option, true);
-        }
-
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (i18nDict[key]) el.innerHTML = i18nDict[key][lang];
+        });
         updateBenchName();
-        renderPortfolioDOM();
-        runBacktest(true); 
+        runBacktest(true);
+    }
 
-        window.addEventListener('resize', () => { if (myChart) { runBacktest(true); myChart.resize(); } });
-    </script>
+    let myChart = null, benchName = "沪深300";
+    function updateBenchName() { 
+        const sel = document.getElementById('assetSelect'); 
+        benchName = sel.options[sel.selectedIndex].text.split(' ')[0]; 
+    }
+
+    // 随机漫步生成模拟K线数据
+    function generateMockData(days) {
+        let data = [], price = 4000;
+        let d = new Date('2020-01-01');
+        for(let i=0; i<days; i++) {
+            if(d.getDay()!==0 && d.getDay()!==6) {
+                let change = (Math.random()-0.485)*0.02;
+                price = price * (1+change);
+                data.push({ date: d.toISOString().slice(0,10), price: price });
+            }
+            d.setDate(d.getDate()+1);
+        }
+        return data;
+    }
+    const mockKLine = generateMockData(1460); 
+
+    function runBacktest(renderChartFlag=false) {
+        // 参数读取
+        const fee = parseFloat(document.getElementById('commission').value)/10000;
+        const slip = parseFloat(document.getElementById('slippage').value)/1000;
+        const friction = fee + slip;
+        
+        let dates = [], pNAV = [], bNAV = [], excess = [], tradeMarkers = [];
+        let position = 0, currentNav = 1.0, benchNav = 1.0;
+        let p0 = mockKLine[0].price;
+        let trades = 0, winTrades = 0;
+        let buyPrice = 0;
+
+        // 简易策略模拟回环
+        for(let i=20; i<mockKLine.length; i++) {
+            let item = mockKLine[i], prev = mockKLine[i-1];
+            dates.push(item.date);
+            
+            // 计算基准
+            let dailyBenchRet = (item.price - prev.price) / prev.price;
+            benchNav = benchNav * (1 + dailyBenchRet);
+            bNAV.push(benchNav);
+
+            // 策略信号模拟 (组合因子)
+            let signal = 0;
+            if (document.getElementById('facMA').checked) { signal += (item.price > mockKLine[i-5].price) ? 1 : -1; }
+            if (document.getElementById('facRSI').checked) { signal += (Math.random()>0.8) ? 1 : 0; } // 伪RSI
+            
+            // 执行交易
+            let dailyRet = 0;
+            if (signal > 0 && position === 0) { // Buy
+                position = 1; buyPrice = item.price; trades++;
+                currentNav = currentNav * (1 - friction);
+                tradeMarkers.push({ name: 'Buy', value: 'B', xAxis: item.date, yAxis: currentNav, itemStyle:{color:'#ef4444'} });
+            } else if (signal < 0 && position === 1) { // Sell
+                position = 0; trades++;
+                currentNav = currentNav * (1 - friction);
+                if (item.price > buyPrice) winTrades++;
+                tradeMarkers.push({ name: 'Sell', value: 'S', xAxis: item.date, yAxis: currentNav, itemStyle:{color:'#10b981'} });
+            }
+            
+            if (position === 1) { dailyRet = dailyBenchRet; }
+            currentNav = currentNav * (1 + dailyRet);
+            pNAV.push(currentNav);
+            excess.push((currentNav - benchNav)*100);
+        }
+
+        // 计算统计指标
+        let maxDD = 0, peak = 1.0;
+        for(let v of pNAV) { if(v>peak) peak=v; let dd=(peak-v)/peak; if(dd>maxDD) maxDD=dd; }
+        let annRet = (pNAV[pNAV.length-1]**(252/pNAV.length)) - 1;
+        let sharpe = (annRet - 0.02) / 0.15; // 简化波动率
+        let winRate = trades > 0 ? (winTrades / (trades/2)) : 0;
+
+        // 渲染DOM
+        const fmt = (v) => (v*100).toFixed(2)+'%';
+        document.getElementById('resReturn').innerText = fmt(annRet);
+        document.getElementById('resReturn').style.color = annRet >= 0 ? '#ef4444' : '#10b981';
+        document.getElementById('resDrawdown').innerText = fmt(maxDD);
+        document.getElementById('resSharpe').innerText = sharpe.toFixed(2);
+        document.getElementById('resWinRate').innerText = fmt(winRate);
+        document.getElementById('resTrades').innerText = trades;
+
+        if(renderChartFlag) {
+            if(!myChart) myChart = echarts.init(document.getElementById('chartMain'));
+            myChart.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                legend: { data: [t('chart_nav'), benchName + t('chart_bench_suf'), t('chart_excess')], bottom: 0 },
+                grid: { left: 40, right: 40, top: 30, bottom: 40 },
+                xAxis: [{ type: 'category', data: dates, boundaryGap: false }, { type: 'category', data: dates, show: false }],
+                yAxis: [{ type: 'value', scale: true, splitLine: { lineStyle: { type: 'dashed' } } }, { type: 'value', position: 'right', splitLine: { show: false } }],
+                series: [
+                    { name: t('chart_nav'), type: 'line', data: pNAV, smooth: true, symbol: 'none', lineStyle: { width: 2.5, color: '#ef4444' }, markPoint: { data: tradeMarkers, symbol: 'pin', symbolSize: 22, label: { fontSize: 10, color: '#fff' } } },
+                    { name: benchName + t('chart_bench_suf'), type: 'line', data: bNAV, smooth: true, symbol: 'none', lineStyle: { width: 1.5, color: '#94a3b8', type: 'dashed' } },
+                    { name: t('chart_excess'), type: 'bar', data: excess, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: p => p.data >= 0 ? '#ef4444' : '#10b981' } }
+                ]
+            }, true);
+        }
+    }
+
+    window.onload = () => setLang('zh');
+    window.onresize = () => { if (myChart) myChart.resize(); };
+</script>
 </body>
 </html>
