@@ -21,8 +21,8 @@ title: 金融工程 · 个人主页
             <div class="avatar-gradient">王</div>
             <div>
                 <h1 class="main-title">
-                    <span id="target-h" style="display: inline-block; color: #0f172a;">H</span>anson 
-                    <span data-i18n="name" style="margin-left: 0.5rem;">王 盛 烨</span>
+                    <span data-i18n="name_p1">Shengye（</span><span id="target-h" style="display: inline-block;">H</span><span data-i18n="name_p2">anson） Wang</span> 
+                    <span data-i18n="name_zh" style="margin-left: 0.6rem; font-size: 0.85em; color: #475569;">王 盛 烨</span>
                 </h1>
                 <p class="sub-title">
                     <i class="fas fa-chart-line"></i> <span data-i18n="degree">上海纽约大学 · 商业与金融（商业分析）</span>
@@ -186,12 +186,13 @@ title: 金融工程 · 个人主页
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    /* 全局背景设为极暗太空黑，等待网页揭晓 */
+    /* 初始全局背景为极暗太空黑 */
     body {
         margin: 0;
         background-color: #030712; 
         overflow-x: hidden;
-        overflow-y: hidden; /* 动画期间锁死滚动 */
+        overflow-y: hidden; /* 动画期间锁死滚动，确保坐标无偏差 */
+        transition: background 0.5s ease;
     }
 
     #intro-canvas {
@@ -199,7 +200,7 @@ title: 金融工程 · 个人主页
         z-index: 1; pointer-events: none;
     }
 
-    /* 包含所有亮色UI的包裹器，自带水波纹clip-path扩展能力 */
+    /* 包含所有UI的主容器，动画后它将释放clip-path */
     #page-wrapper {
         position: relative;
         z-index: 10;
@@ -207,7 +208,6 @@ title: 金融工程 · 个人主页
         background: linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc);
         background-size: 400% 400%;
         animation: gradientBG 15s ease infinite;
-        /* 初始时被裁切成一个肉眼不可见的点 */
         clip-path: circle(0px at 50% 50%);
         -webkit-clip-path: circle(0px at 50% 50%);
     }
@@ -243,7 +243,7 @@ title: 金融工程 · 个人主页
     
     .header-section { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(0,0,0,0.05); }
     .avatar-gradient { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 600; color: white; flex-shrink: 0; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2); }
-    .main-title { font-size: 2.2rem; font-weight: 700; margin: 0; letter-spacing: 1px; display: flex; align-items: baseline; }
+    .main-title { font-size: 2.2rem; font-weight: 700; margin: 0; letter-spacing: 0px; display: block; }
     .sub-title { font-size: 1.05rem; color: #475569; margin: 0.4rem 0 0 0; }
     .section-title { font-size: 1.25rem; font-weight: 600; margin-top: 3rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.6rem; }
     .section-title i { color: #2563eb; width: 1.5rem; }
@@ -309,13 +309,16 @@ title: 金融工程 · 个人主页
 
 <script>
     // ================= 1. 动感电影级公式穿梭与H点亮降落引擎 =================
-    // Bezier curve helper for complex acceleration paths
+    // Bezier curve helper
     function bezier(t, p0, p1, p2, p3) {
         let u = 1 - t;
         return (u*u*u * p0) + (3 * u*u * t * p1) + (3 * u * t*t * p2) + (t*t*t * p3);
     }
 
     function initCinematicIntro() {
+        // 防止加载时有滚动偏差，强制归零
+        window.scrollTo(0, 0);
+
         const canvas = document.getElementById('intro-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -341,15 +344,12 @@ title: 金融工程 · 个人主页
         const numParticles = 120;
         
         class Particle {
-            constructor() {
-                this.reset(true);
-            }
+            constructor() { this.reset(true); }
             reset(randomizeZ = false) {
                 this.x = (Math.random() - 0.5) * canvas.width * 2.5;
                 this.y = (Math.random() - 0.5) * canvas.height * 2.5;
                 this.z = randomizeZ ? Math.random() * canvas.width : canvas.width;
                 this.formula = formulas[Math.floor(Math.random() * formulas.length)];
-                // 使用深空蓝和青色，保证在纯黑背景下极其通透
                 this.color = Math.random() > 0.4 ? 'rgba(56, 189, 248, 1)' : 'rgba(139, 92, 246, 1)';
                 this.fontSize = Math.random() * 14 + 14;
                 this.speed = Math.random() * 8 + 4;
@@ -373,76 +373,67 @@ title: 金融工程 · 个人主页
 
         for (let i = 0; i < numParticles; i++) particles.push(new Particle());
 
-        // 获取底层 DOM 中 'H' 的精准坐标与字号
         const targetHEl = document.getElementById('target-h');
-        const hRect = targetHEl.getBoundingClientRect();
-        // 因为 canvas 画字是以 middle 为 baseline，Y轴需要精准对齐文字中心
-        const targetX = hRect.left + hRect.width / 2;
-        const targetY = hRect.top + hRect.height / 2 + 2; 
-        const targetFontSize = parseFloat(window.getComputedStyle(targetHEl).fontSize); // 约 35.2px
         
-        // H 飞行轨迹的关键控制点
-        const p0 = { x: canvas.width + 200, y: canvas.height * 0.7 };  // 从右侧屏幕外切入
+        // H 飞行轨迹的基础控制点 (前3点)
+        const p0 = { x: canvas.width + 200, y: canvas.height * 0.6 };  // 从右侧切入
         const p1 = { x: canvas.width * 0.4, y: canvas.height * 0.9 };  // 向左下高速俯冲
         const p2 = { x: canvas.width * 0.2, y: canvas.height * 0.2 };  // 向上拉升
-        const p3 = { x: targetX, y: targetY };                         // 精准着陆点
 
         let startTime = Date.now();
         let animationFrameId;
-        const flightDuration = 2.8; // H 飞行的超长平滑时间
-        const rippleDuration = 1.0; // 结尾水波纹展开的时间
+        const flightDuration = 2.8; 
+        const rippleDuration = 1.0; 
 
         function animate() {
             let elapsed = (Date.now() - startTime) / 1000;
-            
-            // 物理运动学阶段拆解
             let t = Math.min(elapsed / flightDuration, 1);
             let rippleT = t >= 1 ? Math.min((elapsed - flightDuration) / rippleDuration, 1) : 0;
 
-            // 画布背景采用带透明度的黑，形成光带拖影（保证 60fps 性能最高）
+            // 获取 H 元素的“实时”坐标 (防抖动/字体延迟加载)
+            const hRect = targetHEl.getBoundingClientRect();
+            // 注意：Canvas 绘制文字以中心(middle)为基准，需在 Y 轴中心增加微调确保100%重合
+            const targetX = hRect.left + hRect.width / 2;
+            const targetY = hRect.top + hRect.height / 2 + 1; 
+            const targetFontSize = parseFloat(window.getComputedStyle(targetHEl).fontSize); 
+            const p3 = { x: targetX, y: targetY }; 
+
+            // 背景光带拖影
             ctx.fillStyle = 'rgba(3, 7, 18, 0.35)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 更新和绘制所有金融公式 (只要波纹还没结束就继续飞)
             if (rippleT < 1) {
-                particles.forEach(p => { 
-                    p.update(); 
-                    p.draw(); 
-                });
+                particles.forEach(p => { p.update(); p.draw(); });
             }
 
-            // H字母飞行逻辑
+            // H 飞行物理引擎
             if (t < 1) {
-                // 飞行缓动函数：前期迅猛加速，后期极度平滑减速贴合
                 let easeT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-                // 轨迹插值计算
                 let hX = bezier(easeT, p0.x, p1.x, p2.x, p3.x);
                 let hY = bezier(easeT, p0.y, p1.y, p2.y, p3.y);
 
-                // 动感缩放：超车放大至巨大，再平滑缩小至网页字号
                 let currentSize;
                 if (t < 0.6) {
-                    let zPhase = t / 0.6; // 0~1
-                    currentSize = 80 + Math.pow(Math.sin(zPhase * Math.PI), 1.5) * 450; // 极大震撼
+                    let zPhase = t / 0.6;
+                    currentSize = targetFontSize + 50 + Math.pow(Math.sin(zPhase * Math.PI), 1.5) * 450;
                 } else {
                     let shrinkPhase = (t - 0.6) / 0.4;
-                    let easeShrink = 1 - Math.pow(1 - shrinkPhase, 3); // easeOutCubic
-                    currentSize = 80 - (80 - targetFontSize) * easeShrink;
+                    let easeShrink = 1 - Math.pow(1 - shrinkPhase, 3);
+                    currentSize = (targetFontSize + 50) - 50 * easeShrink;
                 }
 
-                // 颜色渐变：从电竞发光青色(#00f0ff) 最终完美褪去变为网页正文的深蓝色(#0f172a)
+                // 色彩平滑蜕变：发光青色最终褪色为主页的深蓝/灰黑色 (rgb 15,23,42)
                 let r = Math.round(0 + (15 - 0) * easeT);
                 let g = Math.round(240 + (23 - 240) * Math.pow(t, 2));
                 let b = Math.round(255 + (42 - 255) * Math.pow(t, 2));
 
                 ctx.save();
                 ctx.translate(hX, hY);
-                // 轻微的侧面倾角转正，去除了狂野的旋转
-                let tilt = Math.sin(t * Math.PI) * 0.25 * (1 - easeT);
+                // 极小倾角，降落时绝对归零(不翻转)
+                let tilt = Math.sin(t * Math.PI) * 0.15 * (1 - easeT);
                 ctx.rotate(tilt);
 
-                // 字体平滑过度：在动画早期使用黑体展现科技感，最终贴合主页标题体统
                 ctx.font = `bold ${currentSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -455,19 +446,16 @@ title: 金融工程 · 个人主页
                 ctx.restore();
             }
 
-            // 完美重合并触发水波纹视效点亮全站！
+            // 完美的涟漪扩散点亮机制
             if (t >= 1) {
-                // 水波纹缓冲动画：easeOutQuart 极速爆发然后丝滑扩散
                 let rippleEase = 1 - Math.pow(1 - rippleT, 4);
                 let maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
                 let currentRadius = maxRadius * rippleEase;
 
-                // 1. 硬件加速 CSS 揭开真实网页的面纱 (无卡顿)
                 const pageWrapper = document.getElementById('page-wrapper');
                 pageWrapper.style.clipPath = `circle(${currentRadius}px at ${targetX}px ${targetY}px)`;
                 pageWrapper.style.webkitClipPath = `circle(${currentRadius}px at ${targetX}px ${targetY}px)`;
 
-                // 2. Canvas 额外绘制冲击波圆环（增加水面落石波动感）
                 if (rippleT < 0.9) {
                     ctx.beginPath();
                     ctx.arc(targetX, targetY, currentRadius * 1.05, 0, Math.PI * 2);
@@ -476,13 +464,20 @@ title: 金融工程 · 个人主页
                     ctx.stroke();
                 }
 
-                // 彻底结束清理
+                // 彻底结束清理 (解决黑背景残留)
                 if (rippleT === 1) {
+                    // 1. 完全抛弃 clip-path 遮罩
+                    pageWrapper.style.clipPath = 'none';
+                    pageWrapper.style.webkitClipPath = 'none';
+                    // 2. 将 body 的深色背景重置为主页亮色渐变
+                    document.body.style.background = 'linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc)';
+                    document.body.style.backgroundSize = '400% 400%';
+                    document.body.style.animation = 'gradientBG 15s ease infinite';
+                    
                     document.getElementById('intro-canvas').style.display = 'none';
-                    document.body.style.overflowY = 'auto'; // 解锁网页滚动
+                    document.body.style.overflowY = 'auto'; // 解锁滚动
                     cancelAnimationFrame(animationFrameId);
                     
-                    // 确保图表可见性并渲染
                     runSimulation();
                     setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
                     return;
@@ -501,7 +496,9 @@ title: 金融工程 · 个人主页
 
     // ================= 基础逻辑 (多语言/量化拉取/图表生成) =================
     const i18nDict = {
-        name: { zh: "王 盛 烨", en: "Wang" },
+        name_p1: { zh: "Shengye（", en: "Shengye (" },
+        name_p2: { zh: "anson） Wang", en: "anson) Wang" },
+        name_zh: { zh: "王 盛 烨", en: "" }, // 英文下可选择隐藏中文名
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
         resume_title: { zh: "我的简历", en: "My Resume" },
         resume_name: { zh: "金融工程简历 (中文版)", en: "Financial Engineering Resume (CN)" },
@@ -604,7 +601,6 @@ title: 金融工程 · 个人主页
         container.classList.toggle('chart-fullscreen');
         if(container.classList.contains('chart-fullscreen')) {
             icon.className = 'fas fa-compress';
-            // 确保在全屏下解除因为开局强制锁死的滚动(双保险)
             document.body.style.overflowY = 'hidden'; 
         } else {
             icon.className = 'fas fa-expand';
