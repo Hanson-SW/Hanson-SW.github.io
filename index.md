@@ -7,192 +7,211 @@ title: 金融工程 · 个人主页
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
-<div id="black-screen"></div>
+<canvas id="intro-canvas"></canvas>
 
-<div id="intro-overlay">
-    <canvas id="intro-canvas"></canvas>
-</div>
-
-<div class="top-utility-bar">
-    <button onclick="toggleLang()" class="lang-toggle-btn btn-bubble">
-        <i class="fas fa-globe"></i> <span id="langBtnText">中 / EN</span>
-    </button>
-</div>
-
-<div class="cv-container" id="main-content-container">
-    <div class="header-section">
-        <div class="avatar-gradient">王</div>
-        <div>
-            <h1 class="main-title" data-i18n="name">王 盛 烨</h1>
-            <p class="sub-title">
-                <i class="fas fa-chart-line"></i> <span data-i18n="degree">上海纽约大学 · 商业与金融（商业分析）</span>
-            </p>
-        </div>
-    </div>
-
-    <h2 class="section-title">
-        <i class="fas fa-file-pdf"></i> <span data-i18n="resume_title">我的简历</span>
-    </h2>
-    
-    <div class="info-card glass-card" style="margin-bottom: 0.8rem;">
-        <div class="card-left">
-            <i class="fas fa-file-pdf card-icon"></i>
-            <span class="card-text" data-i18n="resume_name">金融工程简历 (中文版)</span>
-            <span class="card-tag" data-i18n="resume_tag">· 2026 最新版</span>
-        </div>
-        <button onclick="window.open('王盛烨简历.pdf', '_blank')" class="btn btn-primary btn-bubble">
-            <i class="fas fa-eye"></i> <span data-i18n="resume_btn">查看简历</span>
+<div id="page-wrapper">
+    <div class="top-utility-bar">
+        <button onclick="toggleLang()" class="lang-toggle-btn btn-bubble">
+            <i class="fas fa-globe"></i> <span id="langBtnText">中 / EN</span>
         </button>
     </div>
 
-    <div class="info-card glass-card">
-        <div class="card-left">
-            <i class="fas fa-file-pdf card-icon" style="color: #10b981;"></i>
-            <span class="card-text" data-i18n="resume_en_name">金融工程简历 (English)</span>
-            <span class="card-tag" data-i18n="resume_en_tag">· 2026 Updated</span>
+    <div class="cv-container" id="main-content-container">
+        <div class="header-section">
+            <div class="avatar-gradient">王</div>
+            <div>
+                <h1 class="main-title">
+                    <span id="target-h" style="display: inline-block; color: #0f172a;">H</span>anson 
+                    <span data-i18n="name" style="margin-left: 0.5rem;">王 盛 烨</span>
+                </h1>
+                <p class="sub-title">
+                    <i class="fas fa-chart-line"></i> <span data-i18n="degree">上海纽约大学 · 商业与金融（商业分析）</span>
+                </p>
+            </div>
         </div>
-        <button onclick="window.open('SWresume.pdf', '_blank')" class="btn btn-outline btn-bubble" style="color: #10b981; border-color: #10b981;">
-            <i class="fas fa-eye"></i> <span data-i18n="resume_en_btn">View PDF</span>
-        </button>
-    </div>
 
-    <h2 class="section-title">
-        <i class="fas fa-code-branch"></i> <span data-i18n="project_title">项目展示</span>
-    </h2>
-
-    <div class="info-card glass-card">
-        <div class="card-left">
-            <i class="fas fa-chart-line card-icon"></i>
-            <span class="card-text" data-i18n="proj_backtest_name">A股回测模型</span>
-            <span class="card-tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</span>
-        </div>
-        <div class="card-buttons">
-            <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary btn-bubble">
-                <i class="fas fa-play"></i> <span data-i18n="proj_backtest_btn">运行回测模型</span>
+        <h2 class="section-title">
+            <i class="fas fa-file-pdf"></i> <span data-i18n="resume_title">我的简历</span>
+        </h2>
+        
+        <div class="info-card glass-card" style="margin-bottom: 0.8rem;">
+            <div class="card-left">
+                <i class="fas fa-file-pdf card-icon"></i>
+                <span class="card-text" data-i18n="resume_name">金融工程简历 (中文版)</span>
+                <span class="card-tag" data-i18n="resume_tag">· 2026 最新版</span>
+            </div>
+            <button onclick="window.open('王盛烨简历.pdf', '_blank')" class="btn btn-primary btn-bubble">
+                <i class="fas fa-eye"></i> <span data-i18n="resume_btn">查看简历</span>
             </button>
         </div>
-    </div>
 
-    <div class="info-card glass-card">
-        <div class="card-left">
-            <i class="fas fa-pie-chart card-icon" style="color: #8b5cf6;"></i>
-            <span class="card-text" data-i18n="proj_markowitz_name">Markowitz 资产轮动与量化配置模型</span>
-            <span class="card-tag" data-i18n="proj_markowitz_tag">· 现代投资组合理论 (MPT)</span>
-        </div>
-        <div class="card-buttons">
-            <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary btn-bubble" style="background: #8b5cf6;">
-                <i class="fas fa-play"></i> <span data-i18n="proj_markowitz_btn">运行配置模型</span>
+        <div class="info-card glass-card">
+            <div class="card-left">
+                <i class="fas fa-file-pdf card-icon" style="color: #10b981;"></i>
+                <span class="card-text" data-i18n="resume_en_name">金融工程简历 (English)</span>
+                <span class="card-tag" data-i18n="resume_en_tag">· 2026 Updated</span>
+            </div>
+            <button onclick="window.open('SWresume.pdf', '_blank')" class="btn btn-outline btn-bubble" style="color: #10b981; border-color: #10b981;">
+                <i class="fas fa-eye"></i> <span data-i18n="resume_en_btn">View PDF</span>
             </button>
         </div>
-    </div>
 
-    <h2 class="section-title" style="margin-top: 3.5rem;">
-        <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：股价路径预测</span>
-    </h2>
-    <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
-        系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
-    </p>
+        <h2 class="section-title">
+            <i class="fas fa-code-branch"></i> <span data-i18n="project_title">项目展示</span>
+        </h2>
 
-    <div class="model-panel glass-card">
-        <div class="param-grid">
-            <div class="grid-col-span-2 relative-box">
-                <label class="param-label" data-i18n="mc_ticker">股票/指数代码 (Ticker)</label>
-                <div class="flex-input-group">
-                    <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" class="param-input uppercase-text" placeholder="输入 AAPL 或指数代码..." />
-                    <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline fetch-btn btn-bubble">
-                        <i class="fas fa-cloud-download-alt"></i> <span data-i18n="mc_pull">拉取</span>
-                    </button>
-                </div>
-                <div id="autocompleteList" class="autocomplete-dropdown"></div>
+        <div class="info-card glass-card">
+            <div class="card-left">
+                <i class="fas fa-chart-line card-icon"></i>
+                <span class="card-text" data-i18n="proj_backtest_name">A股回测模型</span>
+                <span class="card-tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</span>
             </div>
-
-            <div class="grid-col">
-                <label id="priceLabel" class="param-label">当前价格 ($)</label>
-                <input type="number" id="currentPrice" value="175.00" step="0.01" oninput="markCustom()" class="param-input bg-gray" />
-            </div>
-
-            <div class="grid-col">
-                <label class="param-label" data-i18n="mc_vol">波动率 (σ)</label>
-                <input type="number" id="impliedVol" value="0.22" step="0.001" oninput="markCustom()" class="param-input bg-gray" />
-            </div>
-
-            <div class="grid-col">
-                <label class="param-label" data-i18n="mc_mu">期望收益 (μ)</label>
-                <input type="number" id="expReturn" value="0.08" step="0.001" oninput="markCustom()" class="param-input bg-gray" />
-            </div>
-            
-            <div class="grid-col">
-                <label class="param-label" data-i18n="mc_paths">模拟次数</label>
-                <input type="number" id="numPaths" value="5000" step="500" oninput="markCustom()" class="param-input" />
-            </div>
-
-            <div class="grid-col">
-                <label class="param-label" data-i18n="mc_days">预测天数</label>
-                <input type="number" id="timeHorizon" value="252" oninput="markCustom()" class="param-input" />
-            </div>
-
-            <div class="grid-col-btn">
-                <button onclick="runSimulation()" id="simBtn" class="btn btn-primary run-sim-btn btn-bubble">
-                    <i class="fas fa-play"></i> <span data-i18n="mc_run">运行</span>
+            <div class="card-buttons">
+                <button onclick="window.open('./backtest.html', '_blank')" class="btn btn-primary btn-bubble">
+                    <i class="fas fa-play"></i> <span data-i18n="proj_backtest_btn">运行回测模型</span>
                 </button>
             </div>
         </div>
-        <div id="dataStatus" class="data-status-text"></div>
-    </div>
 
-    <div id="chartExportWrapper" class="chart-wrapper glass-card">
-        <div class="chart-tools">
-            <button onclick="downloadImage()" class="icon-btn btn-bubble" title="导出高清图片">
-                <i class="fas fa-download"></i>
-            </button>
-            <button onclick="toggleFullscreen()" class="icon-btn btn-bubble" title="全屏放大">
-                <i id="fullscreenIcon" class="fas fa-expand"></i>
+        <div class="info-card glass-card">
+            <div class="card-left">
+                <i class="fas fa-pie-chart card-icon" style="color: #8b5cf6;"></i>
+                <span class="card-text" data-i18n="proj_markowitz_name">Markowitz 资产轮动与量化配置模型</span>
+                <span class="card-tag" data-i18n="proj_markowitz_tag">· 现代投资组合理论 (MPT)</span>
+            </div>
+            <div class="card-buttons">
+                <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary btn-bubble" style="background: #8b5cf6;">
+                    <i class="fas fa-play"></i> <span data-i18n="proj_markowitz_btn">运行配置模型</span>
+                </button>
+            </div>
+        </div>
+
+        <h2 class="section-title" style="margin-top: 3.5rem;">
+            <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：股价路径预测</span>
+        </h2>
+        <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
+            系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
+        </p>
+
+        <div class="model-panel glass-card">
+            <div class="param-grid">
+                <div class="grid-col-span-2 relative-box">
+                    <label class="param-label" data-i18n="mc_ticker">股票/指数代码 (Ticker)</label>
+                    <div class="flex-input-group">
+                        <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" class="param-input uppercase-text" placeholder="输入 AAPL 或指数代码..." />
+                        <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline fetch-btn btn-bubble">
+                            <i class="fas fa-cloud-download-alt"></i> <span data-i18n="mc_pull">拉取</span>
+                        </button>
+                    </div>
+                    <div id="autocompleteList" class="autocomplete-dropdown"></div>
+                </div>
+
+                <div class="grid-col">
+                    <label id="priceLabel" class="param-label">当前价格 ($)</label>
+                    <input type="number" id="currentPrice" value="175.00" step="0.01" oninput="markCustom()" class="param-input bg-gray" />
+                </div>
+
+                <div class="grid-col">
+                    <label class="param-label" data-i18n="mc_vol">波动率 (σ)</label>
+                    <input type="number" id="impliedVol" value="0.22" step="0.001" oninput="markCustom()" class="param-input bg-gray" />
+                </div>
+
+                <div class="grid-col">
+                    <label class="param-label" data-i18n="mc_mu">期望收益 (μ)</label>
+                    <input type="number" id="expReturn" value="0.08" step="0.001" oninput="markCustom()" class="param-input bg-gray" />
+                </div>
+                
+                <div class="grid-col">
+                    <label class="param-label" data-i18n="mc_paths">模拟次数</label>
+                    <input type="number" id="numPaths" value="5000" step="500" oninput="markCustom()" class="param-input" />
+                </div>
+
+                <div class="grid-col">
+                    <label class="param-label" data-i18n="mc_days">预测天数</label>
+                    <input type="number" id="timeHorizon" value="252" oninput="markCustom()" class="param-input" />
+                </div>
+
+                <div class="grid-col-btn">
+                    <button onclick="runSimulation()" id="simBtn" class="btn btn-primary run-sim-btn btn-bubble">
+                        <i class="fas fa-play"></i> <span data-i18n="mc_run">运行</span>
+                    </button>
+                </div>
+            </div>
+            <div id="dataStatus" class="data-status-text"></div>
+        </div>
+
+        <div id="chartExportWrapper" class="chart-wrapper glass-card">
+            <div class="chart-tools">
+                <button onclick="downloadImage()" class="icon-btn btn-bubble" title="导出高清图片">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button onclick="toggleFullscreen()" class="icon-btn btn-bubble" title="全屏放大">
+                    <i id="fullscreenIcon" class="fas fa-expand"></i>
+                </button>
+            </div>
+            <div id="itoChart" style="width: 100%; height: 500px;"></div>
+        </div>
+
+        <h2 class="section-title">
+            <i class="fas fa-paper-plane"></i> <span data-i18n="contact_title">联系我</span>
+        </h2>
+        <div class="contact-wrapper">
+            <a href="mailto:sw6245@nyu.edu" class="contact-tag btn-bubble">
+                <i class="fas fa-envelope"></i> sw6245@nyu.edu
+            </a>
+            <a href="tel:+8615908963789" class="contact-tag">
+                <i class="fas fa-phone"></i> +86 159 0896 3789
+            </a>
+            <button onclick="window.open('https://github.com/Hanson-SW', '_blank')" class="btn btn-outline github-contact-btn btn-bubble">
+                <i class="fab fa-github"></i> <span data-i18n="contact_gh">GitHub 主页</span>
             </button>
         </div>
-        <div id="itoChart" style="width: 100%; height: 500px;"></div>
-    </div>
 
-    <h2 class="section-title">
-        <i class="fas fa-paper-plane"></i> <span data-i18n="contact_title">联系我</span>
-    </h2>
-    <div class="contact-wrapper">
-        <a href="mailto:sw6245@nyu.edu" class="contact-tag btn-bubble">
-            <i class="fas fa-envelope"></i> sw6245@nyu.edu
-        </a>
-        <a href="tel:+8615908963789" class="contact-tag">
-            <i class="fas fa-phone"></i> +86 159 0896 3789
-        </a>
-        <button onclick="window.open('https://github.com/Hanson-SW', '_blank')" class="btn btn-outline github-contact-btn btn-bubble">
-            <i class="fab fa-github"></i> <span data-i18n="contact_gh">GitHub 主页</span>
-        </button>
+        <h2 class="section-title ai-top-border">
+            <i class="fas fa-robot"></i> <span data-i18n="ai_title">AI 智能搜索 (LLM 接入)</span>
+        </h2>
+        <div class="search-wrapper">
+            <input type="text" id="aiSearchInput" placeholder="输入你想问的金融问题…" />
+            <button onclick="handleAISearch()" class="btn btn-primary search-btn btn-bubble">
+                <i class="fas fa-paper-plane"></i> <span data-i18n="ai_btn">提问</span>
+            </button>
+        </div>
+        <div id="aiSearchResult"></div>
+        <p class="search-tip">
+            <i class="fas fa-info-circle"></i> <span data-i18n="ai_tip">代码已预留真实 API 接入逻辑，填入 Key 即可激活大模型，否则将展示模拟演示。</span>
+        </p>
     </div>
-
-    <h2 class="section-title ai-top-border">
-        <i class="fas fa-robot"></i> <span data-i18n="ai_title">AI 智能搜索 (LLM 接入)</span>
-    </h2>
-    <div class="search-wrapper">
-        <input type="text" id="aiSearchInput" placeholder="输入你想问的金融问题…" />
-        <button onclick="handleAISearch()" class="btn btn-primary search-btn btn-bubble">
-            <i class="fas fa-paper-plane"></i> <span data-i18n="ai_btn">提问</span>
-        </button>
-    </div>
-    <div id="aiSearchResult"></div>
-    <p class="search-tip">
-        <i class="fas fa-info-circle"></i> <span data-i18n="ai_tip">代码已预留真实 API 接入逻辑，填入 Key 即可激活大模型，否则将展示模拟演示。</span>
-    </p>
 </div>
 
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    /* 背景与基础质感 */
+    /* 全局背景设为极暗太空黑，等待网页揭晓 */
     body {
         margin: 0;
+        background-color: #030712; 
+        overflow-x: hidden;
+        overflow-y: hidden; /* 动画期间锁死滚动 */
+    }
+
+    #intro-canvas {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        z-index: 1; pointer-events: none;
+    }
+
+    /* 包含所有亮色UI的包裹器，自带水波纹clip-path扩展能力 */
+    #page-wrapper {
+        position: relative;
+        z-index: 10;
+        min-height: 100vh;
         background: linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc);
         background-size: 400% 400%;
         animation: gradientBG 15s ease infinite;
-        overflow-x: hidden;
+        /* 初始时被裁切成一个肉眼不可见的点 */
+        clip-path: circle(0px at 50% 50%);
+        -webkit-clip-path: circle(0px at 50% 50%);
     }
+
     @keyframes gradientBG {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -218,40 +237,13 @@ title: 金融工程 · 个人主页
         box-shadow: 0 10px 20px rgba(37, 99, 235, 0.15) !important;
     }
 
-    /* 核心动画1：指数级亮度恢复遮罩 */
-    #black-screen {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: #030712; /* 极暗起步 */
-        z-index: 999990;
-        pointer-events: none;
-        animation: exposeLight 1.8s cubic-bezier(0.9, 0.0, 0.1, 1.0) forwards;
-    }
-    @keyframes exposeLight {
-        0% { opacity: 0.98; }
-        40% { opacity: 0.85; }
-        70% { opacity: 0.3; }
-        100% { opacity: 0; }
-    }
-
-    /* 核心动画2：开场画布覆盖层 (运用混合模式，黑色变透明，光束和公式发光) */
-    #intro-overlay {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background-color: transparent; 
-        mix-blend-mode: screen; 
-        z-index: 999999;
-        display: flex; justify-content: center; align-items: center;
-        transition: opacity 0.5s ease-out;
-        pointer-events: none;
-    }
-    #intro-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-
     /* ================= 基础 UI 样式 ================= */
     .top-utility-bar { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 0.5rem; position: relative; z-index: 10;}
     .lang-toggle-btn { background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; backdrop-filter: blur(5px);}
     
     .header-section { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(0,0,0,0.05); }
     .avatar-gradient { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 600; color: white; flex-shrink: 0; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2); }
-    .main-title { font-size: 2.2rem; font-weight: 700; margin: 0; background: linear-gradient(135deg, #0f172a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px; }
+    .main-title { font-size: 2.2rem; font-weight: 700; margin: 0; letter-spacing: 1px; display: flex; align-items: baseline; }
     .sub-title { font-size: 1.05rem; color: #475569; margin: 0.4rem 0 0 0; }
     .section-title { font-size: 1.25rem; font-weight: 600; margin-top: 3rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.6rem; }
     .section-title i { color: #2563eb; width: 1.5rem; }
@@ -316,14 +308,19 @@ title: 金融工程 · 个人主页
 </style>
 
 <script>
-    // ================= 1. 动感纯金融公式时间穿梭动画 (Math Warp Speed) =================
-    function initIntroAnimation() {
+    // ================= 1. 动感电影级公式穿梭与H点亮降落引擎 =================
+    // Bezier curve helper for complex acceleration paths
+    function bezier(t, p0, p1, p2, p3) {
+        let u = 1 - t;
+        return (u*u*u * p0) + (3 * u*u * t * p1) + (3 * u * t*t * p2) + (t*t*t * p3);
+    }
+
+    function initCinematicIntro() {
         const canvas = document.getElementById('intro-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // 扩充至2.5倍以上的金融工程/市场核心公式
         const formulas = [
             'dS_t = μS_tdt + σS_tdW_t', 'V = S N(d_1) - K e^{-rT} N(d_2)', 
             'E(R_p) = w^T E(R)', 'σ_p^2 = w^T Σ w', 
@@ -341,31 +338,29 @@ title: 金融工程 · 个人主页
         ];
 
         const particles = [];
-        const warpLines = [];
-        const numParticles = 120; // 增加密度
-        const numLines = 60; // 丰富背景光束
-
+        const numParticles = 120;
+        
         class Particle {
             constructor() {
-                this.x = (Math.random() - 0.5) * canvas.width * 3;
-                this.y = (Math.random() - 0.5) * canvas.height * 3;
-                this.z = Math.random() * canvas.width;
+                this.reset(true);
+            }
+            reset(randomizeZ = false) {
+                this.x = (Math.random() - 0.5) * canvas.width * 2.5;
+                this.y = (Math.random() - 0.5) * canvas.height * 2.5;
+                this.z = randomizeZ ? Math.random() * canvas.width : canvas.width;
                 this.formula = formulas[Math.floor(Math.random() * formulas.length)];
-                this.color = Math.random() > 0.5 ? 'rgba(56, 189, 248, 1)' : 'rgba(139, 92, 246, 1)';
-                this.fontSize = Math.random() * 12 + 14;
+                // 使用深空蓝和青色，保证在纯黑背景下极其通透
+                this.color = Math.random() > 0.4 ? 'rgba(56, 189, 248, 1)' : 'rgba(139, 92, 246, 1)';
+                this.fontSize = Math.random() * 14 + 14;
+                this.speed = Math.random() * 8 + 4;
             }
-            update(accel) {
-                this.z -= 6 * (1 + accel * 8); // 受全局加速度影响的急速拉扯
-                if (this.z <= 0) {
-                    this.x = (Math.random() - 0.5) * canvas.width * 3;
-                    this.y = (Math.random() - 0.5) * canvas.height * 3;
-                    this.z = canvas.width;
-                    this.formula = formulas[Math.floor(Math.random() * formulas.length)];
-                }
+            update() {
+                this.z -= this.speed; 
+                if (this.z <= 10) this.reset();
             }
-            draw(camX, camY) {
-                let x = ((this.x - camX) / this.z) * canvas.width + canvas.width / 2;
-                let y = ((this.y - camY) / this.z) * canvas.height + canvas.height / 2;
+            draw() {
+                let x = (this.x / this.z) * canvas.width + canvas.width / 2;
+                let y = (this.y / this.z) * canvas.height + canvas.height / 2;
                 let size = (1 - this.z / canvas.width) * this.fontSize * 2.5;
                 let opacity = (1 - this.z / canvas.width) * 1.5;
                 if (opacity > 1) opacity = 1;
@@ -376,113 +371,137 @@ title: 金融工程 · 个人主页
             }
         }
 
-        // 动感光束类，增加空间穿梭感
-        class WarpLine {
-            constructor() {
-                this.x = (Math.random() - 0.5) * canvas.width * 2;
-                this.y = (Math.random() - 0.5) * canvas.height * 2;
-                this.z = Math.random() * canvas.width;
-                this.length = Math.random() * 150 + 50;
-                this.speed = Math.random() * 10 + 5;
-                const colors = ['rgba(255,255,255,0.8)', 'rgba(56,189,248,0.5)', 'rgba(139,92,246,0.5)', 'rgba(16,185,129,0.4)'];
-                this.color = colors[Math.floor(Math.random() * colors.length)];
-            }
-            update(accel) {
-                this.z -= this.speed * (1 + accel * 10);
-                if (this.z <= 0) {
-                    this.x = (Math.random() - 0.5) * canvas.width * 2;
-                    this.y = (Math.random() - 0.5) * canvas.height * 2;
-                    this.z = canvas.width;
-                }
-            }
-            draw(camX, camY) {
-                let x = ((this.x - camX) / this.z) * canvas.width + canvas.width / 2;
-                let y = ((this.y - camY) / this.z) * canvas.height + canvas.height / 2;
-                let tailZ = this.z + this.length;
-                let tailX = ((this.x - camX) / tailZ) * canvas.width + canvas.width / 2;
-                let tailY = ((this.y - camY) / tailZ) * canvas.height + canvas.height / 2;
-
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(tailX, tailY);
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = (1 - this.z / canvas.width) * 2;
-                ctx.stroke();
-            }
-        }
-
         for (let i = 0; i < numParticles; i++) particles.push(new Particle());
-        for (let i = 0; i < numLines; i++) warpLines.push(new WarpLine());
+
+        // 获取底层 DOM 中 'H' 的精准坐标与字号
+        const targetHEl = document.getElementById('target-h');
+        const hRect = targetHEl.getBoundingClientRect();
+        // 因为 canvas 画字是以 middle 为 baseline，Y轴需要精准对齐文字中心
+        const targetX = hRect.left + hRect.width / 2;
+        const targetY = hRect.top + hRect.height / 2 + 2; 
+        const targetFontSize = parseFloat(window.getComputedStyle(targetHEl).fontSize); // 约 35.2px
+        
+        // H 飞行轨迹的关键控制点
+        const p0 = { x: canvas.width + 200, y: canvas.height * 0.7 };  // 从右侧屏幕外切入
+        const p1 = { x: canvas.width * 0.4, y: canvas.height * 0.9 };  // 向左下高速俯冲
+        const p2 = { x: canvas.width * 0.2, y: canvas.height * 0.2 };  // 向上拉升
+        const p3 = { x: targetX, y: targetY };                         // 精准着陆点
 
         let startTime = Date.now();
         let animationFrameId;
-
-        // 确保第一帧就是纯黑的，配合 mix-blend-mode 达到透明效果
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const flightDuration = 2.8; // H 飞行的超长平滑时间
+        const rippleDuration = 1.0; // 结尾水波纹展开的时间
 
         function animate() {
             let elapsed = (Date.now() - startTime) / 1000;
             
-            // 指数级加速度 0 -> 1，用于最后极速冲刺
-            let accel = Math.pow(elapsed / 1.8, 4); 
-            if(accel > 1) accel = 1;
+            // 物理运动学阶段拆解
+            let t = Math.min(elapsed / flightDuration, 1);
+            let rippleT = t >= 1 ? Math.min((elapsed - flightDuration) / rippleDuration, 1) : 0;
 
-            // 具有拖影的重绘，黑色在 screen 模式下会变为透明
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            // 画布背景采用带透明度的黑，形成光带拖影（保证 60fps 性能最高）
+            ctx.fillStyle = 'rgba(3, 7, 18, 0.35)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // 复杂的镜头晃动
-            let camX = Math.sin(elapsed * 6) * 300 * (1 - accel * 0.5); 
-            let camY = Math.cos(elapsed * 4) * 150 * (1 - accel * 0.5);
 
-            warpLines.forEach(l => { l.update(accel); l.draw(camX, camY); });
-            particles.forEach(p => { p.update(accel); p.draw(camX, camY); });
+            // 更新和绘制所有金融公式 (只要波纹还没结束就继续飞)
+            if (rippleT < 1) {
+                particles.forEach(p => { 
+                    p.update(); 
+                    p.draw(); 
+                });
+            }
 
-            // 绘制领航员 "H"
-            let hScale = 1 + accel * 12; // 极速放大
-            let hX = canvas.width / 2 + Math.sin(elapsed * 10) * 80 * (1 - accel);
-            let hY = canvas.height / 2 + Math.cos(elapsed * 14) * 40 * (1 - accel);
-            let tilt = Math.cos(elapsed * 10) * 0.3 * (1 - accel);
+            // H字母飞行逻辑
+            if (t < 1) {
+                // 飞行缓动函数：前期迅猛加速，后期极度平滑减速贴合
+                let easeT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-            ctx.save();
-            ctx.translate(hX, hY);
-            ctx.rotate(tilt);
-            ctx.scale(hScale, hScale);
-            // 随着靠近屏幕边缘，H 渐渐消散，完美融合光爆
-            ctx.fillStyle = `rgba(255, 255, 255, ${1 - accel})`; 
-            ctx.font = `bold 60px -apple-system, BlinkMacSystemFont, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowColor = 'rgba(56, 189, 248, 0.9)';
-            ctx.shadowBlur = 25;
-            ctx.fillText("H", 0, 0);
-            ctx.restore();
+                // 轨迹插值计算
+                let hX = bezier(easeT, p0.x, p1.x, p2.x, p3.x);
+                let hY = bezier(easeT, p0.y, p1.y, p2.y, p3.y);
+
+                // 动感缩放：超车放大至巨大，再平滑缩小至网页字号
+                let currentSize;
+                if (t < 0.6) {
+                    let zPhase = t / 0.6; // 0~1
+                    currentSize = 80 + Math.pow(Math.sin(zPhase * Math.PI), 1.5) * 450; // 极大震撼
+                } else {
+                    let shrinkPhase = (t - 0.6) / 0.4;
+                    let easeShrink = 1 - Math.pow(1 - shrinkPhase, 3); // easeOutCubic
+                    currentSize = 80 - (80 - targetFontSize) * easeShrink;
+                }
+
+                // 颜色渐变：从电竞发光青色(#00f0ff) 最终完美褪去变为网页正文的深蓝色(#0f172a)
+                let r = Math.round(0 + (15 - 0) * easeT);
+                let g = Math.round(240 + (23 - 240) * Math.pow(t, 2));
+                let b = Math.round(255 + (42 - 255) * Math.pow(t, 2));
+
+                ctx.save();
+                ctx.translate(hX, hY);
+                // 轻微的侧面倾角转正，去除了狂野的旋转
+                let tilt = Math.sin(t * Math.PI) * 0.25 * (1 - easeT);
+                ctx.rotate(tilt);
+
+                // 字体平滑过度：在动画早期使用黑体展现科技感，最终贴合主页标题体统
+                ctx.font = `bold ${currentSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.shadowColor = `rgba(0, 240, 255, ${1 - easeT})`;
+                ctx.shadowBlur = 30 * (1 - easeT);
+                
+                ctx.fillText("H", 0, 0);
+                ctx.restore();
+            }
+
+            // 完美重合并触发水波纹视效点亮全站！
+            if (t >= 1) {
+                // 水波纹缓冲动画：easeOutQuart 极速爆发然后丝滑扩散
+                let rippleEase = 1 - Math.pow(1 - rippleT, 4);
+                let maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
+                let currentRadius = maxRadius * rippleEase;
+
+                // 1. 硬件加速 CSS 揭开真实网页的面纱 (无卡顿)
+                const pageWrapper = document.getElementById('page-wrapper');
+                pageWrapper.style.clipPath = `circle(${currentRadius}px at ${targetX}px ${targetY}px)`;
+                pageWrapper.style.webkitClipPath = `circle(${currentRadius}px at ${targetX}px ${targetY}px)`;
+
+                // 2. Canvas 额外绘制冲击波圆环（增加水面落石波动感）
+                if (rippleT < 0.9) {
+                    ctx.beginPath();
+                    ctx.arc(targetX, targetY, currentRadius * 1.05, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(56, 189, 248, ${1 - rippleT})`;
+                    ctx.lineWidth = 15 * (1 - rippleT);
+                    ctx.stroke();
+                }
+
+                // 彻底结束清理
+                if (rippleT === 1) {
+                    document.getElementById('intro-canvas').style.display = 'none';
+                    document.body.style.overflowY = 'auto'; // 解锁网页滚动
+                    cancelAnimationFrame(animationFrameId);
+                    
+                    // 确保图表可见性并渲染
+                    runSimulation();
+                    setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
+                    return;
+                }
+            }
 
             animationFrameId = requestAnimationFrame(animate);
         }
 
         animate();
-
-        // 1.8秒后：完全结束开屏动画
-        setTimeout(() => {
-            const overlay = document.getElementById('intro-overlay');
-            cancelAnimationFrame(animationFrameId);
-            overlay.style.opacity = '0';
-            
-            // 立即渲染并确保图表可见
-            runSimulation();
-            setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
-        }, 1800); 
     }
 
     // 页面加载即刻启动动画
-    window.addEventListener('load', initIntroAnimation);
+    window.addEventListener('load', initCinematicIntro);
 
 
     // ================= 基础逻辑 (多语言/量化拉取/图表生成) =================
     const i18nDict = {
-        name: { zh: "王 盛 烨", en: "Shengye Wang" },
+        name: { zh: "王 盛 烨", en: "Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
         resume_title: { zh: "我的简历", en: "My Resume" },
         resume_name: { zh: "金融工程简历 (中文版)", en: "Financial Engineering Resume (CN)" },
@@ -585,10 +604,11 @@ title: 金融工程 · 个人主页
         container.classList.toggle('chart-fullscreen');
         if(container.classList.contains('chart-fullscreen')) {
             icon.className = 'fas fa-compress';
-            document.body.style.overflow = 'hidden';
+            // 确保在全屏下解除因为开局强制锁死的滚动(双保险)
+            document.body.style.overflowY = 'hidden'; 
         } else {
             icon.className = 'fas fa-expand';
-            document.body.style.overflow = 'auto';
+            document.body.style.overflowY = 'auto';
         }
         if(chartInstance) setTimeout(() => chartInstance.resize(), 100);
     }
