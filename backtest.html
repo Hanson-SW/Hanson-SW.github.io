@@ -9,7 +9,7 @@
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; gap: 15px; height: 100vh; box-sizing: border-box; }
         
-        /* 侧边栏极限瘦身，留出最大图表空间 */
+        /* 侧边栏极限瘦身 */
         .sidebar { width: 280px; background: var(--card); border-radius: 10px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; border: 1px solid var(--border); flex-shrink: 0; }
         .sidebar h3 { margin: 0 0 5px 0; font-size: 16px; border-bottom: 2px solid var(--bg); padding-bottom: 8px; color: #1e293b; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
@@ -133,7 +133,6 @@
 
     <script>
         const myChart = echarts.init(document.getElementById('chart-container'));
-        let glowInterval = null; 
         
         const ASSET_DICT = {
             'sh000001': '上证指数', 'sz399001': '深证成指', 'sz399006': '创业板指',
@@ -302,8 +301,8 @@
                 let subPortfolios = portfolioConfig.map(item => ({
                     code: item.code,
                     initialWeight: item.weight,
-                    nav: 1.0,           // 独立净值，只在投资状态下复利
-                    invested: true      // 初始全投资
+                    nav: 1.0,           
+                    invested: true      
                 }));
 
                 for (let i = 1; i < alignedDates.length; i++) {
@@ -316,17 +315,26 @@
 
                     let anyBuy = false, anySell = false;
 
-                    // 计算组合当日表现
+                    // 1. 先计算当日收益（基于昨天的 invested 状态）
                     subPortfolios.forEach(sp => {
                         let prices = dataStore[sp.code];
                         let r = (prices[d] - prices[prevD]) / prices[prevD];
                         
-                        // 若处于投资状态，该资产子净值变化 (支持做空逻辑反向收益)
+                        // 修正：做空做多其本身的子净值始终是跟随(1+r)变化，最终体现在总权重的乘数上
                         if (sp.invested) {
-                            sp.nav *= (1 + r * Math.sign(sp.initialWeight));
+                            sp.nav *= (1 + r);
                         }
+                    });
 
-                        // 计算策略信号 (使用前收盘价判断，次日执行，无未来函数)
+                    // 2. 组合总净值 = sum(初始权重 * 各自当前的子净值)
+                    let newPNAV = subPortfolios.reduce((sum, sp) => sum + (sp.initialWeight / 100) * sp.nav, 0);
+                    pDailyReturns.push((newPNAV - pNetValues[pNetValues.length - 1]) / pNetValues[pNetValues.length - 1]);
+                    pNetValues.push(newPNAV);
+                    excessSeries.push(newPNAV - bNAV);
+
+                    // 3. 计算策略信号 (利用今日数据判断，更改 invested 状态，明日生效 - 绝无未来函数)
+                    subPortfolios.forEach(sp => {
+                        let prices = dataStore[sp.code];
                         if (useStrategy && i >= 19) {
                             let slice20 = [];
                             for(let k=i-19; k<=i; k++) slice20.push(prices[alignedDates[k]]);
@@ -345,12 +353,6 @@
                         }
                     });
 
-                    // 组合总净值 = sum(初始权重 * 各自的子净值)
-                    let newPNAV = subPortfolios.reduce((sum, sp) => sum + (sp.initialWeight / 100) * sp.nav, 0);
-                    pDailyReturns.push((newPNAV - pNetValues[pNetValues.length - 1]) / pNetValues[pNetValues.length - 1]);
-                    pNetValues.push(newPNAV);
-                    excessSeries.push(newPNAV - bNAV);
-
                     if (anyBuy) tradeMarkers.push({ coord: [d, newPNAV], value: 'B', itemStyle: { color: '#ef4444' } });
                     if (anySell) tradeMarkers.push({ coord: [d, newPNAV], value: 'S', itemStyle: { color: '#10b981' } });
                 }
@@ -366,12 +368,12 @@
                 document.getElementById('meta-bench-dd').innerText = `基准最大回撤: ${fmt(bMetrics.maxDD)}`;
                 document.getElementById('meta-sharpe-calmar').innerText = `${pMetrics.sharpe.toFixed(2)} / ${pMetrics.calmar.toFixed(2)}`;
 
-                // 计算期末动态权重
+                // 计算期末动态权重，适配富文本格式
                 let finalTotalNav = pNetValues[pNetValues.length - 1];
                 let weightStr = subPortfolios.map(sp => {
                     let currentW = ((sp.initialWeight / 100) * sp.nav / finalTotalNav * 100).toFixed(1);
-                    let state = useStrategy ? (sp.invested ? " (持仓中)" : " (已空仓)") : "";
-                    return `• ${getAssetName(sp.code)}: 初始 ${sp.initialWeight}% ➔ 期末 ${currentW}% ${state}`;
+                    let state = useStrategy ? (sp.invested ? "(持仓)" : "(空仓)") : "";
+                    return `{weightItem|• ${getAssetName(sp.code)}: ${sp.initialWeight}% ➔ ${currentW}% ${state}}`;
                 }).join('\n');
 
                 let displayMetrics = {
@@ -380,7 +382,7 @@
                     sharpe: pMetrics.sharpe.toFixed(2), calmar: pMetrics.calmar.toFixed(2)
                 };
                 
-                renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, getAssetName(benchmarkCode), displayMetrics, weightStr, tradeMarkers);
+                renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, getAssetName(benchmarkCode), displayMetrics, weightStr, tradeMarkers, startDate, endDate);
 
             } catch (err) {
                 alert("回测引擎异常: " + err.message);
@@ -389,26 +391,23 @@
             }
         }
 
-        function renderBacktestChart(dates, pNAV, bNAV, excess, benchName, metrics, weightStr, tradeMarkers) {
-            if (glowInterval) clearInterval(glowInterval);
+        function renderBacktestChart(dates, pNAV, bNAV, excess, benchName, metrics, weightStr, tradeMarkers, startDate, endDate) {
             const isMobile = window.innerWidth <= 768;
             
-            const genDate = new Date().toLocaleDateString('zh-CN');
-            
-            // 动态计算文字框高度以保证内嵌
-            let cardHeight = 220 + portfolioConfig.length * 18; 
+            // 动态计算卡片高度，更紧凑
+            let cardHeight = 185 + portfolioConfig.length * 16; 
 
             const option = {
                 animation: false, 
                 title: { text: '多资产多空策略回测与超额归因', left: 'center', top: 5 },
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢)'], top: 35, left: isMobile ? 'center' : '20%' },
+                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢)'], top: 35, left: isMobile ? 'center' : '15%' },
                 toolbox: { feature: { saveAsImage: { name: '回测报告', pixelRatio: 2, backgroundColor: '#fff' } }, right: 20, top: 10 },
                 
-                // 响应式图表区
+                // 给右侧卡片留出的空隙变窄
                 grid: [
-                    { left: 45, right: isMobile ? 20 : 310, top: '15%', height: '52%', containLabel: true },
-                    { left: 45, right: isMobile ? 20 : 310, top: '72%', height: '20%', containLabel: true }
+                    { left: 45, right: isMobile ? 20 : 260, top: '15%', height: '52%', containLabel: true },
+                    { left: 45, right: isMobile ? 20 : 260, top: '72%', height: '20%', containLabel: true }
                 ],
                 xAxis: [
                     { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } },
@@ -423,29 +422,36 @@
                     { show: true, type: 'slider', bottom: '1%', xAxisIndex: [0, 1], height: 20 }
                 ],
                 
-                // 修复防溢出的 Graphic 卡片
+                // ECharts 原生图形绘制：完全自适应，不溢出，完美导出 PDF/图片
                 graphic: isMobile ? [] : [
                     {
-                        type: 'group', right: 20, top: '13%',
+                        type: 'group', right: 20, top: '15%',
                         children: [
                             {
-                                type: 'rect', z: 100, shape: { width: 280, height: cardHeight, r: 8 },
+                                type: 'rect', z: 100, shape: { width: 230, height: cardHeight, r: 8 },
                                 style: { fill: '#f8fafc', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.05)' }
                             },
                             {
-                                type: 'text', z: 100, left: 15, top: 15,
+                                type: 'text', z: 100, left: 12, top: 12,
                                 style: {
                                     fill: '#1e293b',
-                                    width: 250, // 限制宽度自动换行
-                                    overflow: 'break',
-                                    text: `📅 回测报告生成: ${genDate}\n\n` + 
-                                          `📈 组合累计收益:  ${metrics.totalReturn}\n` +
-                                          `⚡ 预期年化收益:  ${metrics.annReturn}\n` +
-                                          `🌊 预期年化波动:  ${metrics.annVol}\n` +
-                                          `📉 最大回撤:          ${metrics.maxDD}\n` +
-                                          `🏆 Sharpe / Calmar: ${metrics.sharpe} / ${metrics.calmar}\n\n` +
-                                          `🎯 组合初始与期末漂移权重:\n${weightStr}`, 
-                                    font: 'bold 12px sans-serif', lineHeight: 18
+                                    text: `{dateTitle|📅 回测区间:}\n{dateRange|${startDate} ~ ${endDate}}\n\n` + 
+                                          `{label|累计收益}  {bubbleRed|${metrics.totalReturn}}\n\n` +
+                                          `{label|年化/波动}  {bubbleBlue|${metrics.annReturn}} / {bubbleBlue|${metrics.annVol}}\n\n` +
+                                          `{label|最大回撤}  {bubbleGreen|${metrics.maxDD}}\n\n` +
+                                          `{label|夏普/卡玛}  {bubbleOrange|${metrics.sharpe}} / {bubbleOrange|${metrics.calmar}}\n\n` +
+                                          `{weightTitle|🎯 资产期末状态漂移:}\n${weightStr}`, 
+                                    rich: {
+                                        dateTitle: { fontSize: 11, color: '#475569', fontWeight: 'bold' },
+                                        dateRange: { fontSize: 10, color: '#64748b', padding: [3, 0, 0, 0] },
+                                        label: { fontSize: 11, color: '#64748b', width: 60 },
+                                        bubbleRed: { fontSize: 10, color: '#ef4444', backgroundColor: '#fee2e2', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
+                                        bubbleBlue: { fontSize: 10, color: '#3b82f6', backgroundColor: '#dbeafe', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
+                                        bubbleGreen: { fontSize: 10, color: '#10b981', backgroundColor: '#d1fae5', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
+                                        bubbleOrange: { fontSize: 10, color: '#f59e0b', backgroundColor: '#fef3c7', padding: [3, 6], borderRadius: 4, fontWeight: 'bold' },
+                                        weightTitle: { fontSize: 11, color: '#475569', fontWeight: 'bold', padding: [5, 0, 3, 0] },
+                                        weightItem: { fontSize: 10, color: '#334155', lineHeight: 16 }
+                                    }
                                 }
                             }
                         ]
