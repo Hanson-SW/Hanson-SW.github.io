@@ -3,251 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>量化资产配置系统 v2.0 - 金融工程</title>
-    <!-- ECharts -->
+    <title>量化资产配置系统 v3.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
-    <!-- html2canvas (用于截图下载) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* ----- 全局重置与变量 ----- */
+        /* 样式与之前类似，略作微调（篇幅原因保留核心样式） */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
-            --primary: #0f172a;
-            --accent: #8b5cf6;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --border: #e2e8f0;
-            --text: #334155;
-            --shadow: 0 4px 20px rgba(0,0,0,0.06);
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 16px;
-            display: flex;
-            justify-content: center;
-        }
-        .app-container {
-            max-width: 1400px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* ----- 顶部报告区域 (图表 + 卡片) ----- */
-        .report-area {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: #f1f5f9;
-            border-radius: 12px;
-            padding: 14px 18px;
-            border-left: 4px solid var(--accent);
-        }
-        .stat-card .title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #64748b;
-            font-weight: 600;
-        }
-        .stat-card .value {
-            font-size: 22px;
-            font-weight: 700;
-            color: #1e293b;
-            margin-top: 4px;
-        }
-        .stat-card .sub {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-            line-height: 1.5;
-        }
-        .stat-card .weight-list {
-            font-size: 12px;
-            background: white;
-            padding: 8px 10px;
-            border-radius: 6px;
-            margin-top: 6px;
-            border: 1px dashed #cbd5e1;
-            word-break: break-all;
-        }
-        #chart-container {
-            width: 100%;
-            height: 480px;
-            min-height: 400px;
-        }
-
-        /* ----- 下方设置面板 (可滚动) ----- */
-        .settings-area {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        .settings-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px 30px;
-            align-items: center;
-        }
-        .settings-row .group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex: 1 1 150px;
-        }
-        .settings-row .group label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #475569;
-        }
-        .settings-row .group input,
-        .settings-row .group select {
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
-            transition: 0.15s;
-        }
-        .settings-row .group input:focus,
-        .settings-row .group select:focus {
-            border-color: var(--accent);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(139,92,246,0.15);
-        }
-        .settings-row .group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            margin-top: 6px;
-            accent-color: var(--accent);
-        }
-        .btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.15s;
-            font-size: 14px;
-        }
+        :root { --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
+        .app-container { max-width: 1400px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+        .report-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: #f1f5f9; border-radius: 12px; padding: 14px 18px; border-left: 4px solid var(--accent); }
+        .stat-card .title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
+        .stat-card .value { font-size: 22px; font-weight: 700; color: #1e293b; margin-top: 4px; }
+        .stat-card .sub { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+        .stat-card .weight-list { font-size: 12px; background: white; padding: 8px 10px; border-radius: 6px; margin-top: 6px; border: 1px dashed #cbd5e1; word-break: break-all; }
+        #chart-container { width: 100%; height: 480px; min-height: 400px; }
+        .settings-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 24px; }
+        .settings-row { display: flex; flex-wrap: wrap; gap: 16px 30px; align-items: center; }
+        .settings-row .group { display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; }
+        .settings-row .group label { font-size: 12px; font-weight: 600; color: #475569; }
+        .settings-row .group input, .settings-row .group select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: white; transition: 0.15s; }
+        .settings-row .group input:focus, .settings-row .group select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+        .settings-row .group input[type="checkbox"] { width: 18px; height: 18px; margin-top: 6px; accent-color: var(--accent); }
+        .btn { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.15s; font-size: 14px; }
         .btn:hover { opacity: 0.85; transform: translateY(-1px); }
-        .btn-outline {
-            background: transparent;
-            border: 2px dashed var(--border);
-            color: #64748b;
-        }
-        .btn-outline:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: #f5f3ff;
-        }
-        .btn-danger {
-            background: #ef4444;
-            padding: 4px 10px;
-            font-size: 12px;
-            border-radius: 6px;
-        }
+        .btn-outline { background: transparent; border: 2px dashed var(--border); color: #64748b; }
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #f5f3ff; }
+        .btn-danger { background: #ef4444; padding: 4px 10px; font-size: 12px; border-radius: 6px; }
         .btn-sm { padding: 4px 12px; font-size: 12px; }
-
-        /* 资产列表 */
-        .asset-tag {
-            display: inline-flex;
-            align-items: center;
-            background: #e2e8f0;
-            padding: 4px 10px 4px 14px;
-            border-radius: 20px;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .asset-tag .del {
-            cursor: pointer;
-            color: #ef4444;
-            font-weight: bold;
-        }
-
-        /* 压力场景列表 */
-        .scenario-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 6px;
-        }
-        .scenario-item {
-            background: #f1f5f9;
-            border-radius: 20px;
-            padding: 6px 14px 6px 18px;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 13px;
-            border: 1px solid var(--border);
-        }
-        .scenario-item .info {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        .scenario-item .info .type {
-            background: #cbd5e1;
-            border-radius: 12px;
-            padding: 0 8px;
-            font-size: 11px;
-            color: #1e293b;
-        }
-
-        /* 移动端自适应 */
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-            #chart-container { height: 350px; }
-            .settings-row .group { flex: 1 1 100%; }
-        }
-        @media (max-width: 480px) {
-            .stats-grid { grid-template-columns: 1fr; }
-        }
-
-        /* loading遮罩 */
-        #loading-overlay {
-            position: fixed;
-            top:0; left:0; width:100%; height:100%;
-            background: rgba(255,255,255,0.85);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-            font-weight: bold;
-            color: var(--accent);
-        }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #e2e8f0;
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 16px;
-        }
+        .asset-tag { display: inline-flex; align-items: center; background: #e2e8f0; padding: 4px 10px 4px 14px; border-radius: 20px; gap: 8px; font-size: 13px; font-weight: 500; }
+        .asset-tag .del { cursor: pointer; color: #ef4444; font-weight: bold; }
+        .scenario-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+        .scenario-item { background: #f1f5f9; border-radius: 20px; padding: 6px 14px 6px 18px; display: inline-flex; align-items: center; gap: 12px; font-size: 13px; border: 1px solid var(--border); }
+        .scenario-item .info { display: flex; gap: 6px; align-items: center; }
+        .scenario-item .info .type { background: #cbd5e1; border-radius: 12px; padding: 0 8px; font-size: 11px; color: #1e293b; }
+        @media (max-width: 768px) { body { padding: 10px; } .stats-grid { grid-template-columns: 1fr 1fr; } #chart-container { height: 350px; } .settings-row .group { flex: 1 1 100%; } }
+        @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
+        #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-weight: bold; color: var(--accent); }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
@@ -256,7 +51,7 @@
 
 <div class="app-container" id="app">
 
-    <!-- ========== 报告区域 ========== -->
+    <!-- ===== 报告区域 ===== -->
     <div class="report-area" id="reportArea">
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card" style="border-left-color:#f59e0b;">
@@ -278,9 +73,8 @@
         <div id="chart-container"></div>
     </div>
 
-    <!-- ========== 设置面板 ========== -->
+    <!-- ===== 设置面板 ===== -->
     <div class="settings-area">
-
         <!-- 行1: 基础参数 -->
         <div class="settings-row">
             <div class="group">
@@ -301,7 +95,7 @@
             </div>
         </div>
 
-        <!-- 行2: 优化选项 & 做空限制 -->
+        <!-- 行2: 优化选项 & 做空限制 & 滚动窗口 -->
         <div class="settings-row">
             <div class="group" style="flex-direction:row; align-items:center; gap:10px;">
                 <label>🔧 优化方法</label>
@@ -316,29 +110,46 @@
             </div>
             <div class="group">
                 <label>📦 滚动窗口 (月数)</label>
-                <input type="number" id="window-size" value="6" min="2" step="1" style="width:80px;">
+                <input type="number" id="window-size" value="1" min="0" step="1" style="width:80px;">
                 <span style="font-size:12px; color:#64748b;">(0=不使用滚动)</span>
             </div>
             <button class="btn" onclick="runFullAnalysis()" style="margin-left:auto;">🚀 重新分析</button>
         </div>
 
-        <!-- 行3: 资产池管理 -->
+        <!-- 行3: 资产池管理（新增下拉选择） -->
         <div class="settings-row">
             <div class="group" style="flex:2;">
                 <label>📦 资产池 (代码, 用逗号分隔)</label>
-                <div style="display:flex; gap:6px;">
-                    <input type="text" id="asset-input" placeholder="例如 sh000300, sz399006" style="flex:1;">
-                    <button class="btn btn-sm btn-outline" onclick="updateAssetPool()">更新</button>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <input type="text" id="asset-input" placeholder="例如 sh000300, sz399006" style="flex:1; min-width:150px;" list="stock-database">
+                    <datalist id="stock-database">
+                        <!-- 由 JS 动态生成 -->
+                    </datalist>
+                    <select id="asset-select" style="padding:8px; border:1px solid var(--border); border-radius:8px; min-width:130px;">
+                        <option value="">— 选择指数 —</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline" onclick="addSelectedAsset()">➕ 添加</button>
+                    <button class="btn btn-sm btn-outline" onclick="updateAssetPool()">更新池</button>
                 </div>
                 <div id="asset-tags" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
             </div>
         </div>
 
-        <!-- 行4: 压力测试场景 -->
+        <!-- 行4: 基准指数 -->
+        <div class="settings-row">
+            <div class="group" style="flex:1;">
+                <label>📊 基准指数 (对比虚线)</label>
+                <select id="benchmark-select" style="padding:8px; border:1px solid var(--border); border-radius:8px;">
+                    <option value="">无基准</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 行5: 压力测试场景 -->
         <div class="settings-row" style="flex-direction:column; align-items:stretch;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <label style="font-weight:600;">⚠️ 压力测试场景</label>
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <input type="text" id="scenario-name" placeholder="场景名称" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; width:120px;">
                     <select id="scenario-type" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
                         <option value="market">市场暴跌</option>
@@ -353,7 +164,7 @@
             <div class="scenario-list" id="scenario-list"></div>
         </div>
 
-        <!-- 行5: 下载报告 -->
+        <!-- 行6: 下载报告 -->
         <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
             <button class="btn btn-outline" onclick="downloadReport()">📥 下载报告截图</button>
         </div>
@@ -362,42 +173,59 @@
 
 <script>
     // ============================================================
+    //  配置与映射
+    // ============================================================
+    const INDEX_NAMES = {
+        'sh000001': '上证指数',
+        'sz399001': '深证成指',
+        'sz399006': '创业板指',
+        'sh000300': '沪深300',
+        'sh000016': '上证50',
+        'sh000905': '中证500',
+        'sh000852': '中证1000',
+        'sh000688': '科创50',
+        'sz399300': '沪深300(深)'
+    };
+    const INDEX_LIST = Object.entries(INDEX_NAMES).map(([code, name]) => ({ code, name }));
+
+    // ============================================================
     //  全局变量
     // ============================================================
     let myChart = null;
     let assetPool = ['sh000300', 'sz399006', 'sh000688'];
-    let scenarios = [];  // 每个元素：{ name, type, value, date }
+    let scenarios = [];
     let cachedData = null;
-    let currentResult = null; // 存储最近一次分析结果用于截图
+    let currentResult = null;
 
     // ============================================================
     //  数据生成 (模拟 2025 年日频数据)
     // ============================================================
     function generateDeterministic2025Data() {
         const store = {};
-        const assets = ['sh000300', 'sz399006', 'sh000688'];
+        const assets = Object.keys(INDEX_NAMES);
         const dates = [];
         let d = new Date('2025-01-01');
         const end = new Date('2025-12-31');
         while (d <= end) {
-            if (d.getDay() !== 0 && d.getDay() !== 6) {
-                dates.push(d.toISOString().slice(0,10));
-            }
+            if (d.getDay() !== 0 && d.getDay() !== 6) dates.push(d.toISOString().slice(0,10));
             d.setDate(d.getDate() + 1);
         }
         let seed = 1024;
         function lcg() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-        let p1=1, p2=1, p3=1;
-        assets.forEach(code => store[code] = {});
+        // 为每个指数生成不同的初始价格和波动
+        const initPrices = { 'sh000001':3000, 'sz399001':11000, 'sz399006':1900, 'sh000300':3400, 'sh000016':2600, 'sh000905':5600, 'sh000852':6200, 'sh000688':850, 'sz399300':3400 };
+        const vols = { 'sh000001':0.012, 'sz399001':0.016, 'sz399006':0.022, 'sh000300':0.012, 'sh000016':0.010, 'sh000905':0.018, 'sh000852':0.020, 'sh000688':0.026, 'sz399300':0.012 };
+        assets.forEach(code => { store[code] = {}; });
+        let prices = {};
+        assets.forEach(code => { prices[code] = initPrices[code] || 1000; });
         dates.forEach(date => {
             let mf = lcg() - 0.488;
-            let r1 = mf*0.012 + (lcg()-0.5)*0.006 + 0.0005;
-            let r2 = mf*0.022 + (lcg()-0.5)*0.016 + 0.0008;
-            let r3 = mf*0.026 + (lcg()-0.5)*0.020 + 0.0004;
-            p1 *= (1+r1); p2 *= (1+r2); p3 *= (1+r3);
-            store['sh000300'][date] = p1 * 3400;
-            store['sz399006'][date] = p2 * 1900;
-            store['sh000688'][date] = p3 * 850;
+            assets.forEach(code => {
+                let vol = vols[code] || 0.015;
+                let r = mf * vol + (lcg() - 0.5) * vol * 0.6 + 0.0003;
+                prices[code] *= (1 + r);
+                store[code][date] = prices[code];
+            });
         });
         return store;
     }
@@ -408,18 +236,16 @@
     // ============================================================
     function mean(arr) { return arr.reduce((a,b)=>a+b,0) / arr.length; }
     function covariance(x, y, mx, my) {
-        let s=0; for(let i=0;i<x.length;i++) s += (x[i]-mx)*(y[i]-my);
+        let s=0; for (let i=0;i<x.length;i++) s += (x[i]-mx)*(y[i]-my);
         return s / (x.length-1);
     }
 
-    // 获取价格字典 (优先缓存)
     async function fetchAssetData(code) {
         const start = document.getElementById('start-date').value;
         const end = document.getElementById('end-date').value;
-        if (start==='2025-01-01' && end==='2025-12-31' && ['sh000300','sz399006','sh000688'].includes(code)) {
-            if (cachedData[code]) return cachedData[code];
+        if (start==='2025-01-01' && end==='2025-12-31' && cachedData[code]) {
+            return cachedData[code];
         }
-        // 尝试加载远程数据 (若存在)
         try {
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
             const resp = await fetch(url);
@@ -433,7 +259,6 @@
         } catch { return null; }
     }
 
-    // 从价格字典计算日收益率
     function getReturns(priceDict, startDate, endDate) {
         const dates = Object.keys(priceDict).filter(d => d>=startDate && d<=endDate).sort();
         const rets = [];
@@ -444,60 +269,55 @@
         return rets;
     }
 
+    // 获取最近交易日
+    function findNearestDate(targetDate, dateArray) {
+        if (!targetDate) return null;
+        const sorted = dateArray.slice().sort();
+        let nearest = null;
+        let minDiff = Infinity;
+        for (let d of sorted) {
+            const diff = Math.abs(new Date(d) - new Date(targetDate));
+            if (diff < minDiff) { minDiff = diff; nearest = d; }
+        }
+        return nearest;
+    }
+
     // ============================================================
-    //  二次规划 (QP) 求解器 (梯度投影法, 带权重非负约束)
+    //  二次规划 (QP) 求解器 (梯度投影法)
     // ============================================================
-    function solveQP(returns, targetReturn, riskFree, restrictShort) {
-        // returns: 各资产收益率序列 (二维数组: assetCount × timeCount)
+    function solveQP(returns, riskFree, restrictShort) {
         const n = returns.length;
         const T = returns[0].length;
-        // 年化收益
         const mu = returns.map(r => mean(r) * 252);
-        // 协方差矩阵 (年化)
         const cov = Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => {
             const mi = mu[i]/252, mj = mu[j]/252;
             return covariance(returns[i], returns[j], mi, mj) * 252;
         }));
-
-        // 目标: 最小化 w^T Σ w - λ * (w^T μ)   (λ 为风险厌恶系数)
-        // 此处我们采用经典均值-方差，给定目标收益 targetReturn，最小化方差
-        // 使用拉格朗日乘子法 + 投影梯度 (用于处理非负约束)
-        // 简化实现: 我们使用有效前沿的解析解 (无约束) 然后投影到非负单纯形
-        // 但此处为了通用，采用梯度投影迭代
         let w = Array(n).fill(1/n);
         const maxIter = 1000;
         const lr = 0.001;
-        const lambda = 1.0; // 风险厌恶系数 (可调)
-
+        const lambda = 1.0;
         for (let iter=0; iter<maxIter; iter++) {
-            // 梯度: 2 Σ w - λ μ
             let grad = Array(n).fill(0);
             for (let i=0; i<n; i++) {
                 let sum = 0;
                 for (let j=0; j<n; j++) sum += cov[i][j] * w[j];
                 grad[i] = 2 * sum - lambda * mu[i];
             }
-            // 梯度下降
             let wNew = w.map((v,i) => v - lr * grad[i]);
-            // 投影到单纯形 (非负且和为1)
             if (restrictShort) {
-                // 非负投影
                 wNew = wNew.map(v => Math.max(0, v));
-                // 归一化
                 let s = wNew.reduce((a,b)=>a+b,0);
                 if (s>0) wNew = wNew.map(v => v/s);
             } else {
-                // 允许做空，只需和为1
                 let s = wNew.reduce((a,b)=>a+b,0);
                 wNew = wNew.map(v => v/s);
             }
-            // 检查收敛
             let diff = 0;
             for (let i=0; i<n; i++) diff += (wNew[i]-w[i])**2;
             w = wNew;
             if (diff < 1e-8) break;
         }
-        // 计算组合指标
         let portReturn = 0, portVar = 0;
         for (let i=0; i<n; i++) {
             portReturn += w[i] * mu[i];
@@ -508,185 +328,9 @@
         return { weights: w, ret: portReturn, vol: portVol, sharpe };
     }
 
-    // ============================================================
-    //  主分析函数
-    // ============================================================
-    async function runFullAnalysis() {
-        const overlay = document.getElementById('loading-overlay');
-        overlay.style.display = 'flex';
-
-        try {
-            // 读取参数
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
-            const simCount = parseInt(document.getElementById('sim-count').value) || 3000;
-            const riskFree = parseFloat(document.getElementById('risk-free-rate').value) / 100;
-            const restrictShort = document.getElementById('short-restrict').checked;
-            const method = document.getElementById('optim-method').value;
-            const windowMonths = parseInt(document.getElementById('window-size').value) || 0;
-
-            // 获取数据
-            const dataStore = {};
-            await Promise.all(assetPool.map(async (code) => {
-                const dict = await fetchAssetData(code);
-                if (dict) dataStore[code] = dict;
-            }));
-            // 检查数据完整性
-            for (let code of assetPool) {
-                if (!dataStore[code]) throw new Error(`数据缺失: ${code}`);
-            }
-
-            // 对齐日期
-            let allDates = Object.keys(dataStore[assetPool[0]]).filter(d => d>=startDate && d<=endDate).sort();
-            for (let code of assetPool) {
-                allDates = allDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
-            }
-            if (allDates.length < 20) throw new Error('有效交易日不足');
-
-            // 构建收益矩阵 (nAssets × nDays-1)
-            const returnsMatrix = assetPool.map(code => {
-                const r = [];
-                for (let i=1; i<allDates.length; i++) {
-                    const p0 = dataStore[code][allDates[i-1]];
-                    const p1 = dataStore[code][allDates[i]];
-                    r.push((p1-p0)/p0);
-                }
-                return r;
-            });
-
-            // 若滚动窗口>0，执行滚动回测
-            let optWeights = null, optRet = 0, optVol = 0, optSharpe = 0;
-            let netValues = [1.0];
-            let dailyRets = [];
-            let allWeightsHistory = [];
-
-            if (windowMonths > 0 && windowMonths < allDates.length/21) {
-                // 滚动回测
-                const windowSize = windowMonths * 21; // 近似月数
-                const step = Math.floor(windowSize/2); // 步长取窗口一半
-                let startIdx = 0;
-                while (startIdx + windowSize < allDates.length - 1) {
-                    const endIdx = startIdx + windowSize;
-                    const windowDates = allDates.slice(startIdx, endIdx+1);
-                    // 提取窗口内的收益
-                    const winReturns = assetPool.map(code => {
-                        const r = [];
-                        for (let i=startIdx+1; i<=endIdx; i++) {
-                            const p0 = dataStore[code][allDates[i-1]];
-                            const p1 = dataStore[code][allDates[i]];
-                            r.push((p1-p0)/p0);
-                        }
-                        return r;
-                    });
-                    // 优化
-                    let res;
-                    if (method === 'qp') {
-                        res = solveQP(winReturns, 0, riskFree, restrictShort);
-                    } else {
-                        // 蒙特卡洛
-                        res = monteCarloOptimize(winReturns, simCount, riskFree, restrictShort);
-                    }
-                    allWeightsHistory.push({ date: allDates[endIdx], weights: res.weights });
-                    // 计算从 endIdx 到 endIdx+step 的实际收益
-                    for (let i=endIdx; i<Math.min(endIdx+step, allDates.length-1); i++) {
-                        let dayRet = 0;
-                        for (let a=0; a<assetPool.length; a++) {
-                            const p0 = dataStore[assetPool[a]][allDates[i]];
-                            const p1 = dataStore[assetPool[a]][allDates[i+1]];
-                            dayRet += res.weights[a] * (p1-p0)/p0;
-                        }
-                        dailyRets.push(dayRet);
-                        netValues.push(netValues[netValues.length-1] * (1+dayRet));
-                    }
-                    startIdx += step;
-                }
-                // 最后一段直接使用最新权重直到末尾
-                if (allWeightsHistory.length > 0) {
-                    const lastW = allWeightsHistory[allWeightsHistory.length-1].weights;
-                    for (let i=startIdx; i<allDates.length-1; i++) {
-                        let dayRet = 0;
-                        for (let a=0; a<assetPool.length; a++) {
-                            const p0 = dataStore[assetPool[a]][allDates[i]];
-                            const p1 = dataStore[assetPool[a]][allDates[i+1]];
-                            dayRet += lastW[a] * (p1-p0)/p0;
-                        }
-                        dailyRets.push(dayRet);
-                        netValues.push(netValues[netValues.length-1] * (1+dayRet));
-                    }
-                }
-                // 计算最终组合统计
-                const finalRet = mean(dailyRets) * 252;
-                const finalVol = Math.sqrt(mean(dailyRets.map(r=>r*r))) * Math.sqrt(252);
-                const sharpe = (finalRet - riskFree) / finalVol;
-                optRet = finalRet; optVol = finalVol; optSharpe = sharpe;
-                optWeights = allWeightsHistory.length>0 ? allWeightsHistory[allWeightsHistory.length-1].weights : Array(assetPool.length).fill(1/assetPool.length);
-            } else {
-                // 全样本优化
-                let res;
-                if (method === 'qp') {
-                    res = solveQP(returnsMatrix, 0, riskFree, restrictShort);
-                } else {
-                    res = monteCarloOptimize(returnsMatrix, simCount, riskFree, restrictShort);
-                }
-                optWeights = res.weights;
-                optRet = res.ret;
-                optVol = res.vol;
-                optSharpe = res.sharpe;
-
-                // 计算全样本组合净值
-                for (let i=1; i<allDates.length; i++) {
-                    let dayRet = 0;
-                    for (let a=0; a<assetPool.length; a++) {
-                        const p0 = dataStore[assetPool[a]][allDates[i-1]];
-                        const p1 = dataStore[assetPool[a]][allDates[i]];
-                        dayRet += optWeights[a] * (p1-p0)/p0;
-                    }
-                    dailyRets.push(dayRet);
-                    netValues.push(netValues[netValues.length-1] * (1+dayRet));
-                }
-            }
-
-            // 计算最大回撤
-            let peak = 1.0, maxDD = 0;
-            for (let v of netValues) {
-                if (v > peak) peak = v;
-                const dd = (peak - v) / peak;
-                if (dd > maxDD) maxDD = dd;
-            }
-            const negRets = dailyRets.filter(r => r < 0);
-            let downsideVar = negRets.length ? negRets.reduce((a,b)=>a+b*b,0) / dailyRets.length : 0;
-            const downsideVol = Math.sqrt(downsideVar) * Math.sqrt(252);
-            const sortino = downsideVol ? (optRet - riskFree) / downsideVol : 0;
-            const calmar = maxDD ? optRet / maxDD : 0;
-
-            // 更新UI
-            const fmtPct = v => (v*100).toFixed(2)+'%';
-            document.getElementById('opt-return-vol').innerText = `${fmtPct(optRet)} / ${fmtPct(optVol)}`;
-            document.getElementById('opt-drawdown').innerText = fmtPct(maxDD);
-            document.getElementById('sub-risk-metrics').innerHTML = `MaxDD: ${fmtPct(maxDD)}<br>Calmar: ${calmar.toFixed(2)}`;
-            document.getElementById('opt-sharpe-sortino').innerText = `${optSharpe.toFixed(2)} / ${sortino.toFixed(2)}`;
-            let wStr = assetPool.map((code,i) => `${code}: ${(optWeights[i]*100).toFixed(1)}%`).join(' | ');
-            document.getElementById('opt-weights').innerText = '最优配比: ' + wStr;
-
-            // 存储结果用于下载
-            currentResult = { netValues, allDates, dailyRets, optRet, optVol, maxDD, calmar, sharpe:optSharpe, sortino, weights:optWeights, assetPool, scenarios };
-
-            // 绘制图表
-            renderChart(allDates, netValues, optWeights, dailyRets, optRet, optVol, maxDD, calmar, optSharpe, sortino);
-
-        } catch (err) {
-            alert('分析出错: ' + err.message);
-        } finally {
-            overlay.style.display = 'none';
-        }
-    }
-
-    // ============================================================
-    //  蒙特卡洛优化 (备选)
-    // ============================================================
+    // 蒙特卡洛
     function monteCarloOptimize(returns, numSim, riskFree, restrictShort) {
         const n = returns.length;
-        const T = returns[0].length;
         const mu = returns.map(r => mean(r) * 252);
         const cov = Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => {
             const mi = mu[i]/252, mj = mu[j]/252;
@@ -696,11 +340,9 @@
         for (let s=0; s<numSim; s++) {
             let w = Array.from({length:n}, () => Math.random());
             if (restrictShort) {
-                // 非负
                 let sum = w.reduce((a,b)=>a+b,0);
                 w = w.map(v => v/sum);
             } else {
-                // 允许做空，但为防止极端值，将权重缩放到总和1 (可能负)
                 let sum = w.reduce((a,b)=>a+b,0);
                 w = w.map(v => v/sum);
             }
@@ -719,27 +361,194 @@
     }
 
     // ============================================================
-    //  图表绘制 (含压力场景标记)
+    //  主分析函数
     // ============================================================
-    function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino) {
+    async function runFullAnalysis() {
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.display = 'flex';
+        try {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const simCount = parseInt(document.getElementById('sim-count').value) || 3000;
+            const riskFree = parseFloat(document.getElementById('risk-free-rate').value) / 100;
+            const restrictShort = document.getElementById('short-restrict').checked;
+            const method = document.getElementById('optim-method').value;
+            const windowMonths = parseInt(document.getElementById('window-size').value) || 0;
+            const benchmarkCode = document.getElementById('benchmark-select').value;
+
+            // 获取所有资产数据
+            const dataStore = {};
+            const allCodes = [...assetPool];
+            if (benchmarkCode && !allCodes.includes(benchmarkCode)) allCodes.push(benchmarkCode);
+            await Promise.all(allCodes.map(async (code) => {
+                const dict = await fetchAssetData(code);
+                if (dict) dataStore[code] = dict;
+            }));
+            for (let code of allCodes) {
+                if (!dataStore[code]) throw new Error(`数据缺失: ${code}`);
+            }
+
+            // 对齐日期
+            let allDates = Object.keys(dataStore[allCodes[0]]).filter(d => d>=startDate && d<=endDate).sort();
+            for (let code of allCodes) {
+                allDates = allDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
+            }
+            if (allDates.length < 20) throw new Error('有效交易日不足');
+
+            // 构建收益矩阵 (只针对资产池，不含基准)
+            const returnsMatrix = assetPool.map(code => {
+                const r = [];
+                for (let i=1; i<allDates.length; i++) {
+                    const p0 = dataStore[code][allDates[i-1]];
+                    const p1 = dataStore[code][allDates[i]];
+                    r.push((p1-p0)/p0);
+                }
+                return r;
+            });
+
+            let optWeights = null, optRet = 0, optVol = 0, optSharpe = 0;
+            let netValues = [1.0];
+            let dailyRets = [];
+
+            if (windowMonths > 0 && windowMonths < allDates.length/21) {
+                const windowSize = windowMonths * 21;
+                const step = Math.floor(windowSize/2);
+                let startIdx = 0;
+                while (startIdx + windowSize < allDates.length - 1) {
+                    const endIdx = startIdx + windowSize;
+                    const winReturns = assetPool.map(code => {
+                        const r = [];
+                        for (let i=startIdx+1; i<=endIdx; i++) {
+                            const p0 = dataStore[code][allDates[i-1]];
+                            const p1 = dataStore[code][allDates[i]];
+                            r.push((p1-p0)/p0);
+                        }
+                        return r;
+                    });
+                    let res;
+                    if (method === 'qp') res = solveQP(winReturns, riskFree, restrictShort);
+                    else res = monteCarloOptimize(winReturns, simCount, riskFree, restrictShort);
+                    for (let i=endIdx; i<Math.min(endIdx+step, allDates.length-1); i++) {
+                        let dayRet = 0;
+                        for (let a=0; a<assetPool.length; a++) {
+                            const p0 = dataStore[assetPool[a]][allDates[i]];
+                            const p1 = dataStore[assetPool[a]][allDates[i+1]];
+                            dayRet += res.weights[a] * (p1-p0)/p0;
+                        }
+                        dailyRets.push(dayRet);
+                        netValues.push(netValues[netValues.length-1] * (1+dayRet));
+                    }
+                    startIdx += step;
+                }
+                if (netValues.length > 1) {
+                    // 用最后一段权重继续
+                    const lastRes = solveQP(returnsMatrix.slice(0, returnsMatrix[0].length), riskFree, restrictShort);
+                    optWeights = lastRes.weights;
+                    for (let i=startIdx; i<allDates.length-1; i++) {
+                        let dayRet = 0;
+                        for (let a=0; a<assetPool.length; a++) {
+                            const p0 = dataStore[assetPool[a]][allDates[i]];
+                            const p1 = dataStore[assetPool[a]][allDates[i+1]];
+                            dayRet += lastRes.weights[a] * (p1-p0)/p0;
+                        }
+                        dailyRets.push(dayRet);
+                        netValues.push(netValues[netValues.length-1] * (1+dayRet));
+                    }
+                }
+                const finalRet = mean(dailyRets) * 252;
+                const finalVol = Math.sqrt(mean(dailyRets.map(r=>r*r))) * Math.sqrt(252);
+                const sharpe = (finalRet - riskFree) / finalVol;
+                optRet = finalRet; optVol = finalVol; optSharpe = sharpe;
+                if (!optWeights) optWeights = Array(assetPool.length).fill(1/assetPool.length);
+            } else {
+                let res;
+                if (method === 'qp') res = solveQP(returnsMatrix, riskFree, restrictShort);
+                else res = monteCarloOptimize(returnsMatrix, simCount, riskFree, restrictShort);
+                optWeights = res.weights;
+                optRet = res.ret;
+                optVol = res.vol;
+                optSharpe = res.sharpe;
+                for (let i=1; i<allDates.length; i++) {
+                    let dayRet = 0;
+                    for (let a=0; a<assetPool.length; a++) {
+                        const p0 = dataStore[assetPool[a]][allDates[i-1]];
+                        const p1 = dataStore[assetPool[a]][allDates[i]];
+                        dayRet += optWeights[a] * (p1-p0)/p0;
+                    }
+                    dailyRets.push(dayRet);
+                    netValues.push(netValues[netValues.length-1] * (1+dayRet));
+                }
+            }
+
+            // 计算指标
+            let peak = 1.0, maxDD = 0;
+            for (let v of netValues) {
+                if (v > peak) peak = v;
+                const dd = (peak - v) / peak;
+                if (dd > maxDD) maxDD = dd;
+            }
+            const negRets = dailyRets.filter(r => r < 0);
+            let downsideVar = negRets.length ? negRets.reduce((a,b)=>a+b*b,0) / dailyRets.length : 0;
+            const downsideVol = Math.sqrt(downsideVar) * Math.sqrt(252);
+            const sortino = downsideVol ? (optRet - riskFree) / downsideVol : 0;
+            const calmar = maxDD ? optRet / maxDD : 0;
+
+            // 更新统计卡片
+            const fmtPct = v => (v*100).toFixed(2)+'%';
+            document.getElementById('opt-return-vol').innerText = `${fmtPct(optRet)} / ${fmtPct(optVol)}`;
+            document.getElementById('opt-drawdown').innerText = fmtPct(maxDD);
+            document.getElementById('sub-risk-metrics').innerHTML = `MaxDD: ${fmtPct(maxDD)}<br>Calmar: ${calmar.toFixed(2)}`;
+            document.getElementById('opt-sharpe-sortino').innerText = `${optSharpe.toFixed(2)} / ${sortino.toFixed(2)}`;
+            let wStr = assetPool.map((code,i) => {
+                const name = INDEX_NAMES[code] || code;
+                return `${code}(${name}): ${(optWeights[i]*100).toFixed(1)}%`;
+            }).join(' | ');
+            document.getElementById('opt-weights').innerText = '最优配比: ' + wStr;
+
+            // 基准净值（若选择）
+            let benchmarkValues = null;
+            if (benchmarkCode && dataStore[benchmarkCode]) {
+                const bPrices = allDates.map(d => dataStore[benchmarkCode][d]);
+                const base = bPrices[0];
+                benchmarkValues = bPrices.map(p => p / base);
+            }
+
+            currentResult = { netValues, allDates, dailyRets, optRet, optVol, maxDD, calmar, sharpe:optSharpe, sortino, weights:optWeights, assetPool, scenarios, benchmarkValues, benchmarkCode };
+
+            renderChart(allDates, netValues, optWeights, dailyRets, optRet, optVol, maxDD, calmar, optSharpe, sortino, benchmarkValues, benchmarkCode);
+
+        } catch (err) {
+            alert('分析出错: ' + err.message);
+        } finally {
+            overlay.style.display = 'none';
+        }
+    }
+
+    // ============================================================
+    //  图表绘制 (含基准和场景标记)
+    // ============================================================
+    function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode) {
         if (!myChart) {
             myChart = echarts.init(document.getElementById('chart-container'));
         }
-        // 场景标记
-        const markLines = [];
-        const scenarioList = document.getElementById('scenario-list');
-        const scenarioItems = scenarioList.querySelectorAll('.scenario-item');
+
+        // 读取场景数据 (从DOM)
+        const scenarioItems = document.querySelectorAll('#scenario-list .scenario-item');
         const scenarioData = [];
         scenarioItems.forEach(el => {
             const name = el.dataset.name;
             const type = el.dataset.type;
             const value = parseFloat(el.dataset.value);
             const date = el.dataset.date;
-            if (date && dates.includes(date)) {
-                scenarioData.push({ name, type, value, date });
+            if (date) {
+                // 自动调整为最近的交易日
+                const nearest = findNearestDate(date, dates);
+                if (nearest) {
+                    scenarioData.push({ name, type, value, date: nearest });
+                }
             }
         });
-        // 构造markLine数据
+
         const markLineData = scenarioData.map(sc => ({
             xAxis: sc.date,
             label: {
@@ -751,9 +560,43 @@
             lineStyle: { color: '#ef4444', type: 'dashed', width: 2 }
         }));
 
+        // 构建系列
+        let series = [{
+            name: '组合净值',
+            type: 'line',
+            data: netValues,
+            smooth: true,
+            symbol: 'none',
+            lineStyle: { width: 3, color: '#8b5cf6' },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0,0,0,1, [
+                    { offset: 0, color: 'rgba(139,92,246,0.3)' },
+                    { offset: 1, color: 'rgba(139,92,246,0.0)' }
+                ])
+            },
+            markLine: {
+                silent: true,
+                data: markLineData,
+                label: { show: true, formatter: '{b}', fontSize: 10 }
+            }
+        }];
+
+        // 基准指数
+        if (benchmarkValues && benchmarkCode) {
+            const benchName = INDEX_NAMES[benchmarkCode] || benchmarkCode;
+            series.push({
+                name: `基准 (${benchName})`,
+                type: 'line',
+                data: benchmarkValues,
+                smooth: true,
+                symbol: 'none',
+                lineStyle: { width: 2, color: '#ef4444', type: 'dashed' }
+            });
+        }
+
         const option = {
             title: {
-                text: '组合净值 & 压力场景',
+                text: '组合净值 & 对比基准',
                 left: 'center',
                 top: 5,
                 textStyle: { fontSize: 16 }
@@ -764,7 +607,10 @@
                 right: 20,
                 top: 10
             },
-            legend: { data: ['组合净值'], bottom: 0 },
+            legend: {
+                data: series.map(s => s.name),
+                bottom: 0
+            },
             grid: { left: 50, right: 20, top: 50, bottom: 40 },
             xAxis: {
                 type: 'category',
@@ -778,32 +624,14 @@
                 scale: true,
                 nameGap: 30
             },
-            series: [{
-                name: '组合净值',
-                type: 'line',
-                data: netValues,
-                smooth: true,
-                symbol: 'none',
-                lineStyle: { width: 3, color: '#8b5cf6' },
-                areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0,0,0,1, [
-                        { offset: 0, color: 'rgba(139,92,246,0.3)' },
-                        { offset: 1, color: 'rgba(139,92,246,0.0)' }
-                    ])
-                },
-                markLine: {
-                    silent: true,
-                    data: markLineData,
-                    label: { show: true, formatter: '{b}', fontSize: 10 }
-                }
-            }]
+            series: series
         };
         myChart.setOption(option, true);
         myChart.resize();
     }
 
     // ============================================================
-    //  资产池管理
+    //  资产池管理 (含中文名显示)
     // ============================================================
     function updateAssetPool() {
         const input = document.getElementById('asset-input');
@@ -813,16 +641,19 @@
         renderAssetTags();
         runFullAnalysis();
     }
+
     function renderAssetTags() {
         const container = document.getElementById('asset-tags');
-        container.innerHTML = assetPool.map((code, idx) => `
-            <span class="asset-tag">
-                ${code.toUpperCase()}
+        container.innerHTML = assetPool.map((code, idx) => {
+            const name = INDEX_NAMES[code] || code;
+            return `<span class="asset-tag">
+                ${code.toUpperCase()} (${name})
                 <span class="del" onclick="removeAsset(${idx})">✕</span>
-            </span>
-        `).join('');
+            </span>`;
+        }).join('');
         document.getElementById('asset-input').value = assetPool.join(', ');
     }
+
     function removeAsset(idx) {
         assetPool.splice(idx, 1);
         if (assetPool.length < 2) assetPool = ['sh000300', 'sz399006'];
@@ -830,37 +661,75 @@
         runFullAnalysis();
     }
 
+    // 从下拉选择添加资产
+    function addSelectedAsset() {
+        const select = document.getElementById('asset-select');
+        const code = select.value;
+        if (!code) { alert('请选择一个指数'); return; }
+        if (!assetPool.includes(code)) {
+            assetPool.push(code);
+            renderAssetTags();
+            runFullAnalysis();
+        } else {
+            alert('该资产已在池中');
+        }
+        select.value = '';
+    }
+
     // ============================================================
-    //  压力场景管理
+    //  压力场景管理 (自动调整日期至交易日)
     // ============================================================
     function addScenario() {
         const name = document.getElementById('scenario-name').value.trim() || '场景' + (scenarios.length+1);
         const type = document.getElementById('scenario-type').value;
         const value = parseFloat(document.getElementById('scenario-value').value);
-        const date = document.getElementById('scenario-date').value;
+        let date = document.getElementById('scenario-date').value;
         if (!date) { alert('请选择日期'); return; }
         if (isNaN(value)) { alert('请输入有效数值'); return; }
+
+        // 获取当前交易日列表 (从最近一次分析结果或默认)
+        let allDates = currentResult ? currentResult.allDates : [];
+        if (allDates.length === 0) {
+            // 若没有结果，使用默认日期范围
+            const start = document.getElementById('start-date').value;
+            const end = document.getElementById('end-date').value;
+            const temp = generateDeterministic2025Data();
+            const code = 'sh000300';
+            allDates = Object.keys(temp[code]).filter(d => d>=start && d<=end).sort();
+        }
+        const nearest = findNearestDate(date, allDates);
+        if (nearest) {
+            date = nearest;
+        } else {
+            alert('该日期不在数据范围内，已忽略');
+            return;
+        }
+
         scenarios.push({ name, type, value, date });
         renderScenarios();
         // 清空输入
         document.getElementById('scenario-name').value = '';
         document.getElementById('scenario-value').value = '';
-        // 重绘图表
+        // 若已有结果，立即重绘图表
         if (currentResult) {
-            renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights, 
+            renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights,
                 currentResult.dailyRets, currentResult.optRet, currentResult.optVol,
-                currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino);
+                currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino,
+                currentResult.benchmarkValues, currentResult.benchmarkCode);
         }
     }
+
     function removeScenario(idx) {
         scenarios.splice(idx, 1);
         renderScenarios();
         if (currentResult) {
             renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights,
                 currentResult.dailyRets, currentResult.optRet, currentResult.optVol,
-                currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino);
+                currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino,
+                currentResult.benchmarkValues, currentResult.benchmarkCode);
         }
     }
+
     function renderScenarios() {
         const container = document.getElementById('scenario-list');
         container.innerHTML = scenarios.map((s, idx) => `
@@ -890,21 +759,49 @@
     }
 
     // ============================================================
-    //  初始化
+    //  初始化 UI (填充下拉列表)
     // ============================================================
-    window.onload = function() {
-        renderAssetTags();
-        renderScenarios();
-        // 默认加载一些场景示例
-        scenarios.push({ name: '市场暴跌', type: 'market', value: -15, date: '2025-06-01' });
-        scenarios.push({ name: '利率骤升', type: 'rate', value: 0.5, date: '2025-09-15' });
-        renderScenarios();
-        runFullAnalysis();
-        // 窗口resize自适应
-        window.addEventListener('resize', () => {
-            if (myChart) myChart.resize();
+    function initUI() {
+        // 填充资产下拉选择
+        const select = document.getElementById('asset-select');
+        const datalist = document.getElementById('stock-database');
+        INDEX_LIST.forEach(({code, name}) => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = `${code} (${name})`;
+            select.appendChild(opt);
+            const dlOpt = document.createElement('option');
+            dlOpt.value = code;
+            dlOpt.textContent = `${code} (${name})`;
+            datalist.appendChild(dlOpt);
         });
-    };
+
+        // 填充基准下拉
+        const benchSelect = document.getElementById('benchmark-select');
+        INDEX_LIST.forEach(({code, name}) => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = `${code} (${name})`;
+            benchSelect.appendChild(opt);
+        });
+
+        // 默认示例场景 (调整为有效交易日)
+        const allDates = Object.keys(cachedData['sh000300']).sort();
+        const d1 = findNearestDate('2025-06-01', allDates);
+        const d2 = findNearestDate('2025-09-15', allDates);
+        if (d1) scenarios.push({ name: '市场暴跌', type: 'market', value: -15, date: d1 });
+        if (d2) scenarios.push({ name: '利率骤升', type: 'rate', value: 0.5, date: d2 });
+        renderScenarios();
+
+        renderAssetTags();
+        // 默认基准设为沪深300
+        document.getElementById('benchmark-select').value = 'sh000300';
+        runFullAnalysis();
+
+        window.addEventListener('resize', () => { if (myChart) myChart.resize(); });
+    }
+
+    window.onload = initUI;
 </script>
 </body>
 </html>
