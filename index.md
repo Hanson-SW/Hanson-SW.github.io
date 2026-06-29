@@ -184,13 +184,11 @@ title: 金融工程 · 个人主页
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    /* 等宽字体类，应用连字效果 */
     .mono-font {
         font-family: 'Fira Code', Consolas, Monaco, monospace !important;
         font-variant-ligatures: contextual;
     }
 
-    /* 初始全局背景为极暗太空黑 */
     body {
         margin: 0;
         background-color: #030712; 
@@ -204,13 +202,13 @@ title: 金融工程 · 个人主页
         z-index: 1; pointer-events: none;
     }
 
-    /* 包含所有UI的主容器，动画后它将释放clip-path */
     #page-wrapper {
         position: relative;
         z-index: 10;
         min-height: 100vh;
         background: linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc);
         background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
         clip-path: circle(0px at 50% 50%);
         -webkit-clip-path: circle(0px at 50% 50%);
     }
@@ -219,18 +217,6 @@ title: 金融工程 · 个人主页
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
-    }
-
-    /* 核心修复 1：将卡片容器设为透明并稍微下沉，待背景亮起后再平滑浮现 */
-    #main-content-container {
-        opacity: 0;
-        transform: translateY(20px);
-        transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .content-visible {
-        opacity: 1 !important;
-        transform: translateY(0) !important;
     }
 
     .glass-card {
@@ -252,7 +238,6 @@ title: 金融工程 · 个人主页
         box-shadow: 0 10px 20px rgba(37, 99, 235, 0.15) !important;
     }
 
-    /* ================= 基础 UI 样式 ================= */
     .top-utility-bar { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 0.5rem; position: relative; z-index: 10;}
     .lang-toggle-btn { background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; backdrop-filter: blur(5px);}
     
@@ -323,6 +308,7 @@ title: 金融工程 · 个人主页
 </style>
 
 <script>
+    // ================= 1. 动感电影级公式穿梭与H点亮降落引擎 =================
     function bezier(t, p0, p1, p2, p3) {
         let u = 1 - t;
         return (u*u*u * p0) + (3 * u*u * t * p1) + (3 * u * t*t * p2) + (t*t*t * p3);
@@ -361,37 +347,54 @@ title: 金融工程 · 个人主页
         ];
 
         const particles = [];
-        // 核心修复 2：公式数量提升到原先 3 倍 (从 250 到 750)
-        const numParticles = 750; 
+        const numParticles = 45; // 精简总量，既密集交替又绝不卡顿
         
         class Particle {
             constructor() { this.reset(true); }
             reset(randomizeZ = false) {
-                this.x = (Math.random() - 0.5) * canvas.width * 3.5; 
-                this.y = (Math.random() - 0.5) * canvas.height * 3.5;
-                this.z = randomizeZ ? Math.random() * canvas.width : canvas.width;
+                // 【核心修改】每个公式分配一条专属的固定发散角度和3D空间轨道半径
+                let angle = Math.random() * Math.PI * 2;
+                let radius = Math.random() * 220 + 40; 
+                this.x = Math.cos(angle) * radius;
+                this.y = Math.sin(angle) * radius;
+
+                // Z 轴定义纵深：从 900（最远处聚拢）向 10（眼前）沿固定路径推进
+                this.z = randomizeZ ? Math.random() * 800 + 100 : 900;
                 this.formula = formulas[Math.floor(Math.random() * formulas.length)];
                 this.isCyan = Math.random() > 0.4;
-                this.fontSize = Math.random() * 16 + 12; 
-                // 核心修复 3：速度提升 1.5 倍
-                this.speed = (Math.random() * 15 + 5) * 1.5; 
+                this.fontSize = Math.random() * 5 + 14; 
+                this.speed = Math.random() * 3 + 4; 
             }
             update() {
                 this.z -= this.speed; 
-                if (this.z <= 10) this.reset();
+                if (this.z <= 15) this.reset(false); // 冲出屏幕后无缝循环重置回深处
             }
             draw() {
-                let depth = 1 - this.z / canvas.width;
-                if(depth < 0) return;
+                let fov = 420; // 3D 视界焦距
+                let cx = canvas.width / 2;
+                let cy = canvas.height / 2;
 
-                let x = (this.x / this.z) * canvas.width + canvas.width / 2;
-                let y = (this.y / this.z) * canvas.height + canvas.height / 2;
-                
-                let size = depth * this.fontSize * 4.0;
-                if(size < 0.5) return; 
+                // 经典 3D 投影转换，由于 x, y 轴相对固化，运动轨迹在屏幕上将呈现极具冲击力的向外笔直穿梭效果
+                let x = (this.x / this.z) * fov + cx;
+                let y = (this.y / this.z) * fov + cy;
 
-                let opacity = Math.pow(depth, 1.8) * 2.5;
-                if (opacity > 1) opacity = 1;
+                // 越过边界隐藏
+                if (x < -200 || x > canvas.width + 200 || y < -100 || y > canvas.height + 100) return;
+
+                // 由远及近，按纵深比例平滑放大字号
+                let scale = fov / this.z;
+                let size = this.fontSize * scale * 0.4;
+                if (size < 9) size = 9; 
+                if (size > 42) size = 42; 
+
+                // 边缘保护：远处淡入出现，飞到贴脸前（Z < 120）快速淡出，避免突兀撞脸闪烁
+                let opacity = 1;
+                if (this.z > 700) {
+                    opacity = (900 - this.z) / 200; 
+                } else if (this.z < 120) {
+                    opacity = (this.z - 15) / 105; 
+                }
+                if (opacity < 0) opacity = 0;
 
                 let r = this.isCyan ? 56 : 139;
                 let g = this.isCyan ? 189 : 92;
@@ -399,6 +402,8 @@ title: 金融工程 · 个人主页
 
                 ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                 ctx.font = `italic ${size}px "Times New Roman", Times, serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
                 ctx.fillText(this.formula, x, y);
             }
         }
@@ -465,10 +470,6 @@ title: 金融工程 · 个人主页
                 ctx.textBaseline = 'middle';
                 
                 ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                ctx.shadowColor = `rgba(0, 240, 255, ${1 - easeT})`;
-                ctx.shadowBlur = 30 * (1 - easeT);
-                
-                ctx.fillText("H", 0, 0);
                 ctx.restore();
             }
 
@@ -500,9 +501,6 @@ title: 金融工程 · 个人主页
                     document.getElementById('intro-canvas').style.display = 'none';
                     document.body.style.overflowY = 'auto'; 
                     cancelAnimationFrame(animationFrameId);
-
-                    // 核心修复 4：等到背景特效全开后，让卡片丝滑浮现
-                    document.getElementById('main-content-container').classList.add('content-visible');
                     
                     runSimulation();
                     setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
@@ -519,7 +517,7 @@ title: 金融工程 · 个人主页
     window.addEventListener('load', initCinematicIntro);
 
 
-    // ================= 基础多语言与量化配置引擎数据 =================
+    // ================= 2. 多语言与量化配置引擎数据 =================
     const i18nDict = {
         name: { zh: "王 盛 烨", en: "Shengye (Hanson) Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
