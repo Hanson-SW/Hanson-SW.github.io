@@ -7,6 +7,8 @@ title: 金融工程 · 个人主页
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
+<div id="black-screen"></div>
+
 <div id="intro-overlay">
     <canvas id="intro-canvas"></canvas>
 </div>
@@ -17,7 +19,7 @@ title: 金融工程 · 个人主页
     </button>
 </div>
 
-<div class="cv-container" id="main-content-container" style="opacity: 0; transform: scale(0.01); filter: brightness(0);">
+<div class="cv-container" id="main-content-container">
     <div class="header-section">
         <div class="avatar-gradient">王</div>
         <div>
@@ -31,14 +33,26 @@ title: 金融工程 · 个人主页
     <h2 class="section-title">
         <i class="fas fa-file-pdf"></i> <span data-i18n="resume_title">我的简历</span>
     </h2>
-    <div class="info-card glass-card">
+    
+    <div class="info-card glass-card" style="margin-bottom: 0.8rem;">
         <div class="card-left">
             <i class="fas fa-file-pdf card-icon"></i>
-            <span class="card-text" data-i18n="resume_name">金融工程简历</span>
+            <span class="card-text" data-i18n="resume_name">金融工程简历 (中文版)</span>
             <span class="card-tag" data-i18n="resume_tag">· 2026 最新版</span>
         </div>
         <button onclick="window.open('王盛烨简历.pdf', '_blank')" class="btn btn-primary btn-bubble">
             <i class="fas fa-eye"></i> <span data-i18n="resume_btn">查看简历</span>
+        </button>
+    </div>
+
+    <div class="info-card glass-card">
+        <div class="card-left">
+            <i class="fas fa-file-pdf card-icon" style="color: #10b981;"></i>
+            <span class="card-text" data-i18n="resume_en_name">金融工程简历 (English)</span>
+            <span class="card-tag" data-i18n="resume_en_tag">· 2026 Updated</span>
+        </div>
+        <button onclick="window.open('SWresume.pdf', '_blank')" class="btn btn-outline btn-bubble" style="color: #10b981; border-color: #10b981;">
+            <i class="fas fa-eye"></i> <span data-i18n="resume_en_btn">View PDF</span>
         </button>
     </div>
 
@@ -171,7 +185,7 @@ title: 金融工程 · 个人主页
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    /* 1. 极浅透明度的动态背景 (浅蓝/纯白交织) */
+    /* 背景与基础质感 */
     body {
         margin: 0;
         background: linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc);
@@ -185,7 +199,6 @@ title: 金融工程 · 个人主页
         100% { background-position: 0% 50%; }
     }
 
-    /* 2. 磨砂玻璃质感 */
     .glass-card {
         background: rgba(255, 255, 255, 0.7) !important;
         backdrop-filter: blur(16px);
@@ -199,36 +212,36 @@ title: 金融工程 · 个人主页
         color: #0f172a; position: relative;
     }
 
-    /* 3. 泡泡呼吸特效 (Hover Bubble) */
-    .btn-bubble {
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; 
-    }
+    .btn-bubble { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; }
     .btn-bubble:hover {
         transform: scale(1.06) translateY(-2px);
         box-shadow: 0 10px 20px rgba(37, 99, 235, 0.15) !important;
     }
 
-    /* 4. 从黑点放大到全屏 + 亮度提升的动画 */
-    .landing-anim {
-        animation: portalZoom 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    /* 核心动画1：指数级亮度恢复遮罩 */
+    #black-screen {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #030712; /* 极暗起步 */
+        z-index: 999990;
+        pointer-events: none;
+        animation: exposeLight 1.8s cubic-bezier(0.9, 0.0, 0.1, 1.0) forwards;
     }
-    @keyframes portalZoom {
-        0% { transform: scale(0.01); filter: brightness(0); opacity: 1; }
-        50% { filter: brightness(0.6); }
-        100% { transform: scale(1); filter: brightness(1); opacity: 1; }
+    @keyframes exposeLight {
+        0% { opacity: 0.98; }
+        40% { opacity: 0.85; }
+        70% { opacity: 0.3; }
+        100% { opacity: 0; }
     }
 
-    /* 5. 黑色大理石纹理开场遮罩层 */
+    /* 核心动画2：开场画布覆盖层 (运用混合模式，黑色变透明，光束和公式发光) */
     #intro-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        /* 纯黑背景 + 类似大理石/星空的极暗 CSS 噪点渐变 */
-        background-color: #030303;
-        background-image: 
-            radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
-            radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+        background-color: transparent; 
+        mix-blend-mode: screen; 
         z-index: 999999;
-        display: flex; justify-content: center; align-items: center; flex-direction: column;
-        transition: opacity 0.8s ease-out;
+        display: flex; justify-content: center; align-items: center;
+        transition: opacity 0.5s ease-out;
+        pointer-events: none;
     }
     #intro-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
@@ -310,22 +323,27 @@ title: 金融工程 · 个人主页
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // 纯华尔街顶尖数学模型与量化公式
+        // 扩充至2.5倍以上的金融工程/市场核心公式
         const formulas = [
-            'dS_t = μS_tdt + σS_tdW_t', 
-            'V = S N(d_1) - K e^{-rT} N(d_2)', 
-            'E(R_p) = w^T E(R)', 
-            'σ_p^2 = w^T Σ w', 
+            'dS_t = μS_tdt + σS_tdW_t', 'V = S N(d_1) - K e^{-rT} N(d_2)', 
+            'E(R_p) = w^T E(R)', 'σ_p^2 = w^T Σ w', 
             '∂V/∂t + ½σ²S²∂²V/∂S² + rS∂V/∂S - rV = 0', 
-            'Δ = N(d_1)', 
-            'Sharpe = (R_p - R_f)/σ_p', 
-            'VAR = z_α σ √t', 
-            'd_1 = (ln(S/K) + (r + σ²/2)t) / (σ√t)'
+            'Δ = N(d_1)', 'Sharpe = (R_p - R_f)/σ_p', 'VAR = z_α σ √t', 
+            'd_1 = (ln(S/K) + (r + σ²/2)t) / (σ√t)', 'd_2 = d_1 - σ√t',
+            'Γ = N\'(d_1) / (Sσ√t)', 'Θ = -(S N\'(d_1)σ)/(2√t) - rKe^{-rT}N(d_2)',
+            'ρ = Kte^{-rT}N(d_2)', 'r_e = r_f + β(E(r_m) - r_f)', 
+            'WACC = (E/V)R_e + (D/V)R_d(1-T_c)', 'D = [Σ t*C_t/(1+y)^t] / P', 
+            'C = (1/P) ∂²P/∂y²', 'F = S_0 e^{(r-q)T}', 
+            'd(ln S) = (μ - σ²/2)dt + σ dW', 'dG = (∂G/∂t)dt + (∂G/∂x)dx + ½(∂²G/∂x²)dx²',
+            'IR = (R_p - R_b)/σ_{TE}', 'Treynor = (R_p - R_f)/β_p',
+            'P(S_T ≤ K) = N(-d_2)', 'd_2 = (ln(S/K)+(r-σ²/2)t)/(σ√t)',
+            'PV = C / (1+r)^n', 'YTM = (C + (F-P)/n) / ((F+P)/2)'
         ];
 
         const particles = [];
-        const numParticles = 70; // 降低密度防止视觉杂乱
-        let speedMultiplier = 4; // 极速起步
+        const warpLines = [];
+        const numParticles = 120; // 增加密度
+        const numLines = 60; // 丰富背景光束
 
         class Particle {
             constructor() {
@@ -333,12 +351,11 @@ title: 金融工程 · 个人主页
                 this.y = (Math.random() - 0.5) * canvas.height * 3;
                 this.z = Math.random() * canvas.width;
                 this.formula = formulas[Math.floor(Math.random() * formulas.length)];
-                // 科技蓝与量化紫交织
                 this.color = Math.random() > 0.5 ? 'rgba(56, 189, 248, 1)' : 'rgba(139, 92, 246, 1)';
-                this.fontSize = Math.random() * 12 + 12;
+                this.fontSize = Math.random() * 12 + 14;
             }
-            update() {
-                this.z -= speedMultiplier;
+            update(accel) {
+                this.z -= 6 * (1 + accel * 8); // 受全局加速度影响的急速拉扯
                 if (this.z <= 0) {
                     this.x = (Math.random() - 0.5) * canvas.width * 3;
                     this.y = (Math.random() - 0.5) * canvas.height * 3;
@@ -346,71 +363,120 @@ title: 金融工程 · 个人主页
                     this.formula = formulas[Math.floor(Math.random() * formulas.length)];
                 }
             }
-            draw(time) {
-                // 核心：模拟无人机剧烈的左右正弦波摇摆
-                let camX = Math.sin(time * 2.5) * 400; 
-                let camY = Math.cos(time * 1.5) * 200;
-
+            draw(camX, camY) {
                 let x = ((this.x - camX) / this.z) * canvas.width + canvas.width / 2;
                 let y = ((this.y - camY) / this.z) * canvas.height + canvas.height / 2;
-                
                 let size = (1 - this.z / canvas.width) * this.fontSize * 2.5;
                 let opacity = (1 - this.z / canvas.width) * 1.5;
                 if (opacity > 1) opacity = 1;
 
                 ctx.fillStyle = this.color.replace('1)', `${opacity})`);
-                // 采用优雅的 Serif 字体以贴合数学公式的质感
                 ctx.font = `italic ${size}px "Times New Roman", Times, serif`;
                 ctx.fillText(this.formula, x, y);
             }
         }
 
+        // 动感光束类，增加空间穿梭感
+        class WarpLine {
+            constructor() {
+                this.x = (Math.random() - 0.5) * canvas.width * 2;
+                this.y = (Math.random() - 0.5) * canvas.height * 2;
+                this.z = Math.random() * canvas.width;
+                this.length = Math.random() * 150 + 50;
+                this.speed = Math.random() * 10 + 5;
+                const colors = ['rgba(255,255,255,0.8)', 'rgba(56,189,248,0.5)', 'rgba(139,92,246,0.5)', 'rgba(16,185,129,0.4)'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+            update(accel) {
+                this.z -= this.speed * (1 + accel * 10);
+                if (this.z <= 0) {
+                    this.x = (Math.random() - 0.5) * canvas.width * 2;
+                    this.y = (Math.random() - 0.5) * canvas.height * 2;
+                    this.z = canvas.width;
+                }
+            }
+            draw(camX, camY) {
+                let x = ((this.x - camX) / this.z) * canvas.width + canvas.width / 2;
+                let y = ((this.y - camY) / this.z) * canvas.height + canvas.height / 2;
+                let tailZ = this.z + this.length;
+                let tailX = ((this.x - camX) / tailZ) * canvas.width + canvas.width / 2;
+                let tailY = ((this.y - camY) / tailZ) * canvas.height + canvas.height / 2;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(tailX, tailY);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = (1 - this.z / canvas.width) * 2;
+                ctx.stroke();
+            }
+        }
+
         for (let i = 0; i < numParticles; i++) particles.push(new Particle());
+        for (let i = 0; i < numLines; i++) warpLines.push(new WarpLine());
 
         let startTime = Date.now();
         let animationFrameId;
 
+        // 确保第一帧就是纯黑的，配合 mix-blend-mode 达到透明效果
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         function animate() {
             let elapsed = (Date.now() - startTime) / 1000;
             
-            // 使用带有微弱透明度的纯黑擦除画布，形成时空拖影
-            ctx.fillStyle = 'rgba(3, 3, 3, 0.35)';
+            // 指数级加速度 0 -> 1，用于最后极速冲刺
+            let accel = Math.pow(elapsed / 1.8, 4); 
+            if(accel > 1) accel = 1;
+
+            // 具有拖影的重绘，黑色在 screen 模式下会变为透明
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            speedMultiplier += 0.06; // 穿梭不断加速
+            // 复杂的镜头晃动
+            let camX = Math.sin(elapsed * 6) * 300 * (1 - accel * 0.5); 
+            let camY = Math.cos(elapsed * 4) * 150 * (1 - accel * 0.5);
 
-            particles.forEach(p => {
-                p.update();
-                p.draw(elapsed);
-            });
+            warpLines.forEach(l => { l.update(accel); l.draw(camX, camY); });
+            particles.forEach(p => { p.update(accel); p.draw(camX, camY); });
+
+            // 绘制领航员 "H"
+            let hScale = 1 + accel * 12; // 极速放大
+            let hX = canvas.width / 2 + Math.sin(elapsed * 10) * 80 * (1 - accel);
+            let hY = canvas.height / 2 + Math.cos(elapsed * 14) * 40 * (1 - accel);
+            let tilt = Math.cos(elapsed * 10) * 0.3 * (1 - accel);
+
+            ctx.save();
+            ctx.translate(hX, hY);
+            ctx.rotate(tilt);
+            ctx.scale(hScale, hScale);
+            // 随着靠近屏幕边缘，H 渐渐消散，完美融合光爆
+            ctx.fillStyle = `rgba(255, 255, 255, ${1 - accel})`; 
+            ctx.font = `bold 60px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(56, 189, 248, 0.9)';
+            ctx.shadowBlur = 25;
+            ctx.fillText("H", 0, 0);
+            ctx.restore();
 
             animationFrameId = requestAnimationFrame(animate);
         }
 
         animate();
 
-        // 2.5秒后：时空穿梭结束，量子塌缩式加载主网页
+        // 1.8秒后：完全结束开屏动画
         setTimeout(() => {
             const overlay = document.getElementById('intro-overlay');
-            const mainContent = document.getElementById('main-content-container');
-            
             cancelAnimationFrame(animationFrameId);
             overlay.style.opacity = '0';
-            overlay.style.pointerEvents = 'none'; 
             
-            // 触发主内容从黑点放大、变亮的量子塌缩动画
-            mainContent.classList.add('landing-anim');
-            
-            // 关键修复：确保在主容器完成 scale 膨胀后立即触发图表渲染，保证用户一眼看到图表！
-            setTimeout(() => {
-                runSimulation();
-                setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
-            }, 100);
-
-        }, 2500); 
+            // 立即渲染并确保图表可见
+            runSimulation();
+            setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
+        }, 1800); 
     }
 
-    // 页面加载即刻启动大空头开场
+    // 页面加载即刻启动动画
     window.addEventListener('load', initIntroAnimation);
 
 
@@ -419,9 +485,12 @@ title: 金融工程 · 个人主页
         name: { zh: "王 盛 烨", en: "Shengye Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
         resume_title: { zh: "我的简历", en: "My Resume" },
-        resume_name: { zh: "金融工程简历", en: "Financial Engineering Resume" },
+        resume_name: { zh: "金融工程简历 (中文版)", en: "Financial Engineering Resume (CN)" },
         resume_tag: { zh: "· 2026 最新版", en: "· 2026 Updated" },
         resume_btn: { zh: "查看简历", en: "View PDF" },
+        resume_en_name: { zh: "金融工程简历 (English)", en: "Financial Engineering Resume" },
+        resume_en_tag: { zh: "· 2026 Updated", en: "· 2026 Updated" },
+        resume_en_btn: { zh: "View PDF", en: "View PDF" },
         project_title: { zh: "项目展示", en: "Projects" },
         proj_backtest_name: { zh: "A股回测模型", en: "A-Share Backtesting Model" },
         proj_backtest_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
@@ -668,7 +737,6 @@ title: 金融工程 · 个人主页
             if (!chartInstance) chartInstance = echarts.init(document.getElementById('itoChart'));
 
             chartInstance.setOption({
-                // 背景透明，透出外部玻璃卡片颜色
                 backgroundColor: 'transparent',
                 graphic: [{ type: 'text', left: '2%', top: '3%', style: { text: watermarkText, fontSize: 10, fill: '#64748b', lineHeight: 15 }, z: 100 }],
                 tooltip: {
