@@ -4,33 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>量化配置与资产轮动简报系统-HansonSW</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    /* ===== 移动端响应式极简优化 ===== */
-        @media (max-width: 768px) {
-            body { 
-                flex-direction: column; /* 手机端自动变为上下排列 */
-                height: auto; /* 取消高度锁死，允许手机原生滑动 */
-                padding: 10px;
-            }
-            .sidebar { 
-                width: 100%; /* 侧边栏填满屏幕宽度 */
-                box-sizing: border-box;
-            }
-            .main-content { 
-                width: 100%; 
-            }
-            .stats-container { 
-                grid-template-columns: 1fr 1fr; /* 数据卡片在手机上变成两列 */
-            }
-            #chart-container {
-                min-height: 400px; /* 适当压缩图表在手机上的高度 */
-            }
-        }
-        @media (max-width: 480px) {
-            .stats-container { 
-                grid-template-columns: 1fr; /* 极小屏幕数据卡片变成单列 */
-            }
-        }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; box-sizing: border-box; }
@@ -65,6 +39,18 @@
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 18px; font-weight: bold; color: var(--accent); }
         .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ===== 完美修复的移动端响应式代码 ===== */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: auto; padding: 10px; }
+            .sidebar { width: 100%; box-sizing: border-box; }
+            .main-content { width: 100%; }
+            .stats-container { grid-template-columns: 1fr 1fr; }
+            #chart-container { min-height: 500px; }
+        }
+        @media (max-width: 480px) {
+            .stats-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -137,9 +123,6 @@
         let assetPool = ['sh000300', 'sz399006', 'sh000688'];
         let cachedDataStore = null;
 
-        // ==========================================
-        // 🔬 核心升级：高保真确定性内生数据源（2025全年）
-        // ==========================================
         function generateDeterministic2025Data() {
             const store = {};
             const assets = ['sh000300', 'sz399006', 'sh000688'];
@@ -153,7 +136,6 @@
                 curr.setDate(curr.getDate() + 1);
             }
             
-            // 确定性伪随机数发生器（LCG算法），确保多资产间具备真实合理的协方差联动
             let seed = 1024;
             function lcg() {
                 seed = (seed * 9301 + 49297) % 233280;
@@ -164,10 +146,10 @@
             let p1 = 1.0, p2 = 1.0, p3 = 1.0;
             
             dates.forEach((date) => {
-                let marketFactor = lcg() - 0.488; // 模拟2025小牛市温和上行中枢
-                let r1 = marketFactor * 0.012 + (lcg() - 0.5) * 0.006 + 0.0005; // 沪深300：稳健低波
-                let r2 = marketFactor * 0.022 + (lcg() - 0.5) * 0.016 + 0.0008; // 创业板指：高弹高波
-                let r3 = marketFactor * 0.026 + (lcg() - 0.5) * 0.020 + 0.0004; // 科创50：极端硬科技
+                let marketFactor = lcg() - 0.488; 
+                let r1 = marketFactor * 0.012 + (lcg() - 0.5) * 0.006 + 0.0005; 
+                let r2 = marketFactor * 0.022 + (lcg() - 0.5) * 0.016 + 0.0008; 
+                let r3 = marketFactor * 0.026 + (lcg() - 0.5) * 0.020 + 0.0004; 
                 
                 p1 *= (1 + r1); p2 *= (1 + r2); p3 *= (1 + r3);
                 store['sh000300'][date] = p1 * 3400;
@@ -204,7 +186,6 @@
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
             
-            // 🎯 若初次打开或用户使用的是默认的 2025 配置，秒级返回真实生成的确定性数仓，免去网络请求延迟
             if (startDate === '2025-01-01' && endDate === '2025-12-31' && ['sh000300', 'sz399006', 'sh000688'].includes(code)) {
                 if (cachedDataStore && cachedDataStore[code]) return cachedDataStore[code];
             }
@@ -236,7 +217,6 @@
             const endDate = document.getElementById('end-date').value;
             const numSimulations = parseInt(document.getElementById('sim-count').value);
             
-            // 如果是首开加载，不显示蒙层，实现无缝直开报告
             if (!isInitialLoad) document.getElementById('loading-overlay').style.display = 'flex';
 
             try {
@@ -355,6 +335,9 @@
             const genDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
             const safeImageName = '最优配置研报_' + genDate.split('/').join('');
 
+            // 💎 移动端智能判定
+            const isMobile = window.innerWidth <= 768;
+
             const option = {
                 title: { 
                     text: '量化资产配置综合分析简报 (Tear-Sheet)', 
@@ -367,10 +350,10 @@
                     right: 20, top: 10
                 },
                 
-                // 💎 亮点优化：右边距固定死 290 像素！彻底解决横轴和右侧悬浮卡片的碰撞重叠
+                // 💎 手机端留白 20px，电脑端留白 290px 让给右侧悬浮框
                 grid: [
-                    { left: 65, right: 290, top: '15%', height: '42%', containLabel: true }, 
-                    { left: 65, right: 290, top: '65%', height: '28%', containLabel: true }
+                    { left: 50, right: isMobile ? 20 : 290, top: '15%', height: '42%', containLabel: true }, 
+                    { left: 50, right: isMobile ? 20 : 290, top: '65%', height: '28%', containLabel: true }
                 ],
                 xAxis: [
                     { type: 'value', name: '年化波动率(风险)', nameLocation: 'center', nameGap: 25, gridIndex: 0, axisLabel: { formatter: val => (val*100).toFixed(0) + '%' } },
@@ -381,16 +364,18 @@
                     { type: 'value', name: '最优组合净值', gridIndex: 1, scale: true, nameGap: 35 }
                 ],
                 
-                // 颜色条映射移到左边
+                // 手机端将颜色条移到正下方，电脑端保留在右侧
                 visualMap: {
                     min: Math.min(...scatterData.map(d=>d[2])), max: optPoint[2], dimension: 2,
-                    orient: 'horizontal', right: 320, top: 40, itemWidth: 12, itemHeight: 140,
+                    orient: 'horizontal', right: isMobile ? 'center' : 320, top: isMobile ? 10 : 40, itemWidth: 12, itemHeight: 140,
                     text: ['高夏普', '低夏普'], calculable: true,
                     inRange: { color: ['#cbd5e1', '#6366f1', '#a855f7', '#ec4899'] }
                 },
-                graphic: [
+
+                // 💎 手机端隐藏右侧悬浮文字（防止压扁图表）
+                graphic: isMobile ? [] : [
                     {
-                        type: 'group', right: 20, top: '15%', // 固定在右侧 20 像素位置
+                        type: 'group', right: 20, top: '15%', 
                         children: [
                             {
                                 type: 'rect', z: 100, shape: { width: 240, height: 320, r: 8 },
@@ -444,14 +429,14 @@
             myChart.setOption(option, true);
         }
 
-        // ==========================================
-        // 🚀 初始化加载：打开网页直接用真算法跑内生数据
-        // ==========================================
         renderAssets();
-        runOptimization(true); // 传入 true 代表静默初始化，全自动跑出100%正确的闭环真报告
+        runOptimization(true); 
+
         // ===== 监听窗口缩放，自动重绘图表 =====
         window.addEventListener('resize', function() {
             if (typeof myChart !== 'undefined' && myChart) {
+                // 如果调整窗口大小导致手机和电脑视图切换，重新运行以加载不同的排版
+                runOptimization(true);
                 myChart.resize();
             }
         });
