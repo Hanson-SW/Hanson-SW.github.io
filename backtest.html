@@ -297,12 +297,8 @@
                 let bBase = dataStore[benchmarkCode][alignedDates[0]];
                 let tradeMarkers = [];
 
-                // 独立资产资金池配置 (Sleeves)
                 let subPortfolios = portfolioConfig.map(item => ({
-                    code: item.code,
-                    initialWeight: item.weight,
-                    nav: 1.0,           
-                    invested: true      
+                    code: item.code, initialWeight: item.weight, nav: 1.0, invested: true      
                 }));
 
                 for (let i = 1; i < alignedDates.length; i++) {
@@ -315,24 +311,17 @@
 
                     let anyBuy = false, anySell = false;
 
-                    // 1. 先计算当日收益（基于昨天的 invested 状态）
                     subPortfolios.forEach(sp => {
                         let prices = dataStore[sp.code];
                         let r = (prices[d] - prices[prevD]) / prices[prevD];
-                        
-                        // 修正：做空做多其本身的子净值始终是跟随(1+r)变化，最终体现在总权重的乘数上
-                        if (sp.invested) {
-                            sp.nav *= (1 + r);
-                        }
+                        if (sp.invested) { sp.nav *= (1 + r); }
                     });
 
-                    // 2. 组合总净值 = sum(初始权重 * 各自当前的子净值)
                     let newPNAV = subPortfolios.reduce((sum, sp) => sum + (sp.initialWeight / 100) * sp.nav, 0);
                     pDailyReturns.push((newPNAV - pNetValues[pNetValues.length - 1]) / pNetValues[pNetValues.length - 1]);
                     pNetValues.push(newPNAV);
                     excessSeries.push(newPNAV - bNAV);
 
-                    // 3. 计算策略信号 (利用今日数据判断，更改 invested 状态，明日生效 - 绝无未来函数)
                     subPortfolios.forEach(sp => {
                         let prices = dataStore[sp.code];
                         if (useStrategy && i >= 19) {
@@ -368,13 +357,48 @@
                 document.getElementById('meta-bench-dd').innerText = `基准最大回撤: ${fmt(bMetrics.maxDD)}`;
                 document.getElementById('meta-sharpe-calmar').innerText = `${pMetrics.sharpe.toFixed(2)} / ${pMetrics.calmar.toFixed(2)}`;
 
-                // 计算期末动态权重，适配富文本格式
+                // ==================== 权重计算核心修复 ====================
                 let finalTotalNav = pNetValues[pNetValues.length - 1];
-                let weightStr = subPortfolios.map(sp => {
-                    let currentW = ((sp.initialWeight / 100) * sp.nav / finalTotalNav * 100).toFixed(1);
-                    let state = useStrategy ? (sp.invested ? "(持仓)" : "(空仓)") : "";
-                    return `{weightItem|• ${getAssetName(sp.code)}: ${sp.initialWeight}% ➔ ${currentW}% ${state}}`;
+                let weightsToDisplay = [];
+                let cashActual = 0;
+
+                subPortfolios.forEach(sp => {
+                    let actualW = ((sp.initialWeight / 100) * sp.nav / finalTotalNav) * 100;
+                    if (useStrategy && !sp.invested) {
+                        cashActual += actualW; // 卖出空仓后，原持仓价值转化为现金
+                        weightsToDisplay.push({ name: getAssetName(sp.code), initial: sp.initialWeight, current: 0, state: "(空仓)" });
+                    } else {
+                        weightsToDisplay.push({ name: getAssetName(sp.code), initial: sp.initialWeight, current: actualW, state: useStrategy ? "(持仓)" : "" });
+                    }
+                });
+
+                if (useStrategy && cashActual !== 0) {
+                    weightsToDisplay.push({ name: "现金 (避险)", initial: 0, current: cashActual, state: "" });
+                }
+
+                // 解决 JavaScript 浮点数保留1位小数时产生的 99.9% 凑不齐问题
+                let sumRounded = 0;
+                let maxIdx = 0, maxVal = -1;
+                
+                weightsToDisplay.forEach((w, idx) => {
+                    w.displayVal = Number(w.current.toFixed(1));
+                    sumRounded += w.displayVal;
+                    // 找到最大权重的资产，用于吸收 0.1% 的舍入误差，确保总和一定是 100.0%
+                    if (Math.abs(w.displayVal) > maxVal && w.current !== 0) { 
+                        maxVal = Math.abs(w.displayVal);
+                        maxIdx = idx;
+                    }
+                });
+                
+                let diff = Number((100.0 - sumRounded).toFixed(1));
+                if (diff !== 0 && maxVal > 0) {
+                    weightsToDisplay[maxIdx].displayVal = Number((weightsToDisplay[maxIdx].displayVal + diff).toFixed(1));
+                }
+
+                let weightStr = weightsToDisplay.map(item => {
+                    return `{weightItem|• ${item.name}: ${item.initial}% ➔ ${item.displayVal.toFixed(1)}% ${item.state}}`;
                 }).join('\n');
+                // ==========================================================
 
                 let displayMetrics = {
                     totalReturn: fmt(pMetrics.totalReturn), annReturn: fmt(pMetrics.annReturn),
@@ -394,8 +418,9 @@
         function renderBacktestChart(dates, pNAV, bNAV, excess, benchName, metrics, weightStr, tradeMarkers, startDate, endDate) {
             const isMobile = window.innerWidth <= 768;
             
-            // 动态计算卡片高度，更紧凑
-            let cardHeight = 185 + portfolioConfig.length * 16; 
+            // 动态计算卡片高度，基于生成的文本行数，绝不溢出
+            let linesCount = weightStr.split('\n').length;
+            let cardHeight = 185 + linesCount * 16; 
 
             const option = {
                 animation: false, 
@@ -404,7 +429,6 @@
                 legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢)'], top: 35, left: isMobile ? 'center' : '15%' },
                 toolbox: { feature: { saveAsImage: { name: '回测报告', pixelRatio: 2, backgroundColor: '#fff' } }, right: 20, top: 10 },
                 
-                // 给右侧卡片留出的空隙变窄
                 grid: [
                     { left: 45, right: isMobile ? 20 : 260, top: '15%', height: '52%', containLabel: true },
                     { left: 45, right: isMobile ? 20 : 260, top: '72%', height: '20%', containLabel: true }
@@ -422,7 +446,6 @@
                     { show: true, type: 'slider', bottom: '1%', xAxisIndex: [0, 1], height: 20 }
                 ],
                 
-                // ECharts 原生图形绘制：完全自适应，不溢出，完美导出 PDF/图片
                 graphic: isMobile ? [] : [
                     {
                         type: 'group', right: 20, top: '15%',
@@ -463,11 +486,7 @@
                         name: '组合净值', type: 'line', data: pNAV, smooth: true, symbol: 'none',
                         xAxisIndex: 0, yAxisIndex: 0, zlevel: 1,
                         lineStyle: { width: 2.5, color: '#ef4444' },
-                        markPoint: {
-                            data: tradeMarkers,
-                            symbol: 'pin', symbolSize: 22,
-                            label: { fontSize: 10, color: '#fff' }
-                        }
+                        markPoint: { data: tradeMarkers, symbol: 'pin', symbolSize: 22, label: { fontSize: 10, color: '#fff' } }
                     },
                     {
                         name: `${benchName}基准`, type: 'line', data: bNAV, smooth: true, symbol: 'none',
