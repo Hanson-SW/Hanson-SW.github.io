@@ -5,6 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>量化配置与资产轮动简报系统-HansonSW</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    /* ===== 移动端响应式极简优化 ===== */
+        @media (max-width: 768px) {
+            body { 
+                flex-direction: column; /* 手机端自动变为上下排列 */
+                height: auto; /* 取消高度锁死，允许手机原生滑动 */
+                padding: 10px;
+            }
+            .sidebar { 
+                width: 100%; /* 侧边栏填满屏幕宽度 */
+                box-sizing: border-box;
+            }
+            .main-content { 
+                width: 100%; 
+            }
+            .stats-container { 
+                grid-template-columns: 1fr 1fr; /* 数据卡片在手机上变成两列 */
+            }
+            #chart-container {
+                min-height: 400px; /* 适当压缩图表在手机上的高度 */
+            }
+        }
+        @media (max-width: 480px) {
+            .stats-container { 
+                grid-template-columns: 1fr; /* 极小屏幕数据卡片变成单列 */
+            }
+        }
     <style>
         :root { --primary: #0f172a; --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; box-sizing: border-box; }
@@ -423,6 +449,12 @@
         // ==========================================
         renderAssets();
         runOptimization(true); // 传入 true 代表静默初始化，全自动跑出100%正确的闭环真报告
+        // ===== 监听窗口缩放，自动重绘图表 =====
+        window.addEventListener('resize', function() {
+            if (typeof myChart !== 'undefined' && myChart) {
+                myChart.resize();
+            }
+        });
     </script>
 </body>
 </html>
