@@ -6,6 +6,7 @@ title: 金融工程 · 个人主页
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
 
 <canvas id="intro-canvas"></canvas>
 
@@ -95,7 +96,7 @@ title: 金融工程 · 个人主页
                 <div class="grid-col-span-2 relative-box">
                     <label class="param-label" data-i18n="mc_ticker">股票/指数代码 (Ticker)</label>
                     <div class="flex-input-group">
-                        <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" class="param-input uppercase-text" placeholder="输入 AAPL 或指数代码..." />
+                        <input type="text" id="stockTicker" value="AAPL" oninput="handleLocalSearch(); markCustom();" autocomplete="off" class="param-input uppercase-text mono-font" placeholder="输入 AAPL 或指数代码..." />
                         <button onclick="fetchStockData()" id="fetchBtn" class="btn btn-outline fetch-btn btn-bubble">
                             <i class="fas fa-cloud-download-alt"></i> <span data-i18n="mc_pull">拉取</span>
                         </button>
@@ -105,27 +106,27 @@ title: 金融工程 · 个人主页
 
                 <div class="grid-col">
                     <label id="priceLabel" class="param-label">当前价格 ($)</label>
-                    <input type="number" id="currentPrice" value="175.00" step="0.01" oninput="markCustom()" class="param-input bg-gray" />
+                    <input type="number" id="currentPrice" value="175.00" step="0.01" oninput="markCustom()" class="param-input bg-gray mono-font" />
                 </div>
 
                 <div class="grid-col">
                     <label class="param-label" data-i18n="mc_vol">波动率 (σ)</label>
-                    <input type="number" id="impliedVol" value="0.22" step="0.001" oninput="markCustom()" class="param-input bg-gray" />
+                    <input type="number" id="impliedVol" value="0.22" step="0.001" oninput="markCustom()" class="param-input bg-gray mono-font" />
                 </div>
 
                 <div class="grid-col">
                     <label class="param-label" data-i18n="mc_mu">期望收益 (μ)</label>
-                    <input type="number" id="expReturn" value="0.08" step="0.001" oninput="markCustom()" class="param-input bg-gray" />
+                    <input type="number" id="expReturn" value="0.08" step="0.001" oninput="markCustom()" class="param-input bg-gray mono-font" />
                 </div>
                 
                 <div class="grid-col">
                     <label class="param-label" data-i18n="mc_paths">模拟次数</label>
-                    <input type="number" id="numPaths" value="5000" step="500" oninput="markCustom()" class="param-input" />
+                    <input type="number" id="numPaths" value="5000" step="500" oninput="markCustom()" class="param-input mono-font" />
                 </div>
 
                 <div class="grid-col">
                     <label class="param-label" data-i18n="mc_days">预测天数</label>
-                    <input type="number" id="timeHorizon" value="252" oninput="markCustom()" class="param-input" />
+                    <input type="number" id="timeHorizon" value="252" oninput="markCustom()" class="param-input mono-font" />
                 </div>
 
                 <div class="grid-col-btn">
@@ -156,7 +157,7 @@ title: 金融工程 · 个人主页
             <a href="mailto:sw6245@nyu.edu" class="contact-tag btn-bubble">
                 <i class="fas fa-envelope"></i> sw6245@nyu.edu
             </a>
-            <a href="tel:+8615908963789" class="contact-tag">
+            <a href="tel:+8615908963789" class="contact-tag mono-font">
                 <i class="fas fa-phone"></i> +86 159 0896 3789
             </a>
             <button onclick="window.open('https://github.com/Hanson-SW', '_blank')" class="btn btn-outline github-contact-btn btn-bubble">
@@ -182,6 +183,12 @@ title: 金融工程 · 个人主页
 
 <style>
     *, *::before, *::after { box-sizing: border-box; }
+
+    /* 等宽字体类，应用连字效果 */
+    .mono-font {
+        font-family: 'Fira Code', Consolas, Monaco, monospace !important;
+        font-variant-ligatures: contextual;
+    }
 
     /* 初始全局背景为极暗太空黑 */
     body {
@@ -312,8 +319,7 @@ title: 金融工程 · 个人主页
     }
 
     function initCinematicIntro() {
-        // 【核心修正】动态捕捉顶级导航栏中的站点超链接标题 (Jekyll 默认类名为 .site-title)
-        // 动态将其中的 'Hanson' 替换为包裹了独立 span 锚点的 HTML，从而获得完美绝对坐标
+        // 动态捕捉顶级导航栏中的站点超链接标题
         const siteTitleEl = document.querySelector('.site-title');
         if (siteTitleEl) {
             let origHtml = siteTitleEl.innerHTML;
@@ -347,31 +353,44 @@ title: 金融工程 · 个人主页
         ];
 
         const particles = [];
-        const numParticles = 120;
+        const numParticles = 250; // 【修正】翻倍粒子数，允许重复
         
         class Particle {
             constructor() { this.reset(true); }
             reset(randomizeZ = false) {
-                this.x = (Math.random() - 0.5) * canvas.width * 2.5;
-                this.y = (Math.random() - 0.5) * canvas.height * 2.5;
+                this.x = (Math.random() - 0.5) * canvas.width * 3.5; // 视野拉宽
+                this.y = (Math.random() - 0.5) * canvas.height * 3.5;
                 this.z = randomizeZ ? Math.random() * canvas.width : canvas.width;
                 this.formula = formulas[Math.floor(Math.random() * formulas.length)];
-                this.color = Math.random() > 0.4 ? 'rgba(56, 189, 248, 1)' : 'rgba(139, 92, 246, 1)';
-                this.fontSize = Math.random() * 14 + 14;
-                this.speed = Math.random() * 8 + 4;
+                this.isCyan = Math.random() > 0.4;
+                this.fontSize = Math.random() * 16 + 12; // 基础字号
+                this.speed = Math.random() * 15 + 5; // 【修正】提升速度，拉大差异
             }
             update() {
                 this.z -= this.speed; 
                 if (this.z <= 10) this.reset();
             }
             draw() {
+                // 纵深比：0 为最远，1 为贴脸
+                let depth = 1 - this.z / canvas.width;
+                if(depth < 0) return;
+
                 let x = (this.x / this.z) * canvas.width + canvas.width / 2;
                 let y = (this.y / this.z) * canvas.height + canvas.height / 2;
-                let size = (1 - this.z / canvas.width) * this.fontSize * 2.5;
-                let opacity = (1 - this.z / canvas.width) * 1.5;
+                
+                // 【修正】极限透视：越近越大，越远越小
+                let size = depth * this.fontSize * 4.0;
+                if(size < 0.5) return; // 太小不画
+
+                // 【修正】明暗对比：远处完全隐入黑暗，近处高亮刺眼
+                let opacity = Math.pow(depth, 1.8) * 2.5;
                 if (opacity > 1) opacity = 1;
 
-                ctx.fillStyle = this.color.replace('1)', `${opacity})`);
+                let r = this.isCyan ? 56 : 139;
+                let g = this.isCyan ? 189 : 92;
+                let b = this.isCyan ? 248 : 246;
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                 ctx.font = `italic ${size}px "Times New Roman", Times, serif`;
                 ctx.fillText(this.formula, x, y);
             }
@@ -379,7 +398,6 @@ title: 金融工程 · 个人主页
 
         for (let i = 0; i < numParticles; i++) particles.push(new Particle());
 
-        // 获取刚刚注入好的顶级导航栏 H 元素（若未找到则平滑降阶到主要选择器上）
         const targetHEl = document.getElementById('target-h') || document.querySelector('.site-title') || document.querySelector('.main-title');
         
         const p0 = { x: canvas.width + 200, y: canvas.height * 0.6 }; 
@@ -388,15 +406,15 @@ title: 金融工程 · 个人主页
 
         let startTime = Date.now();
         let animationFrameId;
-        const flightDuration = 2.8; 
-        const rippleDuration = 1.0; 
+        // 【修正】微调降落时间与水波纹展开时间
+        const flightDuration = 2.6; 
+        const rippleDuration = 0.4; // 让水波纹爆发更快
 
         function animate() {
             let elapsed = (Date.now() - startTime) / 1000;
             let t = Math.min(elapsed / flightDuration, 1);
             let rippleT = t >= 1 ? Math.min((elapsed - flightDuration) / rippleDuration, 1) : 0;
 
-            // 实时跟踪 H 的几何数据（应对加载字体引发的位移抖动）
             const hRect = targetHEl ? targetHEl.getBoundingClientRect() : { left: 40, top: 20, width: 20, height: 20 };
             const isSpan = targetHEl && targetHEl.id === 'target-h';
             const targetX = isSpan ? (hRect.left + hRect.width / 2) : (hRect.left + 40); 
@@ -404,7 +422,7 @@ title: 金融工程 · 个人主页
             const targetFontSize = targetHEl ? parseFloat(window.getComputedStyle(targetHEl).fontSize) : 22; 
             const p3 = { x: targetX, y: targetY }; 
 
-            ctx.fillStyle = 'rgba(3, 7, 18, 0.35)';
+            ctx.fillStyle = 'rgba(3, 7, 18, 0.4)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             if (rippleT < 1) {
@@ -449,7 +467,8 @@ title: 金融工程 · 个人主页
             }
 
             if (t >= 1) {
-                let rippleEase = 1 - Math.pow(1 - rippleT, 4);
+                // 【修正】爆发式的展现动画，瞬间铺满全屏
+                let rippleEase = 1 - Math.pow(1 - rippleT, 5);
                 let maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
                 let currentRadius = maxRadius * rippleEase;
 
@@ -469,13 +488,12 @@ title: 金融工程 · 个人主页
                     pageWrapper.style.clipPath = 'none';
                     pageWrapper.style.webkitClipPath = 'none';
                     
-                    // 彻底清除黑底，无缝移交给亮色渐变背景
                     document.body.style.background = 'linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc)';
                     document.body.style.backgroundSize = '400% 400%';
                     document.body.style.animation = 'gradientBG 15s ease infinite';
                     
                     document.getElementById('intro-canvas').style.display = 'none';
-                    document.body.style.overflowY = 'auto'; // 动画结束，允许滚动
+                    document.body.style.overflowY = 'auto'; 
                     cancelAnimationFrame(animationFrameId);
                     
                     runSimulation();
@@ -571,7 +589,7 @@ title: 金融工程 · 个人主页
         if(results.length > 0) {
             let html = results.map(item => 
                 `<div class="autocomplete-item" onclick="selectTicker('${item.symbol}')">
-                    <strong>${item.symbol}</strong><br><small style="color:#64748b">${item.name}</small>
+                    <strong class="mono-font">${item.symbol}</strong><br><small style="color:#64748b">${item.name}</small>
                  </div>`
             ).join('');
             listDiv.innerHTML = html;
@@ -751,26 +769,29 @@ title: 金融工程 · 个人主页
 
             chartInstance.setOption({
                 backgroundColor: 'transparent',
-                graphic: [{ type: 'text', left: '2%', top: '3%', style: { text: watermarkText, fontSize: 10, fill: '#64748b', lineHeight: 15 }, z: 100 }],
+                textStyle: { fontFamily: '-apple-system, sans-serif' },
+                // 【修正】为参数水印设置极客字体
+                graphic: [{ type: 'text', left: '2%', top: '3%', style: { text: watermarkText, fontSize: 10, fill: '#64748b', lineHeight: 15, fontFamily: "'Fira Code', monospace" }, z: 100 }],
                 tooltip: {
                     position: 'top', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#cbd5e1',
+                    textStyle: { fontFamily: "'Fira Code', monospace" }, // 【修正】悬浮窗字体
                     formatter: function (p) {
                         if(p.seriesType === 'heatmap') {
                             let lower = parseFloat(data.yAxisLabels[p.value[1]]);
-                            return `<div style="color:#2563eb;">Day ${p.value[0]}</div>
+                            return `<div style="color:#2563eb; font-family:-apple-system, sans-serif;">Day ${p.value[0]}</div>
                                     Range: <b>[ ${currentCurrency}${lower.toFixed(2)} , ${currentCurrency}${(lower+data.binSize).toFixed(2)} ]</b><br/>
                                     Prob: <b style="color:#ef4444;">${((p.value[2] / data.numPaths)*100).toFixed(2)}%</b>`;
                         } else {
-                            return `<div style="color:#2563eb;">${p.seriesName}</div> Day ${p.dataIndex} <br/>Price: <b>${currentCurrency}${p.value.toFixed(2)}</b>`;
+                            return `<div style="color:#2563eb; font-family:-apple-system, sans-serif;">${p.seriesName}</div> Day ${p.dataIndex} <br/>Price: <b>${currentCurrency}${p.value.toFixed(2)}</b>`;
                         }
                     }
                 },
                 visualMap: { dimension: 3, min: 0, max: 1, show: false, inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] } },
                 grid: { left: '1%', right: '2%', top: 60, bottom: 10, containLabel: true },
-                xAxis: { type: 'category', data: xAxisData },
+                xAxis: { type: 'category', data: xAxisData, axisLabel: { fontFamily: "'Fira Code', monospace" } }, // 【修正】X轴数字字体
                 yAxis: [
                     { type: 'category', data: data.yAxisLabels, show: false }, 
-                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } }
+                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { fontFamily: "'Fira Code', monospace", formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } } // 【修正】Y轴价格字体
                 ],
                 series: [
                     { name: 'Heatmap', type: 'heatmap', data: data.heatmapData, yAxisIndex: 0 },
