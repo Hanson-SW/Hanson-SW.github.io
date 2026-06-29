@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>量化资产配置系统 v3.0</title>
+    <title>量化资产配置系统 v3.1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* 样式与之前类似，略作微调（篇幅原因保留核心样式） */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root { --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
@@ -39,16 +38,14 @@
         .scenario-item { background: #f1f5f9; border-radius: 20px; padding: 6px 14px 6px 18px; display: inline-flex; align-items: center; gap: 12px; font-size: 13px; border: 1px solid var(--border); }
         .scenario-item .info { display: flex; gap: 6px; align-items: center; }
         .scenario-item .info .type { background: #cbd5e1; border-radius: 12px; padding: 0 8px; font-size: 11px; color: #1e293b; }
+        .status-indicator { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; }
+        .status-indicator .spinner-small { width: 18px; height: 18px; border: 2px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 768px) { body { padding: 10px; } .stats-grid { grid-template-columns: 1fr 1fr; } #chart-container { height: 350px; } .settings-row .group { flex: 1 1 100%; } }
         @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
-        #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-weight: bold; color: var(--accent); }
-        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-<div id="loading-overlay"><div class="spinner"></div><div>正在运行优化引擎...</div></div>
-
 <div class="app-container" id="app">
 
     <!-- ===== 报告区域 ===== -->
@@ -113,18 +110,22 @@
                 <input type="number" id="window-size" value="1" min="0" step="1" style="width:80px;">
                 <span style="font-size:12px; color:#64748b;">(0=不使用滚动)</span>
             </div>
-            <button class="btn" onclick="runFullAnalysis()" style="margin-left:auto;">🚀 重新分析</button>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button class="btn" onclick="runFullAnalysis()">🚀 重新分析</button>
+                <span class="status-indicator" id="statusIndicator">
+                    <span class="spinner-small" id="statusSpinner"></span>
+                    <span id="statusText">✅ 就绪</span>
+                </span>
+            </div>
         </div>
 
-        <!-- 行3: 资产池管理（新增下拉选择） -->
+        <!-- 行3: 资产池管理 -->
         <div class="settings-row">
             <div class="group" style="flex:2;">
                 <label>📦 资产池 (代码, 用逗号分隔)</label>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                     <input type="text" id="asset-input" placeholder="例如 sh000300, sz399006" style="flex:1; min-width:150px;" list="stock-database">
-                    <datalist id="stock-database">
-                        <!-- 由 JS 动态生成 -->
-                    </datalist>
+                    <datalist id="stock-database"></datalist>
                     <select id="asset-select" style="padding:8px; border:1px solid var(--border); border-radius:8px; min-width:130px;">
                         <option value="">— 选择指数 —</option>
                     </select>
@@ -212,7 +213,6 @@
         }
         let seed = 1024;
         function lcg() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-        // 为每个指数生成不同的初始价格和波动
         const initPrices = { 'sh000001':3000, 'sz399001':11000, 'sz399006':1900, 'sh000300':3400, 'sh000016':2600, 'sh000905':5600, 'sh000852':6200, 'sh000688':850, 'sz399300':3400 };
         const vols = { 'sh000001':0.012, 'sz399001':0.016, 'sz399006':0.022, 'sh000300':0.012, 'sh000016':0.010, 'sh000905':0.018, 'sh000852':0.020, 'sh000688':0.026, 'sz399300':0.012 };
         assets.forEach(code => { store[code] = {}; });
@@ -269,12 +269,10 @@
         return rets;
     }
 
-    // 获取最近交易日
     function findNearestDate(targetDate, dateArray) {
         if (!targetDate) return null;
         const sorted = dateArray.slice().sort();
-        let nearest = null;
-        let minDiff = Infinity;
+        let nearest = null, minDiff = Infinity;
         for (let d of sorted) {
             const diff = Math.abs(new Date(d) - new Date(targetDate));
             if (diff < minDiff) { minDiff = diff; nearest = d; }
@@ -283,7 +281,7 @@
     }
 
     // ============================================================
-    //  二次规划 (QP) 求解器 (梯度投影法)
+    //  优化求解器
     // ============================================================
     function solveQP(returns, riskFree, restrictShort) {
         const n = returns.length;
@@ -294,9 +292,7 @@
             return covariance(returns[i], returns[j], mi, mj) * 252;
         }));
         let w = Array(n).fill(1/n);
-        const maxIter = 1000;
-        const lr = 0.001;
-        const lambda = 1.0;
+        const maxIter = 1000, lr = 0.001, lambda = 1.0;
         for (let iter=0; iter<maxIter; iter++) {
             let grad = Array(n).fill(0);
             for (let i=0; i<n; i++) {
@@ -328,7 +324,6 @@
         return { weights: w, ret: portReturn, vol: portVol, sharpe };
     }
 
-    // 蒙特卡洛
     function monteCarloOptimize(returns, numSim, riskFree, restrictShort) {
         const n = returns.length;
         const mu = returns.map(r => mean(r) * 252);
@@ -361,11 +356,26 @@
     }
 
     // ============================================================
+    //  状态指示器控制
+    // ============================================================
+    function setStatus(busy, message) {
+        const spinner = document.getElementById('statusSpinner');
+        const text = document.getElementById('statusText');
+        if (busy) {
+            spinner.style.display = 'inline-block';
+            text.textContent = message || '⏳ 运算中...';
+        } else {
+            spinner.style.display = 'none';
+            text.textContent = message || '✅ 就绪';
+        }
+    }
+
+    // ============================================================
     //  主分析函数
     // ============================================================
     async function runFullAnalysis() {
-        const overlay = document.getElementById('loading-overlay');
-        overlay.style.display = 'flex';
+        setStatus(true, '⏳ 正在获取数据...');
+        console.log('runFullAnalysis started');
         try {
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
@@ -376,13 +386,16 @@
             const windowMonths = parseInt(document.getElementById('window-size').value) || 0;
             const benchmarkCode = document.getElementById('benchmark-select').value;
 
-            // 获取所有资产数据
-            const dataStore = {};
             const allCodes = [...assetPool];
             if (benchmarkCode && !allCodes.includes(benchmarkCode)) allCodes.push(benchmarkCode);
+            console.log('Asset codes:', allCodes);
+
+            // 获取数据
+            const dataStore = {};
             await Promise.all(allCodes.map(async (code) => {
                 const dict = await fetchAssetData(code);
                 if (dict) dataStore[code] = dict;
+                else console.warn(`Data for ${code} not found`);
             }));
             for (let code of allCodes) {
                 if (!dataStore[code]) throw new Error(`数据缺失: ${code}`);
@@ -394,8 +407,9 @@
                 allDates = allDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
             }
             if (allDates.length < 20) throw new Error('有效交易日不足');
+            console.log('Number of aligned dates:', allDates.length);
 
-            // 构建收益矩阵 (只针对资产池，不含基准)
+            // 构建资产收益矩阵
             const returnsMatrix = assetPool.map(code => {
                 const r = [];
                 for (let i=1; i<allDates.length; i++) {
@@ -409,6 +423,8 @@
             let optWeights = null, optRet = 0, optVol = 0, optSharpe = 0;
             let netValues = [1.0];
             let dailyRets = [];
+
+            setStatus(true, '⏳ 正在优化...');
 
             if (windowMonths > 0 && windowMonths < allDates.length/21) {
                 const windowSize = windowMonths * 21;
@@ -441,8 +457,7 @@
                     startIdx += step;
                 }
                 if (netValues.length > 1) {
-                    // 用最后一段权重继续
-                    const lastRes = solveQP(returnsMatrix.slice(0, returnsMatrix[0].length), riskFree, restrictShort);
+                    const lastRes = solveQP(returnsMatrix, riskFree, restrictShort);
                     optWeights = lastRes.weights;
                     for (let i=startIdx; i<allDates.length-1; i++) {
                         let dayRet = 0;
@@ -505,34 +520,36 @@
             }).join(' | ');
             document.getElementById('opt-weights').innerText = '最优配比: ' + wStr;
 
-            // 基准净值（若选择）
+            // 基准净值
             let benchmarkValues = null;
             if (benchmarkCode && dataStore[benchmarkCode]) {
                 const bPrices = allDates.map(d => dataStore[benchmarkCode][d]);
-                const base = bPrices[0];
+                const base = bPrices[0] || 1;
                 benchmarkValues = bPrices.map(p => p / base);
             }
 
             currentResult = { netValues, allDates, dailyRets, optRet, optVol, maxDD, calmar, sharpe:optSharpe, sortino, weights:optWeights, assetPool, scenarios, benchmarkValues, benchmarkCode };
 
+            setStatus(true, '⏳ 正在绘制图表...');
             renderChart(allDates, netValues, optWeights, dailyRets, optRet, optVol, maxDD, calmar, optSharpe, sortino, benchmarkValues, benchmarkCode);
+            setStatus(false, '✅ 完成');
 
         } catch (err) {
+            console.error('分析出错:', err);
             alert('分析出错: ' + err.message);
-        } finally {
-            overlay.style.display = 'none';
+            setStatus(false, '❌ 出错');
         }
     }
 
     // ============================================================
-    //  图表绘制 (含基准和场景标记)
+    //  图表绘制
     // ============================================================
     function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode) {
         if (!myChart) {
             myChart = echarts.init(document.getElementById('chart-container'));
         }
 
-        // 读取场景数据 (从DOM)
+        // 读取场景数据
         const scenarioItems = document.querySelectorAll('#scenario-list .scenario-item');
         const scenarioData = [];
         scenarioItems.forEach(el => {
@@ -541,11 +558,8 @@
             const value = parseFloat(el.dataset.value);
             const date = el.dataset.date;
             if (date) {
-                // 自动调整为最近的交易日
                 const nearest = findNearestDate(date, dates);
-                if (nearest) {
-                    scenarioData.push({ name, type, value, date: nearest });
-                }
+                if (nearest) scenarioData.push({ name, type, value, date: nearest });
             }
         });
 
@@ -560,7 +574,6 @@
             lineStyle: { color: '#ef4444', type: 'dashed', width: 2 }
         }));
 
-        // 构建系列
         let series = [{
             name: '组合净值',
             type: 'line',
@@ -581,7 +594,6 @@
             }
         }];
 
-        // 基准指数
         if (benchmarkValues && benchmarkCode) {
             const benchName = INDEX_NAMES[benchmarkCode] || benchmarkCode;
             series.push({
@@ -631,7 +643,7 @@
     }
 
     // ============================================================
-    //  资产池管理 (含中文名显示)
+    //  资产池管理
     // ============================================================
     function updateAssetPool() {
         const input = document.getElementById('asset-input');
@@ -661,7 +673,6 @@
         runFullAnalysis();
     }
 
-    // 从下拉选择添加资产
     function addSelectedAsset() {
         const select = document.getElementById('asset-select');
         const code = select.value;
@@ -677,7 +688,7 @@
     }
 
     // ============================================================
-    //  压力场景管理 (自动调整日期至交易日)
+    //  压力场景管理
     // ============================================================
     function addScenario() {
         const name = document.getElementById('scenario-name').value.trim() || '场景' + (scenarios.length+1);
@@ -687,10 +698,9 @@
         if (!date) { alert('请选择日期'); return; }
         if (isNaN(value)) { alert('请输入有效数值'); return; }
 
-        // 获取当前交易日列表 (从最近一次分析结果或默认)
+        // 获取交易日列表
         let allDates = currentResult ? currentResult.allDates : [];
         if (allDates.length === 0) {
-            // 若没有结果，使用默认日期范围
             const start = document.getElementById('start-date').value;
             const end = document.getElementById('end-date').value;
             const temp = generateDeterministic2025Data();
@@ -698,24 +708,21 @@
             allDates = Object.keys(temp[code]).filter(d => d>=start && d<=end).sort();
         }
         const nearest = findNearestDate(date, allDates);
-        if (nearest) {
-            date = nearest;
-        } else {
-            alert('该日期不在数据范围内，已忽略');
-            return;
-        }
+        if (nearest) date = nearest;
+        else { alert('日期不在数据范围内'); return; }
 
         scenarios.push({ name, type, value, date });
         renderScenarios();
-        // 清空输入
         document.getElementById('scenario-name').value = '';
         document.getElementById('scenario-value').value = '';
-        // 若已有结果，立即重绘图表
+
         if (currentResult) {
             renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights,
                 currentResult.dailyRets, currentResult.optRet, currentResult.optVol,
                 currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino,
                 currentResult.benchmarkValues, currentResult.benchmarkCode);
+        } else {
+            runFullAnalysis(); // 首次无结果则重新运行
         }
     }
 
@@ -759,12 +766,13 @@
     }
 
     // ============================================================
-    //  初始化 UI (填充下拉列表)
+    //  初始化
     // ============================================================
     function initUI() {
-        // 填充资产下拉选择
+        // 填充下拉
         const select = document.getElementById('asset-select');
         const datalist = document.getElementById('stock-database');
+        const benchSelect = document.getElementById('benchmark-select');
         INDEX_LIST.forEach(({code, name}) => {
             const opt = document.createElement('option');
             opt.value = code;
@@ -774,15 +782,10 @@
             dlOpt.value = code;
             dlOpt.textContent = `${code} (${name})`;
             datalist.appendChild(dlOpt);
-        });
-
-        // 填充基准下拉
-        const benchSelect = document.getElementById('benchmark-select');
-        INDEX_LIST.forEach(({code, name}) => {
-            const opt = document.createElement('option');
-            opt.value = code;
-            opt.textContent = `${code} (${name})`;
-            benchSelect.appendChild(opt);
+            const benchOpt = document.createElement('option');
+            benchOpt.value = code;
+            benchOpt.textContent = `${code} (${name})`;
+            benchSelect.appendChild(benchOpt);
         });
 
         // 默认示例场景 (调整为有效交易日)
@@ -794,8 +797,8 @@
         renderScenarios();
 
         renderAssetTags();
-        // 默认基准设为沪深300
         document.getElementById('benchmark-select').value = 'sh000300';
+        // 初次加载
         runFullAnalysis();
 
         window.addEventListener('resize', () => { if (myChart) myChart.resize(); });
