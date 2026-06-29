@@ -9,10 +9,6 @@ title: 金融工程 · 个人主页
 
 <div id="intro-overlay">
     <canvas id="intro-canvas"></canvas>
-    <div class="intro-text">
-        <div id="intro-loading-text">INITIALIZING QUANT ENGINE...</div>
-        <div class="intro-progress-bar"><div class="intro-progress"></div></div>
-    </div>
 </div>
 
 <div class="top-utility-bar">
@@ -21,7 +17,7 @@ title: 金融工程 · 个人主页
     </button>
 </div>
 
-<div class="cv-container" id="main-content-container" style="opacity: 0;">
+<div class="cv-container" id="main-content-container" style="opacity: 0; transform: scale(0.01); filter: brightness(0);">
     <div class="header-section">
         <div class="avatar-gradient">王</div>
         <div>
@@ -72,19 +68,6 @@ title: 金融工程 · 个人主页
         <div class="card-buttons">
             <button onclick="window.open('./markowitz.html', '_blank')" class="btn btn-primary btn-bubble" style="background: #8b5cf6;">
                 <i class="fas fa-play"></i> <span data-i18n="proj_markowitz_btn">运行配置模型</span>
-            </button>
-        </div>
-    </div>
-
-    <div class="info-card glass-card">
-        <div class="card-left">
-            <i class="fas fa-bolt card-icon"></i>
-            <span class="card-text" data-i18n="proj2_name">A股择时策略</span>
-            <span class="card-tag" data-i18n="proj2_tag">· 宏观 + 情绪指标</span>
-        </div>
-        <div class="card-buttons">
-            <button onclick="window.open('https://github.com/hanson-sw/astock-strategy', '_blank')" class="btn btn-outline btn-bubble">
-                <i class="fab fa-github"></i> Repository
             </button>
         </div>
     </div>
@@ -143,7 +126,7 @@ title: 金融工程 · 个人主页
         <div id="dataStatus" class="data-status-text"></div>
     </div>
 
-    <div id="chartExportWrapper" class="chart-wrapper">
+    <div id="chartExportWrapper" class="chart-wrapper glass-card">
         <div class="chart-tools">
             <button onclick="downloadImage()" class="icon-btn btn-bubble" title="导出高清图片">
                 <i class="fas fa-download"></i>
@@ -185,12 +168,10 @@ title: 金融工程 · 个人主页
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    /* ================= 动画特效核心层 ================= */
-
-    /* 1. 动态流光渐变背景 */
+    /* 1. 极浅透明度的动态背景 (浅蓝/纯白交织) */
     body {
         margin: 0;
-        background: linear-gradient(-45deg, #e0e7ff, #f8fafc, #f1f5f9, #dbeafe);
+        background: linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc);
         background-size: 400% 400%;
         animation: gradientBG 15s ease infinite;
         overflow-x: hidden;
@@ -201,53 +182,54 @@ title: 金融工程 · 个人主页
         100% { background-position: 0% 50%; }
     }
 
-    /* 2. 磨砂玻璃质感 (Glassmorphism) */
+    /* 2. 磨砂玻璃质感 */
     .glass-card {
-        background: rgba(255, 255, 255, 0.65) !important;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        background: rgba(255, 255, 255, 0.7) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
     }
+
     .cv-container {
         max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; 
         font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
         color: #0f172a; position: relative;
     }
 
-    /* 3. 泡泡呼吸回弹特效 (Hover Bubble) */
+    /* 3. 泡泡呼吸特效 (Hover Bubble) */
     .btn-bubble {
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; /* 物理回弹曲线 */
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; 
     }
     .btn-bubble:hover {
-        transform: scale(1.08) translateY(-2px);
-        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2) !important;
+        transform: scale(1.06) translateY(-2px);
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.15) !important;
     }
 
-    /* 4. 无人机坠落拉近动画 (Drone Landing) */
+    /* 4. 从黑点放大到全屏 + 亮度提升的动画 */
     .landing-anim {
-        animation: droneDrop 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        animation: portalZoom 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    @keyframes droneDrop {
-        0% { transform: scale(3) translateY(150px) rotateX(10deg); opacity: 0; filter: blur(10px); }
-        60% { opacity: 1; filter: blur(0px); }
-        100% { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; filter: blur(0px); }
+    @keyframes portalZoom {
+        0% { transform: scale(0.01); filter: brightness(0); opacity: 1; }
+        50% { filter: brightness(0.6); }
+        100% { transform: scale(1); filter: brightness(1); opacity: 1; }
     }
 
-    /* 5. 开场时间穿梭遮罩层 */
+    /* 5. 黑色大理石纹理开场遮罩层 */
     #intro-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: #000000; z-index: 999999;
+        /* 纯黑背景 + 类似大理石/星空的极暗 CSS 噪点渐变 */
+        background-color: #030303;
+        background-image: 
+            radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
+            radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+        z-index: 999999;
         display: flex; justify-content: center; align-items: center; flex-direction: column;
         transition: opacity 0.8s ease-out;
     }
     #intro-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-    .intro-text { position: relative; z-index: 2; text-align: center; }
-    #intro-loading-text { color: #38bdf8; font-family: monospace; font-size: 1.5rem; letter-spacing: 4px; margin-bottom: 20px; text-shadow: 0 0 10px #38bdf8; }
-    .intro-progress-bar { width: 300px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin: 0 auto;}
-    .intro-progress { width: 0%; height: 100%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; animation: progress 2s ease-in forwards; }
-    @keyframes progress { to { width: 100%; } }
 
-    /* ================= 基础 UI 样式 (保留原有自适应结构) ================= */
+    /* ================= 基础 UI 样式 ================= */
     .top-utility-bar { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 0.5rem; position: relative; z-index: 10;}
     .lang-toggle-btn { background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; backdrop-filter: blur(5px);}
     
@@ -287,7 +269,7 @@ title: 金融工程 · 个人主页
     .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 0.85rem; color: #334155; line-height: 1.4; }
     .autocomplete-item:hover { background: #eff6ff; color: #2563eb; }
 
-    .chart-wrapper { background: #ffffff; border-radius: 12px; padding: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.06); position: relative; margin-bottom: 1.5rem; width: 100%; overflow: hidden; }
+    .chart-wrapper { border-radius: 12px; padding: 1rem; border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 10px 30px rgba(0,0,0,0.06); position: relative; margin-bottom: 1.5rem; width: 100%; overflow: hidden; }
     .chart-tools { position: absolute; top: 1rem; right: 1rem; z-index: 100; display: flex; gap: 0.5rem; }
     .icon-btn { background: rgba(241,245,249,0.8); backdrop-filter: blur(4px); border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; color: #475569; }
 
@@ -318,87 +300,118 @@ title: 金融工程 · 个人主页
 </style>
 
 <script>
-    // ================= 5. 开场数学模型时间穿梭动画 (Canvas Warp Speed) =================
+    // ================= 1. 动感纯金融公式时间穿梭动画 (Math Warp Speed) =================
     function initIntroAnimation() {
         const canvas = document.getElementById('intro-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        const mathSymbols = ['σ', 'μ', '∫', 'Δ', 'π', 'W(t)', 'dZ', 'lim', 'Σ', '0', '1', 'α', 'β', 'γ', 'E(R)', 'S_0'];
-        const stars = [];
-        const numStars = 200;
-        let speedMultiplier = 1; // 初始速度
-        let animationFrameId;
+        // 纯华尔街顶尖数学模型与量化公式
+        const formulas = [
+            'dS_t = μS_tdt + σS_tdW_t', 
+            'V = S N(d_1) - K e^{-rT} N(d_2)', 
+            'E(R_p) = w^T E(R)', 
+            'σ_p^2 = w^T Σ w', 
+            '∂V/∂t + ½σ²S²∂²V/∂S² + rS∂V/∂S - rV = 0', 
+            'Δ = N(d_1)', 
+            'Sharpe = (R_p - R_f)/σ_p', 
+            'VAR = z_α σ √t', 
+            'd_1 = (ln(S/K) + (r + σ²/2)t) / (σ√t)'
+        ];
 
-        class Star {
+        const particles = [];
+        const numParticles = 70; // 降低密度防止视觉杂乱
+        let speedMultiplier = 4; // 极速起步
+
+        class Particle {
             constructor() {
-                this.x = (Math.random() - 0.5) * canvas.width * 2;
-                this.y = (Math.random() - 0.5) * canvas.height * 2;
+                this.x = (Math.random() - 0.5) * canvas.width * 3;
+                this.y = (Math.random() - 0.5) * canvas.height * 3;
                 this.z = Math.random() * canvas.width;
-                this.symbol = mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
-                this.color = Math.random() > 0.5 ? '#38bdf8' : '#8b5cf6'; // 科技蓝与量化紫
+                this.formula = formulas[Math.floor(Math.random() * formulas.length)];
+                // 科技蓝与量化紫交织
+                this.color = Math.random() > 0.5 ? 'rgba(56, 189, 248, 1)' : 'rgba(139, 92, 246, 1)';
+                this.fontSize = Math.random() * 12 + 12;
             }
             update() {
-                this.z -= 10 * speedMultiplier; // Z轴不断拉近
+                this.z -= speedMultiplier;
                 if (this.z <= 0) {
-                    this.x = (Math.random() - 0.5) * canvas.width * 2;
-                    this.y = (Math.random() - 0.5) * canvas.height * 2;
+                    this.x = (Math.random() - 0.5) * canvas.width * 3;
+                    this.y = (Math.random() - 0.5) * canvas.height * 3;
                     this.z = canvas.width;
-                    this.symbol = mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
+                    this.formula = formulas[Math.floor(Math.random() * formulas.length)];
                 }
             }
-            draw() {
-                let x = (this.x / this.z) * canvas.width + canvas.width / 2;
-                let y = (this.y / this.z) * canvas.height + canvas.height / 2;
-                let size = (1 - this.z / canvas.width) * 20; // 越近越大
-                let opacity = 1 - this.z / canvas.width;
+            draw(time) {
+                // 核心：模拟无人机剧烈的左右正弦波摇摆
+                let camX = Math.sin(time * 2.5) * 400; 
+                let camY = Math.cos(time * 1.5) * 200;
 
-                ctx.fillStyle = `rgba(${this.color === '#38bdf8' ? '56,189,248' : '139,92,246'}, ${opacity})`;
-                ctx.font = `${size}px monospace`;
-                ctx.fillText(this.symbol, x, y);
+                let x = ((this.x - camX) / this.z) * canvas.width + canvas.width / 2;
+                let y = ((this.y - camY) / this.z) * canvas.height + canvas.height / 2;
+                
+                let size = (1 - this.z / canvas.width) * this.fontSize * 2.5;
+                let opacity = (1 - this.z / canvas.width) * 1.5;
+                if (opacity > 1) opacity = 1;
+
+                ctx.fillStyle = this.color.replace('1)', `${opacity})`);
+                // 采用优雅的 Serif 字体以贴合数学公式的质感
+                ctx.font = `italic ${size}px "Times New Roman", Times, serif`;
+                ctx.fillText(this.formula, x, y);
             }
         }
 
-        for (let i = 0; i < numStars; i++) stars.push(new Star());
+        for (let i = 0; i < numParticles; i++) particles.push(new Particle());
+
+        let startTime = Date.now();
+        let animationFrameId;
 
         function animate() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 形成拖影效果
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            speedMultiplier += 0.02; // 速度不断加快，模拟时空穿梭加速
+            let elapsed = (Date.now() - startTime) / 1000;
             
-            stars.forEach(star => { star.update(); star.draw(); });
+            // 使用带有微弱透明度的纯黑擦除画布，形成时空拖影
+            ctx.fillStyle = 'rgba(3, 3, 3, 0.35)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            speedMultiplier += 0.06; // 穿梭不断加速
+
+            particles.forEach(p => {
+                p.update();
+                p.draw(elapsed);
+            });
+
             animationFrameId = requestAnimationFrame(animate);
         }
 
         animate();
 
-        // 2.2 秒后白光一闪，触发无人机坠地 Landing
+        // 2.5秒后：时空穿梭结束，量子塌缩式加载主网页
         setTimeout(() => {
             const overlay = document.getElementById('intro-overlay');
             const mainContent = document.getElementById('main-content-container');
             
-            // 白光爆闪
-            overlay.style.background = '#ffffff';
-            ctx.clearRect(0,0, canvas.width, canvas.height);
             cancelAnimationFrame(animationFrameId);
+            overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none'; 
             
+            // 触发主内容从黑点放大、变亮的量子塌缩动画
+            mainContent.classList.add('landing-anim');
+            
+            // 关键修复：确保在主容器完成 scale 膨胀后立即触发图表渲染，保证用户一眼看到图表！
             setTimeout(() => {
-                overlay.style.opacity = '0';
-                overlay.style.pointerEvents = 'none'; // 防止遮挡点击
-                
-                // 触发主内容 Landing 物理回弹
-                mainContent.classList.add('landing-anim');
+                runSimulation();
+                setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
             }, 100);
 
-        }, 2200);
+        }, 2500); 
     }
 
-    // 页面加载即刻触发动画
+    // 页面加载即刻启动大空头开场
     window.addEventListener('load', initIntroAnimation);
 
 
-    // ================= 基础逻辑 (多语言/量化拉取/图表生成 - 完全保留) =================
+    // ================= 基础逻辑 (多语言/量化拉取/图表生成) =================
     const i18nDict = {
         name: { zh: "王 盛 烨", en: "Shengye Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
@@ -407,16 +420,12 @@ title: 金融工程 · 个人主页
         resume_tag: { zh: "· 2026 最新版", en: "· 2026 Updated" },
         resume_btn: { zh: "查看简历", en: "View PDF" },
         project_title: { zh: "项目展示", en: "Projects" },
-        proj1_name: { zh: "基金组合分析工具", en: "Fund Portfolio Analyzer" },
-        proj1_tag: { zh: "· Python 回测 & 归因", en: "· Python Backtesting & Attribution" },
         proj_backtest_name: { zh: "A股回测模型", en: "A-Share Backtesting Model" },
         proj_backtest_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
         proj_backtest_btn: { zh: "运行回测模型", en: "Run Backtest Model" },
         proj_markowitz_name: { zh: "Markowitz 资产轮动与量化配置模型", en: "Markowitz Portfolio Allocation Model" },
         proj_markowitz_tag: { zh: "· 现代投资组合理论 (MPT)", en: "· Modern Portfolio Theory (MPT)" },
         proj_markowitz_btn: { zh: "运行配置模型", en: "Run Allocation Model" },
-        proj2_name: { zh: "A股择时策略", en: "A-Share Timing Strategy" },
-        proj2_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
         mc_title: { zh: "实盘量化引擎：股价路径预测", en: "Live Quant Engine: Monte Carlo Prediction" },
         mc_desc: { zh: "系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。", en: "Auto-fetches live data. Per-Day Normalized heatmap." },
         mc_ticker: { zh: "股票/指数代码 (Ticker)", en: "Stock/Index Ticker" },
@@ -512,7 +521,6 @@ title: 金融工程 · 个人主页
         if(chartInstance) setTimeout(() => chartInstance.resize(), 100);
     }
 
-    // 依然保留极速原生图片导出功能
     function downloadImage() {
         if(!chartInstance) return;
         const url = chartInstance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#ffffff' });
@@ -657,7 +665,8 @@ title: 金融工程 · 个人主页
             if (!chartInstance) chartInstance = echarts.init(document.getElementById('itoChart'));
 
             chartInstance.setOption({
-                backgroundColor: '#ffffff',
+                // 背景透明，透出外部玻璃卡片颜色
+                backgroundColor: 'transparent',
                 graphic: [{ type: 'text', left: '2%', top: '3%', style: { text: watermarkText, fontSize: 10, fill: '#64748b', lineHeight: 15 }, z: 100 }],
                 tooltip: {
                     position: 'top', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#cbd5e1',
@@ -677,12 +686,7 @@ title: 金融工程 · 个人主页
                 xAxis: { type: 'category', data: xAxisData },
                 yAxis: [
                     { type: 'category', data: data.yAxisLabels, show: false }, 
-                    { 
-                        type: 'value', 
-                        min: data.globalMin, 
-                        max: data.globalMax, 
-                        axisLabel: { formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } 
-                    }
+                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } }
                 ],
                 series: [
                     { name: 'Heatmap', type: 'heatmap', data: data.heatmapData, yAxisIndex: 0 },
