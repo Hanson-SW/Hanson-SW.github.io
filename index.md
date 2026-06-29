@@ -8,8 +8,6 @@ title: 金融工程 · 个人主页
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
 
-<canvas id="intro-canvas"></canvas>
-
 <div id="page-wrapper">
     <div class="top-utility-bar">
         <button onclick="toggleLang()" class="lang-toggle-btn btn-bubble">
@@ -184,42 +182,57 @@ title: 金融工程 · 个人主页
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    /* 等宽字体类，应用连字效果 */
     .mono-font {
         font-family: 'Fira Code', Consolas, Monaco, monospace !important;
         font-variant-ligatures: contextual;
     }
 
-    /* 初始全局背景为极暗太空黑 */
+    /* 全局高级感流体渐变背景 */
     body {
         margin: 0;
-        background-color: #030712; 
-        overflow-x: hidden;
-        overflow-y: hidden; /* 动画期间锁死滚动，确保坐标无偏差 */
-        transition: background 0.5s ease;
-    }
-
-    #intro-canvas {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        z-index: 1; pointer-events: none;
-    }
-
-    /* 包含所有UI的主容器，动画后它将释放clip-path */
-    #page-wrapper {
-        position: relative;
-        z-index: 10;
-        min-height: 100vh;
         background: linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc);
         background-size: 400% 400%;
         animation: gradientBG 15s ease infinite;
-        clip-path: circle(0px at 50% 50%);
-        -webkit-clip-path: circle(0px at 50% 50%);
+        overflow-x: hidden;
+        overflow-y: auto; /* 恢复正常滚动 */
     }
 
     @keyframes gradientBG {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
+    }
+
+    #page-wrapper {
+        position: relative;
+        z-index: 10;
+        min-height: 100vh;
+    }
+
+    /* ================= ✨ 灵动板块上浮动效核心样式 ================= */
+    @keyframes floatUpReveal {
+        0% {
+            opacity: 0;
+            transform: translateY(40px) scale(0.97);
+            filter: blur(4px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+        }
+    }
+
+    /* 赋予初始透明状态，规避闪烁 */
+    .reveal-item {
+        opacity: 0;
+        transform: translateY(40px);
+        will-change: transform, opacity, filter;
+    }
+
+    /* 激活优雅的交错缓动 */
+    .reveal-item.animated {
+        animation: floatUpReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     .glass-card {
@@ -312,216 +325,45 @@ title: 金融工程 · 个人主页
 </style>
 
 <script>
-    // ================= 1. 动感电影级公式穿梭与H点亮降落引擎 =================
-    function bezier(t, p0, p1, p2, p3) {
-        let u = 1 - t;
-        return (u*u*u * p0) + (3 * u*u * t * p1) + (3 * u * t*t * p2) + (t*t*t * p3);
+    // ================= 1. 灵动多板块交错瀑布流浮现引擎 =================
+    function initFloatUpIntro() {
+        const elementsToAnimate = [];
+
+        // 1. 先加入顶部切换栏
+        const topBar = document.querySelector('.top-utility-bar');
+        if (topBar) elementsToAnimate.push(topBar);
+
+        // 2. 再加入头像核心个人信息栏
+        const header = document.querySelector('.header-section');
+        if (header) elementsToAnimate.push(header);
+
+        // 3. 将简历、项目、量化面板等各个子版块逐个抓取，实现完美序列流
+        const containerChildren = document.querySelectorAll('.cv-container > *');
+        containerChildren.forEach(child => {
+            elementsToAnimate.push(child);
+        });
+
+        // 4. 为每个板块动态绑定时间差（步长 65ms 紧凑生动）
+        elementsToAnimate.forEach((el, index) => {
+            el.classList.add('reveal-item');
+            el.style.animationDelay = `${index * 65}ms`;
+            
+            // 稍作微小延迟加入激活类触发硬件加速
+            setTimeout(() => {
+                el.classList.add('animated');
+            }, 30);
+        });
+
+        // 5. 让股价路径图表立刻开始准备数据并绘制
+        runSimulation();
+        setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 400);
     }
 
-    function initCinematicIntro() {
-        // 动态捕捉顶级导航栏中的站点超链接标题
-        const siteTitleEl = document.querySelector('.site-title');
-        if (siteTitleEl) {
-            let origHtml = siteTitleEl.innerHTML;
-            if (origHtml.includes('Hanson') && !origHtml.includes('id="target-h"')) {
-                siteTitleEl.innerHTML = origHtml.replace('Hanson', '<span id="target-h" style="display: inline-block;">H</span>anson');
-            }
-        }
-
-        // 防止加载时有滚动偏差，强制归零
-        window.scrollTo(0, 0);
-
-        const canvas = document.getElementById('intro-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const formulas = [
-            'dS_t = μS_tdt + σS_tdW_t', 'V = S N(d_1) - K e^{-rT} N(d_2)', 
-            'E(R_p) = w^T E(R)', 'σ_p^2 = w^T Σ w', 
-            '∂V/∂t + ½σ²S²∂²V/∂S² + rS∂V/∂S - rV = 0', 
-            'Δ = N(d_1)', 'Sharpe = (R_p - R_f)/σ_p', 'VAR = z_α σ √t', 
-            'd_1 = (ln(S/K) + (r + σ²/2)t) / (σ√t)', 'd_2 = d_1 - σ√t',
-            'Γ = N\'(d_1) / (Sσ√t)', 'Θ = -(S N\'(d_1)σ)/(2√t) - rKe^{-rT}N(d_2)',
-            'ρ = Kte^{-rT}N(d_2)', 'r_e = r_f + β(E(r_m) - r_f)', 
-            'WACC = (E/V)R_e + (D/V)R_d(1-T_c)', 'D = [Σ t*C_t/(1+y)^t] / P', 
-            'C = (1/P) ∂²P/∂y²', 'F = S_0 e^{(r-q)T}', 
-            'd(ln S) = (μ - σ²/2)dt + σ dW', 'dG = (∂G/∂t)dt + (∂G/∂x)dx + ½(∂²G/∂x²)dx²',
-            'IR = (R_p - R_b)/σ_{TE}', 'Treynor = (R_p - R_f)/β_p',
-            'P(S_T ≤ K) = N(-d_2)', 'd_2 = (ln(S/K)+(r-σ²/2)t)/(σ√t)',
-            'PV = C / (1+r)^n', 'YTM = (C + (F-P)/n) / ((F+P)/2)'
-        ];
-
-        const particles = [];
-        const numParticles = 250; 
-        
-        class Particle {
-            constructor() { this.reset(true); }
-            reset(randomizeZ = false) {
-                // 【优化】视野大幅拉宽（3.5 -> 6.5），公式从诞生起就会向四周大范围发散，彻底解决中心堆积拥挤的问题
-                this.x = (Math.random() - 0.5) * canvas.width * 6.5; 
-                this.y = (Math.random() - 0.5) * canvas.height * 6.5;
-                this.z = randomizeZ ? Math.random() * canvas.width : canvas.width;
-                this.formula = formulas[Math.floor(Math.random() * formulas.length)];
-                this.isCyan = Math.random() > 0.4;
-                this.fontSize = Math.random() * 16 + 12; 
-                // 【优化】大幅提升初始穿梭速度（原为 15 + 5）
-                this.baseSpeed = Math.random() * 35 + 25; 
-            }
-            update(t) {
-                // 【优化】引入随时间进程 t（0到1）进行平方级加速的机制，后期公式会犹如流星般超速飞逝
-                let acceleration = 1 + Math.pow(t, 2) * 6;
-                this.z -= this.baseSpeed * acceleration; 
-                
-                // 【优化】动画进行到 82% 以后（t > 0.82），冲出屏幕贴脸消失的粒子不再复位，保证水波纹展开前全数穿梭完毕
-                if (this.z <= 10) {
-                    if (t < 0.82) {
-                        this.reset(false);
-                    } else {
-                        this.z = -9999; // 移出绘制范围
-                    }
-                }
-            }
-            draw() {
-                if (this.z <= 10) return;
-                
-                let depth = 1 - this.z / canvas.width;
-                if(depth < 0 || depth > 1) return;
-
-                let x = (this.x / this.z) * canvas.width + canvas.width / 2;
-                let y = (this.y / this.z) * canvas.height + canvas.height / 2;
-                
-                let size = depth * this.fontSize * 4.0;
-                if(size < 0.5) return; 
-
-                let opacity = Math.pow(depth, 1.8) * 2.5;
-                if (opacity > 1) opacity = 1;
-
-                let r = this.isCyan ? 56 : 139;
-                let g = this.isCyan ? 189 : 92;
-                let b = this.isCyan ? 248 : 246;
-
-                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
-                ctx.font = `italic ${size}px "Times New Roman", Times, serif`;
-                ctx.fillText(this.formula, x, y);
-            }
-        }
-
-        for (let i = 0; i < numParticles; i++) particles.push(new Particle());
-
-        const targetHEl = document.getElementById('target-h') || document.querySelector('.site-title') || document.querySelector('.main-title');
-        
-        const p0 = { x: canvas.width + 200, y: canvas.height * 0.6 }; 
-        const p1 = { x: canvas.width * 0.4, y: canvas.height * 0.9 };  
-        const p2 = { x: canvas.width * 0.2, y: canvas.height * 0.1 };  
-
-        let startTime = Date.now();
-        let animationFrameId;
-        const flightDuration = 2.6; 
-        const rippleDuration = 0.4; 
-
-        function animate() {
-            let elapsed = (Date.now() - startTime) / 1000;
-            let t = Math.min(elapsed / flightDuration, 1);
-            let rippleT = t >= 1 ? Math.min((elapsed - flightDuration) / rippleDuration, 1) : 0;
-
-            const hRect = targetHEl ? targetHEl.getBoundingClientRect() : { left: 40, top: 20, width: 20, height: 20 };
-            const isSpan = targetHEl && targetHEl.id === 'target-h';
-            const targetX = isSpan ? (hRect.left + hRect.width / 2) : (hRect.left + 40); 
-            const targetY = hRect.top + hRect.height / 2 + 1; 
-            const targetFontSize = targetHEl ? parseFloat(window.getComputedStyle(targetHEl).fontSize) : 22; 
-            const p3 = { x: targetX, y: targetY }; 
-
-            ctx.fillStyle = 'rgba(3, 7, 18, 0.4)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (rippleT < 1) {
-                // 【优化】传入当前时间进程 t，让粒子执行动态加速
-                particles.forEach(p => { p.update(t); p.draw(); });
-            }
-
-            if (t < 1) {
-                let easeT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-                let hX = bezier(easeT, p0.x, p1.x, p2.x, p3.x);
-                let hY = bezier(easeT, p0.y, p1.y, p2.y, p3.y);
-
-                let currentSize;
-                if (t < 0.6) {
-                    let zPhase = t / 0.6;
-                    currentSize = targetFontSize + 50 + Math.pow(Math.sin(zPhase * Math.PI), 1.5) * 450;
-                } else {
-                    let shrinkPhase = (t - 0.6) / 0.4;
-                    let easeShrink = 1 - Math.pow(1 - shrinkPhase, 3);
-                    currentSize = (targetFontSize + 50) - 50 * easeShrink;
-                }
-
-                let r = Math.round(0 + (15 - 0) * easeT);
-                let g = Math.round(240 + (23 - 240) * Math.pow(t, 2));
-                let b = Math.round(255 + (42 - 255) * Math.pow(t, 2));
-
-                ctx.save();
-                ctx.translate(hX, hY);
-                let tilt = Math.sin(t * Math.PI) * 0.15 * (1 - easeT);
-                ctx.rotate(tilt);
-
-                ctx.font = `bold ${currentSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                ctx.shadowColor = `rgba(0, 240, 255, ${1 - easeT})`;
-                ctx.shadowBlur = 30 * (1 - easeT);
-                
-                ctx.fillText("H", 0, 0);
-                ctx.restore();
-            }
-
-            if (t >= 1) {
-                let rippleEase = 1 - Math.pow(1 - rippleT, 5);
-                let maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
-                let currentRadius = maxRadius * rippleEase;
-
-                const pageWrapper = document.getElementById('page-wrapper');
-                pageWrapper.style.clipPath = `circle(${currentRadius}px at ${targetX}px ${targetY}px)`;
-                pageWrapper.style.webkitClipPath = `circle(${currentRadius}px at ${targetX}px ${targetY}px)`;
-
-                if (rippleT < 0.9) {
-                    ctx.beginPath();
-                    ctx.arc(targetX, targetY, currentRadius * 1.05, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(56, 189, 248, ${1 - rippleT})`;
-                    ctx.lineWidth = 15 * (1 - rippleT);
-                    ctx.stroke();
-                }
-
-                if (rippleT === 1) {
-                    pageWrapper.style.clipPath = 'none';
-                    pageWrapper.style.webkitClipPath = 'none';
-                    
-                    document.body.style.background = 'linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc)';
-                    document.body.style.backgroundSize = '400% 400%';
-                    document.body.style.animation = 'gradientBG 15s ease infinite';
-                    
-                    document.getElementById('intro-canvas').style.display = 'none';
-                    document.body.style.overflowY = 'auto'; 
-                    cancelAnimationFrame(animationFrameId);
-                    
-                    runSimulation();
-                    setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
-                    return;
-                }
-            }
-
-            animationFrameId = requestAnimationFrame(animate);
-        }
-
-        animate();
-    }
-
-    window.addEventListener('load', initCinematicIntro);
+    // 监听 DOM 加载完毕直接渲染，不再等待多余资源
+    window.addEventListener('DOMContentLoaded', initFloatUpIntro);
 
 
-    // ================= 基础多语言与量化配置引擎数据 =================
+    // ================= 2. 基础多语言与量化配置引擎数据 =================
     const i18nDict = {
         name: { zh: "王 盛 烨", en: "Shengye (Hanson) Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
@@ -780,11 +622,10 @@ title: 金融工程 · 个人主页
             chartInstance.setOption({
                 backgroundColor: 'transparent',
                 textStyle: { fontFamily: '-apple-system, sans-serif' },
-                // 为参数水印设置极客字体
                 graphic: [{ type: 'text', left: '2%', top: '3%', style: { text: watermarkText, fontSize: 10, fill: '#64748b', lineHeight: 15, fontFamily: "'Fira Code', monospace" }, z: 100 }],
                 tooltip: {
                     position: 'top', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#cbd5e1',
-                    textStyle: { fontFamily: "'Fira Code', monospace" }, // 悬浮窗字体
+                    textStyle: { fontFamily: "'Fira Code', monospace" }, 
                     formatter: function (p) {
                         if(p.seriesType === 'heatmap') {
                             let lower = parseFloat(data.yAxisLabels[p.value[1]]);
@@ -798,10 +639,10 @@ title: 金融工程 · 个人主页
                 },
                 visualMap: { dimension: 3, min: 0, max: 1, show: false, inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] } },
                 grid: { left: '1%', right: '2%', top: 60, bottom: 10, containLabel: true },
-                xAxis: { type: 'category', data: xAxisData, axisLabel: { fontFamily: "'Fira Code', monospace" } }, // X轴数字字体
+                xAxis: { type: 'category', data: xAxisData, axisLabel: { fontFamily: "'Fira Code', monospace" } }, 
                 yAxis: [
                     { type: 'category', data: data.yAxisLabels, show: false }, 
-                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { fontFamily: "'Fira Code', monospace", formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } } // Y轴价格字体
+                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { fontFamily: "'Fira Code', monospace", formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } } 
                 ],
                 series: [
                     { name: 'Heatmap', type: 'heatmap', data: data.heatmapData, yAxisIndex: 0 },
