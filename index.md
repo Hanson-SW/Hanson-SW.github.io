@@ -195,7 +195,7 @@ title: 金融工程 · 个人主页
         margin: 0;
         background-color: #030712; 
         overflow-x: hidden;
-        overflow-y: hidden; /* 动画期间锁死滚动，确保坐标无偏差 */
+        overflow-y: hidden; 
         transition: background 0.5s ease;
     }
 
@@ -211,7 +211,6 @@ title: 金融工程 · 个人主页
         min-height: 100vh;
         background: linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc);
         background-size: 400% 400%;
-        animation: gradientBG 15s ease infinite;
         clip-path: circle(0px at 50% 50%);
         -webkit-clip-path: circle(0px at 50% 50%);
     }
@@ -220,6 +219,18 @@ title: 金融工程 · 个人主页
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
+    }
+
+    /* 核心修复 1：将卡片容器设为透明并稍微下沉，待背景亮起后再平滑浮现 */
+    #main-content-container {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .content-visible {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
     }
 
     .glass-card {
@@ -312,14 +323,12 @@ title: 金融工程 · 个人主页
 </style>
 
 <script>
-    // ================= 1. 动感电影级公式穿梭与H点亮降落引擎 =================
     function bezier(t, p0, p1, p2, p3) {
         let u = 1 - t;
         return (u*u*u * p0) + (3 * u*u * t * p1) + (3 * u * t*t * p2) + (t*t*t * p3);
     }
 
     function initCinematicIntro() {
-        // 动态捕捉顶级导航栏中的站点超链接标题
         const siteTitleEl = document.querySelector('.site-title');
         if (siteTitleEl) {
             let origHtml = siteTitleEl.innerHTML;
@@ -328,7 +337,6 @@ title: 金融工程 · 个人主页
             }
         }
 
-        // 防止加载时有滚动偏差，强制归零
         window.scrollTo(0, 0);
 
         const canvas = document.getElementById('intro-canvas');
@@ -353,36 +361,35 @@ title: 金融工程 · 个人主页
         ];
 
         const particles = [];
-        const numParticles = 250; // 【修正】翻倍粒子数，允许重复
+        // 核心修复 2：公式数量提升到原先 3 倍 (从 250 到 750)
+        const numParticles = 750; 
         
         class Particle {
             constructor() { this.reset(true); }
             reset(randomizeZ = false) {
-                this.x = (Math.random() - 0.5) * canvas.width * 3.5; // 视野拉宽
+                this.x = (Math.random() - 0.5) * canvas.width * 3.5; 
                 this.y = (Math.random() - 0.5) * canvas.height * 3.5;
                 this.z = randomizeZ ? Math.random() * canvas.width : canvas.width;
                 this.formula = formulas[Math.floor(Math.random() * formulas.length)];
                 this.isCyan = Math.random() > 0.4;
-                this.fontSize = Math.random() * 16 + 12; // 基础字号
-                this.speed = Math.random() * 15 + 5; // 【修正】提升速度，拉大差异
+                this.fontSize = Math.random() * 16 + 12; 
+                // 核心修复 3：速度提升 1.5 倍
+                this.speed = (Math.random() * 15 + 5) * 1.5; 
             }
             update() {
                 this.z -= this.speed; 
                 if (this.z <= 10) this.reset();
             }
             draw() {
-                // 纵深比：0 为最远，1 为贴脸
                 let depth = 1 - this.z / canvas.width;
                 if(depth < 0) return;
 
                 let x = (this.x / this.z) * canvas.width + canvas.width / 2;
                 let y = (this.y / this.z) * canvas.height + canvas.height / 2;
                 
-                // 【修正】极限透视：越近越大，越远越小
                 let size = depth * this.fontSize * 4.0;
-                if(size < 0.5) return; // 太小不画
+                if(size < 0.5) return; 
 
-                // 【修正】明暗对比：远处完全隐入黑暗，近处高亮刺眼
                 let opacity = Math.pow(depth, 1.8) * 2.5;
                 if (opacity > 1) opacity = 1;
 
@@ -406,9 +413,8 @@ title: 金融工程 · 个人主页
 
         let startTime = Date.now();
         let animationFrameId;
-        // 【修正】微调降落时间与水波纹展开时间
         const flightDuration = 2.6; 
-        const rippleDuration = 0.4; // 让水波纹爆发更快
+        const rippleDuration = 0.4; 
 
         function animate() {
             let elapsed = (Date.now() - startTime) / 1000;
@@ -467,7 +473,6 @@ title: 金融工程 · 个人主页
             }
 
             if (t >= 1) {
-                // 【修正】爆发式的展现动画，瞬间铺满全屏
                 let rippleEase = 1 - Math.pow(1 - rippleT, 5);
                 let maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
                 let currentRadius = maxRadius * rippleEase;
@@ -495,6 +500,9 @@ title: 金融工程 · 个人主页
                     document.getElementById('intro-canvas').style.display = 'none';
                     document.body.style.overflowY = 'auto'; 
                     cancelAnimationFrame(animationFrameId);
+
+                    // 核心修复 4：等到背景特效全开后，让卡片丝滑浮现
+                    document.getElementById('main-content-container').classList.add('content-visible');
                     
                     runSimulation();
                     setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 150);
@@ -770,11 +778,10 @@ title: 金融工程 · 个人主页
             chartInstance.setOption({
                 backgroundColor: 'transparent',
                 textStyle: { fontFamily: '-apple-system, sans-serif' },
-                // 【修正】为参数水印设置极客字体
                 graphic: [{ type: 'text', left: '2%', top: '3%', style: { text: watermarkText, fontSize: 10, fill: '#64748b', lineHeight: 15, fontFamily: "'Fira Code', monospace" }, z: 100 }],
                 tooltip: {
                     position: 'top', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#cbd5e1',
-                    textStyle: { fontFamily: "'Fira Code', monospace" }, // 【修正】悬浮窗字体
+                    textStyle: { fontFamily: "'Fira Code', monospace" }, 
                     formatter: function (p) {
                         if(p.seriesType === 'heatmap') {
                             let lower = parseFloat(data.yAxisLabels[p.value[1]]);
@@ -788,10 +795,10 @@ title: 金融工程 · 个人主页
                 },
                 visualMap: { dimension: 3, min: 0, max: 1, show: false, inRange: { color: ['#ffffff', '#bfdbfe', '#3b82f6', '#ef4444'] } },
                 grid: { left: '1%', right: '2%', top: 60, bottom: 10, containLabel: true },
-                xAxis: { type: 'category', data: xAxisData, axisLabel: { fontFamily: "'Fira Code', monospace" } }, // 【修正】X轴数字字体
+                xAxis: { type: 'category', data: xAxisData, axisLabel: { fontFamily: "'Fira Code', monospace" } }, 
                 yAxis: [
                     { type: 'category', data: data.yAxisLabels, show: false }, 
-                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { fontFamily: "'Fira Code', monospace", formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } } // 【修正】Y轴价格字体
+                    { type: 'value', min: data.globalMin, max: data.globalMax, axisLabel: { fontFamily: "'Fira Code', monospace", formatter: function(v) { return currentCurrency + parseFloat(v).toFixed(2); } } } 
                 ],
                 series: [
                     { name: 'Heatmap', type: 'heatmap', data: data.heatmapData, yAxisIndex: 0 },
