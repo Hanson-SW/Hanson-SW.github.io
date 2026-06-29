@@ -20,10 +20,7 @@ title: 金融工程 · 个人主页
         <div class="header-section">
             <div class="avatar-gradient">王</div>
             <div>
-                <h1 class="main-title">
-                    <span data-i18n="name_p1">Shengye（</span><span id="target-h" style="display: inline-block;">H</span><span data-i18n="name_p2">anson） Wang</span> 
-                    <span data-i18n="name_zh" style="margin-left: 0.6rem; font-size: 0.85em; color: #475569;">王 盛 烨</span>
-                </h1>
+                <h1 class="main-title" data-i18n="name">王 盛 烨</h1>
                 <p class="sub-title">
                     <i class="fas fa-chart-line"></i> <span data-i18n="degree">上海纽约大学 · 商业与金融（商业分析）</span>
                 </p>
@@ -90,7 +87,7 @@ title: 金融工程 · 个人主页
             <i class="fas fa-chart-area" style="color: #2563eb;"></i> <span data-i18n="mc_title">实盘量化引擎：股价路径预测</span>
         </h2>
         <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="mc_desc">
-            系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
+            系统自动拉取历史 data(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。
         </p>
 
         <div class="model-panel glass-card">
@@ -309,13 +306,22 @@ title: 金融工程 · 个人主页
 
 <script>
     // ================= 1. 动感电影级公式穿梭与H点亮降落引擎 =================
-    // Bezier curve helper
     function bezier(t, p0, p1, p2, p3) {
         let u = 1 - t;
         return (u*u*u * p0) + (3 * u*u * t * p1) + (3 * u * t*t * p2) + (t*t*t * p3);
     }
 
     function initCinematicIntro() {
+        // 【核心修正】动态捕捉顶级导航栏中的站点超链接标题 (Jekyll 默认类名为 .site-title)
+        // 动态将其中的 'Hanson' 替换为包裹了独立 span 锚点的 HTML，从而获得完美绝对坐标
+        const siteTitleEl = document.querySelector('.site-title');
+        if (siteTitleEl) {
+            let origHtml = siteTitleEl.innerHTML;
+            if (origHtml.includes('Hanson') && !origHtml.includes('id="target-h"')) {
+                siteTitleEl.innerHTML = origHtml.replace('Hanson', '<span id="target-h" style="display: inline-block;">H</span>anson');
+            }
+        }
+
         // 防止加载时有滚动偏差，强制归零
         window.scrollTo(0, 0);
 
@@ -373,12 +379,12 @@ title: 金融工程 · 个人主页
 
         for (let i = 0; i < numParticles; i++) particles.push(new Particle());
 
-        const targetHEl = document.getElementById('target-h');
+        // 获取刚刚注入好的顶级导航栏 H 元素（若未找到则平滑降阶到主要选择器上）
+        const targetHEl = document.getElementById('target-h') || document.querySelector('.site-title') || document.querySelector('.main-title');
         
-        // H 飞行轨迹的基础控制点 (前3点)
-        const p0 = { x: canvas.width + 200, y: canvas.height * 0.6 };  // 从右侧切入
-        const p1 = { x: canvas.width * 0.4, y: canvas.height * 0.9 };  // 向左下高速俯冲
-        const p2 = { x: canvas.width * 0.2, y: canvas.height * 0.2 };  // 向上拉升
+        const p0 = { x: canvas.width + 200, y: canvas.height * 0.6 }; 
+        const p1 = { x: canvas.width * 0.4, y: canvas.height * 0.9 };  
+        const p2 = { x: canvas.width * 0.2, y: canvas.height * 0.1 };  
 
         let startTime = Date.now();
         let animationFrameId;
@@ -390,15 +396,14 @@ title: 金融工程 · 个人主页
             let t = Math.min(elapsed / flightDuration, 1);
             let rippleT = t >= 1 ? Math.min((elapsed - flightDuration) / rippleDuration, 1) : 0;
 
-            // 获取 H 元素的“实时”坐标 (防抖动/字体延迟加载)
-            const hRect = targetHEl.getBoundingClientRect();
-            // 注意：Canvas 绘制文字以中心(middle)为基准，需在 Y 轴中心增加微调确保100%重合
-            const targetX = hRect.left + hRect.width / 2;
+            // 实时跟踪 H 的几何数据（应对加载字体引发的位移抖动）
+            const hRect = targetHEl ? targetHEl.getBoundingClientRect() : { left: 40, top: 20, width: 20, height: 20 };
+            const isSpan = targetHEl && targetHEl.id === 'target-h';
+            const targetX = isSpan ? (hRect.left + hRect.width / 2) : (hRect.left + 40); 
             const targetY = hRect.top + hRect.height / 2 + 1; 
-            const targetFontSize = parseFloat(window.getComputedStyle(targetHEl).fontSize); 
+            const targetFontSize = targetHEl ? parseFloat(window.getComputedStyle(targetHEl).fontSize) : 22; 
             const p3 = { x: targetX, y: targetY }; 
 
-            // 背景光带拖影
             ctx.fillStyle = 'rgba(3, 7, 18, 0.35)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -406,7 +411,6 @@ title: 金融工程 · 个人主页
                 particles.forEach(p => { p.update(); p.draw(); });
             }
 
-            // H 飞行物理引擎
             if (t < 1) {
                 let easeT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
@@ -423,14 +427,12 @@ title: 金融工程 · 个人主页
                     currentSize = (targetFontSize + 50) - 50 * easeShrink;
                 }
 
-                // 色彩平滑蜕变：发光青色最终褪色为主页的深蓝/灰黑色 (rgb 15,23,42)
                 let r = Math.round(0 + (15 - 0) * easeT);
                 let g = Math.round(240 + (23 - 240) * Math.pow(t, 2));
                 let b = Math.round(255 + (42 - 255) * Math.pow(t, 2));
 
                 ctx.save();
                 ctx.translate(hX, hY);
-                // 极小倾角，降落时绝对归零(不翻转)
                 let tilt = Math.sin(t * Math.PI) * 0.15 * (1 - easeT);
                 ctx.rotate(tilt);
 
@@ -446,7 +448,6 @@ title: 金融工程 · 个人主页
                 ctx.restore();
             }
 
-            // 完美的涟漪扩散点亮机制
             if (t >= 1) {
                 let rippleEase = 1 - Math.pow(1 - rippleT, 4);
                 let maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
@@ -464,18 +465,17 @@ title: 金融工程 · 个人主页
                     ctx.stroke();
                 }
 
-                // 彻底结束清理 (解决黑背景残留)
                 if (rippleT === 1) {
-                    // 1. 完全抛弃 clip-path 遮罩
                     pageWrapper.style.clipPath = 'none';
                     pageWrapper.style.webkitClipPath = 'none';
-                    // 2. 将 body 的深色背景重置为主页亮色渐变
+                    
+                    // 彻底清除黑底，无缝移交给亮色渐变背景
                     document.body.style.background = 'linear-gradient(135deg, #ffffff, #f1f5f9, #e2e8f0, #f8fafc)';
                     document.body.style.backgroundSize = '400% 400%';
                     document.body.style.animation = 'gradientBG 15s ease infinite';
                     
                     document.getElementById('intro-canvas').style.display = 'none';
-                    document.body.style.overflowY = 'auto'; // 解锁滚动
+                    document.body.style.overflowY = 'auto'; // 动画结束，允许滚动
                     cancelAnimationFrame(animationFrameId);
                     
                     runSimulation();
@@ -490,15 +490,12 @@ title: 金融工程 · 个人主页
         animate();
     }
 
-    // 页面加载即刻启动动画
     window.addEventListener('load', initCinematicIntro);
 
 
-    // ================= 基础逻辑 (多语言/量化拉取/图表生成) =================
+    // ================= 基础多语言与量化配置引擎数据 =================
     const i18nDict = {
-        name_p1: { zh: "Shengye（", en: "Shengye (" },
-        name_p2: { zh: "anson） Wang", en: "anson) Wang" },
-        name_zh: { zh: "王 盛 烨", en: "" }, // 英文下可选择隐藏中文名
+        name: { zh: "王 盛 烨", en: "Shengye (Hanson) Wang" },
         degree: { zh: "上海纽约大学 · 商业与金融（商业分析）", en: "NYU Shanghai · Business & Finance (Data Analytics)" },
         resume_title: { zh: "我的简历", en: "My Resume" },
         resume_name: { zh: "金融工程简历 (中文版)", en: "Financial Engineering Resume (CN)" },
@@ -515,7 +512,7 @@ title: 金融工程 · 个人主页
         proj_markowitz_tag: { zh: "· 现代投资组合理论 (MPT)", en: "· Modern Portfolio Theory (MPT)" },
         proj_markowitz_btn: { zh: "运行配置模型", en: "Run Allocation Model" },
         mc_title: { zh: "实盘量化引擎：股价路径预测", en: "Live Quant Engine: Monte Carlo Prediction" },
-        mc_desc: { zh: "系统自动拉取历史数据(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。", en: "Auto-fetches live data. Per-Day Normalized heatmap." },
+        mc_desc: { zh: "系统自动拉取历史 data(含GitHub缓存容灾)。支持自定义模拟次数，极速引擎生成逐日归一化的概率密度热力图。", en: "Auto-fetches live data. Per-Day Normalized heatmap." },
         mc_ticker: { zh: "股票/指数代码 (Ticker)", en: "Stock/Index Ticker" },
         mc_pull: { zh: "拉取", en: "Fetch" },
         mc_vol: { zh: "波动率 (σ)", en: "Volatility (σ)" },
@@ -552,7 +549,7 @@ title: 金融工程 · 个人主页
     const localTickerDB = [
         { symbol: '000300.SS', name: '沪深300指数 (CSI 300 Index)' },
         { symbol: '000905.SS', name: '中证500指数 (CSI 500 Index)' },
-        { symbol: '^GSPC', name: '标普500指数 (S&P 500 Index)' },
+        { symbol: '^GSPC', name: '标谱500指数 (S&P 500 Index)' },
         { symbol: '^IXIC', name: '纳斯达克综合指数 (Nasdaq Composite)' },
         { symbol: '^DJI', name: '道琼斯工业指数 (Dow Jones Index)' },
         { symbol: '^HSI', name: '恒生指数 (Hang Seng Index)' },
@@ -560,7 +557,7 @@ title: 金融工程 · 个人主页
         { symbol: 'MSFT', name: '微软 (Microsoft)' },
         { symbol: 'NVDA', name: '英伟达 (NVIDIA)' },
         { symbol: 'TSLA', name: '特斯拉 (Tesla)' },
-        { symbol: 'SPY', name: '标普500 ETF (SPY)' },
+        { symbol: 'SPY', name: '标谱500 ETF (SPY)' },
         { symbol: 'QQQ', name: '纳斯达克100 ETF (QQQ)' },
         { symbol: '600519.SS', name: '贵州茅台 (Moutai)' }
     ];
