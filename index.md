@@ -61,7 +61,7 @@ title: 金融工程 · 个人主页
             <div class="project-card glass-card">
                 <div class="header">
                     <div class="title" data-i18n="proj_backtest_name">A股回测模型</div>
-                    <div class="tag" data-i18n="proj_backtest_tag">· 宏观 + 情绪指标</div>
+                    <div class="tag" data-i18n="proj_backtest_tag">· 量化择时 + 技术指标</div>
                 </div>
                 <div class="spacer"></div>
                 <button onclick="window.open('./backtest.html', '_blank')" class="btn project-btn btn-bubble">
@@ -388,7 +388,7 @@ title: 金融工程 · 个人主页
         resume_en_btn: { zh: "View PDF", en: "View PDF" },
         project_title: { zh: "项目展示", en: "Projects" },
         proj_backtest_name: { zh: "A股回测模型", en: "A-Share Backtesting Model" },
-        proj_backtest_tag: { zh: "· 宏观 + 情绪指标", en: "· Macro + Sentiment Indicators" },
+        proj_backtest_tag: { zh: "· 量化择时 + 技术指标", en: "· Quantitative Timing + Technical Indicators" },
         proj_backtest_btn: { zh: "运行回测模型", en: "Run Backtest Model" },
         proj_markowitz_name: { zh: "Markowitz 资产轮动与量化配置模型", en: "Markowitz Portfolio Allocation Model" },
         proj_markowitz_tag: { zh: "· 现代投资组合理论 (MPT)", en: "· Modern Portfolio Theory (MPT)" },
