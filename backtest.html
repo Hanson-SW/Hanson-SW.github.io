@@ -3,53 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A股量化策略回测系统</title>
+    <title>A股量化策略回测系统 - 择时增强版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; gap: 15px; height: 100vh; box-sizing: border-box; }
         
-        .sidebar { width: 360px; background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; border: 1px solid var(--border); }
-        .sidebar h3 { margin: 0 0 5px 0; font-size: 18px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; color: #1e293b; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        /* 侧边栏极限瘦身，留出最大图表空间 */
+        .sidebar { width: 280px; background: var(--card); border-radius: 10px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; border: 1px solid var(--border); flex-shrink: 0; }
+        .sidebar h3 { margin: 0 0 5px 0; font-size: 16px; border-bottom: 2px solid var(--bg); padding-bottom: 8px; color: #1e293b; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group label { font-size: 12px; font-weight: bold; color: #64748b; }
-        input[type="text"], input[type="number"], input[type="date"] { padding: 10px; border: 1px solid var(--border); border-radius: 8px; outline: none; font-size: 14px; }
+        input[type="text"], input[type="number"], input[type="date"] { padding: 8px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-size: 13px; width: 100%; box-sizing: border-box;}
         input:focus { border-color: var(--accent); }
         
-        .asset-weight-title { font-size: 13px; font-weight: bold; color: #475569; margin-top: 5px; display: flex; justify-content: space-between; }
-        .asset-list { display: flex; flex-direction: column; gap: 10px; }
-        .asset-item { display: flex; gap: 10px; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
-        .asset-item span { flex: 1; font-weight: bold; color: #1e293b; }
-        .weight-input { width: 70px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; text-align: center; }
-        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 12px; }
+        .strategy-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 8px; margin-top: 5px; }
+        .strategy-box label.title { color: #166534; font-size: 12px; margin-bottom: 6px; display: block;}
+        .strategy-label { font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #374151; font-weight: normal; margin-bottom: 4px; }
         
-        .btn-add { background: transparent; border: 2px dashed #cbd5e1; padding: 10px; border-radius: 8px; cursor: pointer; text-align: center; color: #64748b; font-weight: bold; font-size: 13px; }
-        .btn-add:hover { border-color: var(--accent); color: var(--accent); background: #f0f6ff; }
-        .btn-run { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
-
-        .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-        .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        .stat-card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
-        .stat-title { font-size: 11px; color: #64748b; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; }
-        .stat-val { font-size: 20px; font-weight: bold; color: #1e293b; }
-        .stat-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
-
-        #chart-container { flex: 1; min-height: 580px; background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .asset-weight-title { font-size: 12px; font-weight: bold; color: #475569; margin-top: 5px; display: flex; justify-content: space-between; }
+        .asset-list { display: flex; flex-direction: column; gap: 8px; }
+        .asset-item { display: flex; gap: 8px; align-items: center; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .asset-item span { flex: 1; font-weight: bold; color: #1e293b; line-height: 1.2;}
+        .weight-input { width: 55px; padding: 5px; text-align: center; }
+        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer; font-size: 11px; }
         
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 17px; font-weight: bold; color: var(--accent); }
-        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        .btn-add { background: #e2e8f0; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #475569; font-weight: bold; font-size: 12px; white-space: nowrap;}
+        .btn-add:hover { background: #cbd5e1; }
+        .btn-run { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+        .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .stat-card { background: var(--card); padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+        .stat-title { font-size: 11px; color: #64748b; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
+        .stat-val { font-size: 18px; font-weight: bold; color: #1e293b; }
+        .stat-sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+        #chart-container { flex: 1; min-height: 500px; background: var(--card); border-radius: 10px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border); }
+        
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 999; font-size: 16px; font-weight: bold; color: var(--accent); }
+        .spinner { width: 36px; height: 36px; border: 4px solid #e2e8f0; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ===== 完美修复的移动端响应式代码 ===== */
         @media (max-width: 768px) {
             body { flex-direction: column; height: auto; padding: 10px; }
-            .sidebar { width: 100%; box-sizing: border-box; }
-            .main-content { width: 100%; }
+            .sidebar { width: 100%; }
             .stats-container { grid-template-columns: 1fr 1fr; }
             #chart-container { min-height: 450px; }
-        }
-        @media (max-width: 480px) {
-            .stats-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -66,37 +66,43 @@
         <option value="sh000688">科创50</option>
     </datalist>
 
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <div>正在调用多空量化回测引擎...</div>
-    </div>
+    <div id="loading-overlay"><div class="spinner"></div><div>正在运行择时回测引擎...</div></div>
 
     <div class="sidebar">
         <h3>📊 策略回测沙盒</h3>
         
-        <div class="form-group" style="flex-direction: row; gap: 10px;">
-            <div style="flex: 1;"><label>开始日期</label><input type="date" id="start-date" value="2025-01-01" style="width:100%"></div>
-            <div style="flex: 1;"><label>结束日期</label><input type="date" id="end-date" value="2025-12-31" style="width:100%"></div>
+        <div class="form-group" style="flex-direction: row; gap: 8px;">
+            <div style="flex: 1;"><label>开始日期</label><input type="date" id="start-date" value="2025-01-01"></div>
+            <div style="flex: 1;"><label>结束日期</label><input type="date" id="end-date" value="2025-12-31"></div>
         </div>
 
         <div class="form-group">
             <label>对比业绩基准</label>
-            <input type="text" id="benchmark-code" list="stock-database" value="sh000300" placeholder="e.g. sh000300">
+            <div style="display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding-right: 8px;">
+                <input type="text" id="benchmark-code" list="stock-database" value="sh000300" oninput="updateBenchName()" style="border: none; margin:0; flex:1;">
+                <span id="bench-name-label" style="font-size: 12px; color: var(--accent); font-weight: bold; white-space: nowrap;">沪深300</span>
+            </div>
+        </div>
+
+        <div class="strategy-box">
+            <label class="title">⚡ 智能择时策略 (每个资产独立判断)</label>
+            <label class="strategy-label"><input type="checkbox" id="strat-sma"> 启用双均线择时 (5日上穿20日)</label>
+            <label class="strategy-label" style="margin-bottom:0;"><input type="checkbox" id="strat-bb"> 启用布林带择时 (20日/2倍标准差)</label>
         </div>
 
         <div class="asset-weight-title">
-            <span>📦 自定义多资产组合 (可配负数做空)</span>
-            <span id="total-weight-indicator" style="color: #10b981;">总权重: 100%</span>
+            <span>📦 自定义资产配置</span>
+            <span id="total-weight-indicator" style="color: #10b981;">100%</span>
         </div>
         
         <div class="asset-list" id="assets-container"></div>
         
-        <div style="display: flex; gap: 5px;">
-            <input type="text" id="new-asset-code" list="stock-database" placeholder="输入代码(如 sz399006)" style="flex: 1; padding: 8px; border:1px solid var(--border); border-radius:6px; font-size:13px;">
-            <button class="btn-add" onclick="addAssetRow()" style="padding: 8px 12px; border: none; background: #e2e8f0; color: #475569; border-radius:6px; cursor:pointer;">添加</button>
+        <div style="display: flex; gap: 5px; align-items: center;">
+            <input type="text" id="new-asset-code" list="stock-database" placeholder="输入代码(如 sz399006)" style="flex: 1;">
+            <button class="btn-add" onclick="addAssetRow()">添加</button>
         </div>
 
-        <button class="btn-run" onclick="runBacktest()">⚡ 启动策略回测</button>
+        <button class="btn-run" onclick="runBacktest()">🚀 运行策略</button>
     </div>
 
     <div class="main-content">
@@ -130,18 +136,17 @@
         let glowInterval = null; 
         
         const ASSET_DICT = {
-            'sh000001': '上证指数',
-            'sz399001': '深证成指',
-            'sz399006': '创业板指',
-            'sh000300': '沪深300',
-            'sh000016': '上证50',
-            'sh000905': '中证500',
-            'sh000852': '中证1000',
-            'sh000688': '科创50',
-            'sz399300': '沪深300(深)'
+            'sh000001': '上证指数', 'sz399001': '深证成指', 'sz399006': '创业板指',
+            'sh000300': '沪深300', 'sh000016': '上证50', 'sh000905': '中证500',
+            'sh000852': '中证1000', 'sh000688': '科创50', 'sz399300': '沪深300(深)'
         };
 
         function getAssetName(code) { return ASSET_DICT[code] || code.toUpperCase(); }
+        
+        function updateBenchName() {
+            let code = document.getElementById('benchmark-code').value.trim().toLowerCase();
+            document.getElementById('bench-name-label').innerText = getAssetName(code);
+        }
 
         let portfolioConfig = [
             { code: 'sh000001', weight: 50 },
@@ -164,10 +169,7 @@
             }
             
             let seed = 8888;
-            function lcg() {
-                seed = (seed * 9301 + 49297) % 233280;
-                return seed / 233280;
-            }
+            function lcg() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
             
             assets.forEach(code => store[code] = {});
             let p_300 = 1.0, p_001 = 1.0, p_688 = 1.0, p_906 = 1.0;
@@ -180,10 +182,8 @@
                 let r_906 = betaFactor * 0.020 + (lcg() - 0.5) * 0.015 + 0.0006;
                 
                 p_300 *= (1 + r_300); p_001 *= (1 + r_001); p_688 *= (1 + r_688); p_906 *= (1 + r_906);
-                store['sh000300'][date] = p_300 * 3400;
-                store['sh000001'][date] = p_001 * 3100;
-                store['sh000688'][date] = p_688 * 850;
-                store['sz399006'][date] = p_906 * 1900;
+                store['sh000300'][date] = p_300 * 3400; store['sh000001'][date] = p_001 * 3100;
+                store['sh000688'][date] = p_688 * 850; store['sz399006'][date] = p_906 * 1900;
             });
             return store;
         }
@@ -204,43 +204,33 @@
                 const div = document.createElement('div');
                 div.className = 'asset-item';
                 div.innerHTML = `
-                    <span>🏷️ ${getAssetName(item.code)} <br><span style="font-size:11px; color:#94a3b8; font-weight:normal;">${item.code.toUpperCase()}</span></span>
+                    <span>${getAssetName(item.code)} <br><span style="font-size:10px; color:#94a3b8;">${item.code.toUpperCase()}</span></span>
                     <input type="number" class="weight-input" value="${item.weight}" step="1" onchange="updateWeightValue(${index}, this.value)">
-                    <span style="font-size:12px; color:#64748b; margin-left:-5px;">%</span>
-                    <button class="btn-remove" onclick="removeAssetRow(${index})">删除</button>
+                    <span style="font-size:11px; color:#64748b; margin-left:-4px;">%</span>
+                    <button class="btn-remove" onclick="removeAssetRow(${index})">删</button>
                 `;
                 container.appendChild(div);
             });
             updateWeightIndicator();
         }
 
-        function updateWeightValue(index, val) {
-            portfolioConfig[index].weight = Number(val) || 0;
-            updateWeightIndicator();
-        }
+        function updateWeightValue(index, val) { portfolioConfig[index].weight = Number(val) || 0; updateWeightIndicator(); }
 
         function addAssetRow() {
             const codeInput = document.getElementById('new-asset-code');
             const code = codeInput.value.trim().toLowerCase();
             if (code && !portfolioConfig.some(item => item.code === code)) {
                 portfolioConfig.push({ code: code, weight: 0 });
-                codeInput.value = '';
-                renderPortfolioDOM();
+                codeInput.value = ''; renderPortfolioDOM();
             }
         }
 
-        function removeAssetRow(index) {
-            portfolioConfig.splice(index, 1);
-            renderPortfolioDOM();
-        }
+        function removeAssetRow(index) { portfolioConfig.splice(index, 1); renderPortfolioDOM(); }
 
         async function fetchPriceSeries(code) {
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
-            
-            if (startDate === '2025-01-01' && endDate === '2025-12-31' && cachedDataStore[code]) {
-                return cachedDataStore[code];
-            }
+            if (startDate === '2025-01-01' && endDate === '2025-12-31' && cachedDataStore[code]) return cachedDataStore[code];
 
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
             try {
@@ -271,19 +261,21 @@
             
             let sharpe = annVol === 0 ? 0 : (annReturn - 0.02) / annVol;
             let calmar = maxDD === 0 ? 0 : annReturn / maxDD;
-            
             return { totalReturn, annReturn, annVol, maxDD, sharpe, calmar };
         }
 
         async function runBacktest(isInitialLoad = false) {
             let totalW = portfolioConfig.reduce((sum, item) => sum + item.weight, 0);
-            if (totalW !== 100) return alert(`当前组合总权重为 ${totalW}%，含做空权重在内总计须调整至 100%！`);
+            if (totalW !== 100) return alert(`当前组合总权重为 ${totalW}%，请调整至 100%！`);
             
             if (!isInitialLoad) document.getElementById('loading-overlay').style.display = 'flex';
             
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
             const benchmarkCode = document.getElementById('benchmark-code').value.trim().toLowerCase();
+            const useSMA = document.getElementById('strat-sma').checked;
+            const useBB = document.getElementById('strat-bb').checked;
+            const useStrategy = useSMA || useBB;
 
             try {
                 const dataStore = {};
@@ -296,18 +288,23 @@
 
                 let alignedDates = Object.keys(dataStore[benchmarkCode] || {}).filter(d => d >= startDate && d <= endDate).sort();
                 allCodes.forEach(code => {
-                    if (!dataStore[code]) throw new Error(`资产 ${code.toUpperCase()} 数据源提取失败`);
+                    if (!dataStore[code]) throw new Error(`资产 ${code.toUpperCase()} 数据提取失败`);
                     alignedDates = alignedDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
                 });
-                if (alignedDates.length < 5) throw new Error("有效重合交易日过少。");
+                if (alignedDates.length < 20 && useStrategy) throw new Error("开启策略需要至少20天以上数据预热。");
 
-                let pNetValues = [1.0];
-                let bNetValues = [1.0];
-                let excessSeries = [0.0];
-                let pDailyReturns = [];
-                let bDailyReturns = [];
-
+                let pNetValues = [1.0]; let bNetValues = [1.0]; let excessSeries = [0.0];
+                let pDailyReturns = []; let bDailyReturns = [];
                 let bBase = dataStore[benchmarkCode][alignedDates[0]];
+                let tradeMarkers = [];
+
+                // 独立资产资金池配置 (Sleeves)
+                let subPortfolios = portfolioConfig.map(item => ({
+                    code: item.code,
+                    initialWeight: item.weight,
+                    nav: 1.0,           // 独立净值，只在投资状态下复利
+                    invested: true      // 初始全投资
+                }));
 
                 for (let i = 1; i < alignedDates.length; i++) {
                     let d = alignedDates[i];
@@ -317,16 +314,45 @@
                     bNetValues.push(bNAV);
                     bDailyReturns.push((dataStore[benchmarkCode][d] - dataStore[benchmarkCode][prevD]) / dataStore[benchmarkCode][prevD]);
 
-                    let portfolioTodayReturn = 0;
-                    portfolioConfig.forEach(item => {
-                        let r = (dataStore[item.code][d] - dataStore[item.code][prevD]) / dataStore[item.code][prevD];
-                        portfolioTodayReturn += (item.weight / 100) * r;
+                    let anyBuy = false, anySell = false;
+
+                    // 计算组合当日表现
+                    subPortfolios.forEach(sp => {
+                        let prices = dataStore[sp.code];
+                        let r = (prices[d] - prices[prevD]) / prices[prevD];
+                        
+                        // 若处于投资状态，该资产子净值变化 (支持做空逻辑反向收益)
+                        if (sp.invested) {
+                            sp.nav *= (1 + r * Math.sign(sp.initialWeight));
+                        }
+
+                        // 计算策略信号 (使用前收盘价判断，次日执行，无未来函数)
+                        if (useStrategy && i >= 19) {
+                            let slice20 = [];
+                            for(let k=i-19; k<=i; k++) slice20.push(prices[alignedDates[k]]);
+                            
+                            let sma20 = slice20.reduce((a,b)=>a+b,0)/20;
+                            let sma5 = slice20.slice(15).reduce((a,b)=>a+b,0)/5;
+                            let std = Math.sqrt(slice20.reduce((sq, val) => sq + Math.pow(val - sma20, 2), 0) / 20);
+                            let upper = sma20 + 2 * std;
+                            let lower = sma20 - 2 * std;
+                            
+                            let buyCond = (useSMA && sma5 > sma20) || (useBB && prices[d] < lower);
+                            let sellCond = (useSMA && sma5 < sma20) || (useBB && prices[d] > upper);
+
+                            if (buyCond && !sp.invested) { sp.invested = true; anyBuy = true; }
+                            else if (sellCond && sp.invested) { sp.invested = false; anySell = true; }
+                        }
                     });
-                    pDailyReturns.push(portfolioTodayReturn);
-                    
-                    let newPNAV = pNetValues[pNetValues.length - 1] * (1 + portfolioTodayReturn);
+
+                    // 组合总净值 = sum(初始权重 * 各自的子净值)
+                    let newPNAV = subPortfolios.reduce((sum, sp) => sum + (sp.initialWeight / 100) * sp.nav, 0);
+                    pDailyReturns.push((newPNAV - pNetValues[pNetValues.length - 1]) / pNetValues[pNetValues.length - 1]);
                     pNetValues.push(newPNAV);
                     excessSeries.push(newPNAV - bNAV);
+
+                    if (anyBuy) tradeMarkers.push({ coord: [d, newPNAV], value: 'B', itemStyle: { color: '#ef4444' } });
+                    if (anySell) tradeMarkers.push({ coord: [d, newPNAV], value: 'S', itemStyle: { color: '#10b981' } });
                 }
 
                 let pMetrics = calculateMetrics(pNetValues, pDailyReturns);
@@ -340,18 +366,21 @@
                 document.getElementById('meta-bench-dd').innerText = `基准最大回撤: ${fmt(bMetrics.maxDD)}`;
                 document.getElementById('meta-sharpe-calmar').innerText = `${pMetrics.sharpe.toFixed(2)} / ${pMetrics.calmar.toFixed(2)}`;
 
+                // 计算期末动态权重
+                let finalTotalNav = pNetValues[pNetValues.length - 1];
+                let weightStr = subPortfolios.map(sp => {
+                    let currentW = ((sp.initialWeight / 100) * sp.nav / finalTotalNav * 100).toFixed(1);
+                    let state = useStrategy ? (sp.invested ? " (持仓中)" : " (已空仓)") : "";
+                    return `• ${getAssetName(sp.code)}: 初始 ${sp.initialWeight}% ➔ 期末 ${currentW}% ${state}`;
+                }).join('\n');
+
                 let displayMetrics = {
-                    totalReturn: fmt(pMetrics.totalReturn),
-                    annReturn: fmt(pMetrics.annReturn),
-                    annVol: fmt(pMetrics.annVol),
-                    maxDD: fmt(pMetrics.maxDD),
-                    sharpe: pMetrics.sharpe.toFixed(2),
-                    calmar: pMetrics.calmar.toFixed(2)
+                    totalReturn: fmt(pMetrics.totalReturn), annReturn: fmt(pMetrics.annReturn),
+                    annVol: fmt(pMetrics.annVol), maxDD: fmt(pMetrics.maxDD),
+                    sharpe: pMetrics.sharpe.toFixed(2), calmar: pMetrics.calmar.toFixed(2)
                 };
                 
-                let weightStr = portfolioConfig.map(item => `${getAssetName(item.code)}(${item.code.toUpperCase()}): ${item.weight}%`).join('\n');
-                let benchName = getAssetName(benchmarkCode);
-                renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, benchName, displayMetrics, weightStr);
+                renderBacktestChart(alignedDates, pNetValues, bNetValues, excessSeries, getAssetName(benchmarkCode), displayMetrics, weightStr, tradeMarkers);
 
             } catch (err) {
                 alert("回测引擎异常: " + err.message);
@@ -360,31 +389,26 @@
             }
         }
 
-        function renderBacktestChart(dates, pNAV, bNAV, excess, benchName, metrics, weightStr) {
+        function renderBacktestChart(dates, pNAV, bNAV, excess, benchName, metrics, weightStr, tradeMarkers) {
             if (glowInterval) clearInterval(glowInterval);
-            
-            const today = new Date();
-            const genDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
-            const safeImageName = '多空策略回测研报_' + genDate.split('/').join('');
-
-            // 💎 移动端智能判定：如果是手机屏，隐藏右侧文字框，把图表拉宽！
             const isMobile = window.innerWidth <= 768;
+            
+            const genDate = new Date().toLocaleDateString('zh-CN');
+            
+            // 动态计算文字框高度以保证内嵌
+            let cardHeight = 220 + portfolioConfig.length * 18; 
 
             const option = {
                 animation: false, 
-                title: { text: '多资产多空策略回测与超额归因 (NAV & Alpha)', left: 'center', top: 5 },
+                title: { text: '多资产多空策略回测与超额归因', left: 'center', top: 5 },
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢)'], top: 35, left: isMobile ? 'center' : '20%' },
+                toolbox: { feature: { saveAsImage: { name: '回测报告', pixelRatio: 2, backgroundColor: '#fff' } }, right: 20, top: 10 },
                 
-                legend: { data: ['组合净值', `${benchName}基准`, '超额收益(跑赢/跑输)'], top: 35, left: isMobile ? 'center' : '25%' },
-                toolbox: { 
-                    feature: { saveAsImage: { name: safeImageName, pixelRatio: 2, backgroundColor: '#fff' } },
-                    right: 20, top: 10
-                },
-                
-                // 💎 如果是手机，取消右侧留白 (留 20px 即可)，如果是电脑，留 320px 给悬浮框
+                // 响应式图表区
                 grid: [
-                    { left: 45, right: isMobile ? 20 : 320, top: '15%', height: '50%', containLabel: true },
-                    { left: 45, right: isMobile ? 20 : 320, top: '70%', height: '22%', containLabel: true }
+                    { left: 45, right: isMobile ? 20 : 310, top: '15%', height: '52%', containLabel: true },
+                    { left: 45, right: isMobile ? 20 : 310, top: '72%', height: '20%', containLabel: true }
                 ],
                 xAxis: [
                     { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } },
@@ -396,32 +420,31 @@
                 ],
                 dataZoom: [
                     { type: 'inside', start: 0, end: 100, xAxisIndex: [0, 1] },
-                    { show: true, type: 'slider', bottom: '1%', xAxisIndex: [0, 1] }
+                    { show: true, type: 'slider', bottom: '1%', xAxisIndex: [0, 1], height: 20 }
                 ],
                 
-                // 💎 如果是手机，自动隐藏悬浮框（因为上方已经有数据卡片了）
+                // 修复防溢出的 Graphic 卡片
                 graphic: isMobile ? [] : [
                     {
                         type: 'group', right: 20, top: '13%',
                         children: [
                             {
-                                type: 'rect', z: 100, shape: { width: 270, height: 360, r: 8 },
+                                type: 'rect', z: 100, shape: { width: 280, height: cardHeight, r: 8 },
                                 style: { fill: '#f8fafc', stroke: '#cbd5e1', lineWidth: 1, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.05)' }
                             },
                             {
                                 type: 'text', z: 100, left: 15, top: 15,
                                 style: {
                                     fill: '#1e293b',
+                                    width: 250, // 限制宽度自动换行
+                                    overflow: 'break',
                                     text: `📅 回测报告生成: ${genDate}\n\n` + 
-                                          `----------------------------------------\n\n` +
                                           `📈 组合累计收益:  ${metrics.totalReturn}\n` +
                                           `⚡ 预期年化收益:  ${metrics.annReturn}\n` +
                                           `🌊 预期年化波动:  ${metrics.annVol}\n` +
-                                          `📉 最大回撤:          ${metrics.maxDD}\n\n` +
-                                          `🏆 夏普比率 (Sharpe): ${metrics.sharpe}\n` +
-                                          `⚖️ 卡玛比率 (Calmar): ${metrics.calmar}\n\n` +
-                                          `----------------------------------------\n\n` +
-                                          `🎯 初始多空资产配置 (Long-Short):\n\n${weightStr}`, 
+                                          `📉 最大回撤:          ${metrics.maxDD}\n` +
+                                          `🏆 Sharpe / Calmar: ${metrics.sharpe} / ${metrics.calmar}\n\n` +
+                                          `🎯 组合初始与期末漂移权重:\n${weightStr}`, 
                                     font: 'bold 12px sans-serif', lineHeight: 18
                                 }
                             }
@@ -433,7 +456,12 @@
                     {
                         name: '组合净值', type: 'line', data: pNAV, smooth: true, symbol: 'none',
                         xAxisIndex: 0, yAxisIndex: 0, zlevel: 1,
-                        lineStyle: { width: 2.5, color: '#ef4444' } 
+                        lineStyle: { width: 2.5, color: '#ef4444' },
+                        markPoint: {
+                            data: tradeMarkers,
+                            symbol: 'pin', symbolSize: 22,
+                            label: { fontSize: 10, color: '#fff' }
+                        }
                     },
                     {
                         name: `${benchName}基准`, type: 'line', data: bNAV, smooth: true, symbol: 'none',
@@ -441,48 +469,21 @@
                         lineStyle: { width: 1.5, color: '#94a3b8', type: 'dashed' }
                     },
                     {
-                        name: '超额收益(跑赢/跑输)', type: 'bar', data: excess,
+                        name: '超额收益(跑赢)', type: 'bar', data: excess,
                         xAxisIndex: 1, yAxisIndex: 1,
-                        itemStyle: {
-                            color: function(params) {
-                                return params.data >= 0 ? '#ef4444' : '#10b981';
-                            }
-                        }
+                        itemStyle: { color: params => params.data >= 0 ? '#ef4444' : '#10b981' }
                     }
                 ]
             };
             
             myChart.setOption(option, true);
-
-            let startTime = Date.now();
-            glowInterval = setInterval(() => {
-                const timeElapsed = Date.now() - startTime;
-                const phase = (Math.sin(timeElapsed / 1000 * Math.PI) + 1) / 2; 
-
-                const r = Math.round(239 - phase * (239 - 139)); 
-                const g = Math.round(68 - phase * (68 - 26));
-                const b = Math.round(68 - phase * (68 - 26));
-
-                myChart.setOption({
-                    series: [{
-                        name: '组合净值',
-                        lineStyle: { color: `rgb(${r}, ${g}, ${b})` }
-                    }]
-                });
-            }, 50); 
         }
 
+        updateBenchName();
         renderPortfolioDOM();
         runBacktest(true); 
 
-        // ===== 监听窗口缩放，自动重绘图表 =====
-        window.addEventListener('resize', function() {
-            if (typeof myChart !== 'undefined' && myChart) {
-                // 如果调整窗口大小导致手机和电脑视图切换，重新运行以加载不同的排版
-                runBacktest(true);
-                myChart.resize();
-            }
-        });
+        window.addEventListener('resize', () => { if (myChart) { runBacktest(true); myChart.resize(); } });
     </script>
 </body>
 </html>
