@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>量化资产配置系统 v3.1</title>
+    <title>量化资产配置系统 v3.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -243,9 +243,11 @@
     async function fetchAssetData(code) {
         const start = document.getElementById('start-date').value;
         const end = document.getElementById('end-date').value;
-        if (start==='2025-01-01' && end==='2025-12-31' && cachedData[code]) {
+        // 优先使用内置模拟数据（仅限2025年）
+        if (start === '2025-01-01' && end === '2025-12-31' && cachedData[code]) {
             return cachedData[code];
         }
+        // 尝试远程加载
         try {
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
             const resp = await fetch(url);
@@ -256,17 +258,10 @@
             const dict = {};
             for (let i=0; i<data.dates.length; i++) dict[data.dates[i]] = data.values[i][1];
             return dict;
-        } catch { return null; }
-    }
-
-    function getReturns(priceDict, startDate, endDate) {
-        const dates = Object.keys(priceDict).filter(d => d>=startDate && d<=endDate).sort();
-        const rets = [];
-        for (let i=1; i<dates.length; i++) {
-            const p0 = priceDict[dates[i-1]], p1 = priceDict[dates[i]];
-            if (p0 && p1) rets.push((p1-p0)/p0);
+        } catch { 
+            // 如果远程失败且日期范围不是2025年，返回null
+            return null;
         }
-        return rets;
     }
 
     function findNearestDate(targetDate, dateArray) {
@@ -364,9 +359,16 @@
         if (busy) {
             spinner.style.display = 'inline-block';
             text.textContent = message || '⏳ 运算中...';
+            text.style.color = '#475569';
         } else {
             spinner.style.display = 'none';
             text.textContent = message || '✅ 就绪';
+            // 如果消息包含"错误"，显示红色
+            if (message && message.includes('错误')) {
+                text.style.color = '#ef4444';
+            } else {
+                text.style.color = '#475569';
+            }
         }
     }
 
@@ -397,6 +399,7 @@
                 if (dict) dataStore[code] = dict;
                 else console.warn(`Data for ${code} not found`);
             }));
+            // 检查数据完整性
             for (let code of allCodes) {
                 if (!dataStore[code]) throw new Error(`数据缺失: ${code}`);
             }
@@ -537,31 +540,26 @@
         } catch (err) {
             console.error('分析出错:', err);
             alert('分析出错: ' + err.message);
-            setStatus(false, '❌ 出错');
+            setStatus(false, '❌ 错误: ' + err.message);
         }
     }
 
     // ============================================================
-    //  图表绘制
+    //  图表绘制 (修改：直接使用全局 scenarios)
     // ============================================================
     function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode) {
         if (!myChart) {
             myChart = echarts.init(document.getElementById('chart-container'));
         }
 
-        // 读取场景数据
-        const scenarioItems = document.querySelectorAll('#scenario-list .scenario-item');
-        const scenarioData = [];
-        scenarioItems.forEach(el => {
-            const name = el.dataset.name;
-            const type = el.dataset.type;
-            const value = parseFloat(el.dataset.value);
-            const date = el.dataset.date;
-            if (date) {
-                const nearest = findNearestDate(date, dates);
-                if (nearest) scenarioData.push({ name, type, value, date: nearest });
+        // ===== 修改：直接从全局 scenarios 读取，而非 DOM =====
+        const scenarioData = scenarios.map(sc => {
+            const nearest = findNearestDate(sc.date, dates);
+            if (nearest) {
+                return { ...sc, date: nearest };
             }
-        });
+            return null;
+        }).filter(Boolean);
 
         const markLineData = scenarioData.map(sc => ({
             xAxis: sc.date,
@@ -688,7 +686,7 @@
     }
 
     // ============================================================
-    //  压力场景管理
+    //  压力场景管理 (修改：添加/删除后立即重绘)
     // ============================================================
     function addScenario() {
         const name = document.getElementById('scenario-name').value.trim() || '场景' + (scenarios.length+1);
@@ -713,22 +711,25 @@
 
         scenarios.push({ name, type, value, date });
         renderScenarios();
+        // 清空输入
         document.getElementById('scenario-name').value = '';
         document.getElementById('scenario-value').value = '';
 
+        // ===== 修改：已有结果则立即重绘，否则运行全量分析 =====
         if (currentResult) {
             renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights,
                 currentResult.dailyRets, currentResult.optRet, currentResult.optVol,
                 currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino,
                 currentResult.benchmarkValues, currentResult.benchmarkCode);
         } else {
-            runFullAnalysis(); // 首次无结果则重新运行
+            runFullAnalysis();
         }
     }
 
     function removeScenario(idx) {
         scenarios.splice(idx, 1);
         renderScenarios();
+        // ===== 修改：删除后立即重绘 =====
         if (currentResult) {
             renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights,
                 currentResult.dailyRets, currentResult.optRet, currentResult.optVol,
