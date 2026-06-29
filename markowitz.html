@@ -48,7 +48,6 @@
 <body>
 <div class="app-container" id="app">
 
-    <!-- ===== 报告区域 ===== -->
     <div class="report-area" id="reportArea">
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card" style="border-left-color:#f59e0b;">
@@ -70,9 +69,7 @@
         <div id="chart-container"></div>
     </div>
 
-    <!-- ===== 设置面板 ===== -->
     <div class="settings-area">
-        <!-- 行1: 基础参数 -->
         <div class="settings-row">
             <div class="group">
                 <label>📅 开始日期</label>
@@ -92,7 +89,6 @@
             </div>
         </div>
 
-        <!-- 行2: 优化选项 & 做空限制 & 滚动窗口 -->
         <div class="settings-row">
             <div class="group" style="flex-direction:row; align-items:center; gap:10px;">
                 <label>🔧 优化方法</label>
@@ -119,7 +115,6 @@
             </div>
         </div>
 
-        <!-- 行3: 资产池管理 -->
         <div class="settings-row">
             <div class="group" style="flex:2;">
                 <label>📦 资产池 (代码, 用逗号分隔)</label>
@@ -136,7 +131,6 @@
             </div>
         </div>
 
-        <!-- 行4: 基准指数 -->
         <div class="settings-row">
             <div class="group" style="flex:1;">
                 <label>📊 基准指数 (对比虚线)</label>
@@ -146,7 +140,6 @@
             </div>
         </div>
 
-        <!-- 行5: 压力测试场景 -->
         <div class="settings-row" style="flex-direction:column; align-items:stretch;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <label style="font-weight:600;">⚠️ 压力测试场景</label>
@@ -165,7 +158,6 @@
             <div class="scenario-list" id="scenario-list"></div>
         </div>
 
-        <!-- 行6: 下载报告 -->
         <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
             <button class="btn btn-outline" onclick="downloadReport()">📥 下载报告截图</button>
         </div>
@@ -259,7 +251,6 @@
             for (let i=0; i<data.dates.length; i++) dict[data.dates[i]] = data.values[i][1];
             return dict;
         } catch { 
-            // 如果远程失败且日期范围不是2025年，返回null
             return null;
         }
     }
@@ -363,7 +354,6 @@
         } else {
             spinner.style.display = 'none';
             text.textContent = message || '✅ 就绪';
-            // 如果消息包含"错误"，显示红色
             if (message && message.includes('错误')) {
                 text.style.color = '#ef4444';
             } else {
@@ -399,7 +389,7 @@
                 if (dict) dataStore[code] = dict;
                 else console.warn(`Data for ${code} not found`);
             }));
-            // 检查数据完整性
+            
             for (let code of allCodes) {
                 if (!dataStore[code]) throw new Error(`数据缺失: ${code}`);
             }
@@ -410,7 +400,6 @@
                 allDates = allDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
             }
             if (allDates.length < 20) throw new Error('有效交易日不足');
-            console.log('Number of aligned dates:', allDates.length);
 
             // 构建资产收益矩阵
             const returnsMatrix = assetPool.map(code => {
@@ -428,6 +417,16 @@
             let dailyRets = [];
 
             setStatus(true, '⏳ 正在优化...');
+
+            // --- 新增：预处理压力测试的日期和冲击值 ---
+            const scenarioShocks = {};
+            scenarios.forEach(sc => {
+                const targetDate = findNearestDate(sc.date, allDates);
+                if (targetDate) {
+                    scenarioShocks[targetDate] = (scenarioShocks[targetDate] || 0) + (sc.value / 100);
+                }
+            });
+            // ------------------------------------------
 
             if (windowMonths > 0 && windowMonths < allDates.length/21) {
                 const windowSize = windowMonths * 21;
@@ -447,13 +446,18 @@
                     let res;
                     if (method === 'qp') res = solveQP(winReturns, riskFree, restrictShort);
                     else res = monteCarloOptimize(winReturns, simCount, riskFree, restrictShort);
+                    
                     for (let i=endIdx; i<Math.min(endIdx+step, allDates.length-1); i++) {
                         let dayRet = 0;
+                        const currentDate = allDates[i+1];
                         for (let a=0; a<assetPool.length; a++) {
                             const p0 = dataStore[assetPool[a]][allDates[i]];
                             const p1 = dataStore[assetPool[a]][allDates[i+1]];
                             dayRet += res.weights[a] * (p1-p0)/p0;
                         }
+                        // --- 叠加压测冲击 ---
+                        if (scenarioShocks[currentDate]) dayRet += scenarioShocks[currentDate];
+                        
                         dailyRets.push(dayRet);
                         netValues.push(netValues[netValues.length-1] * (1+dayRet));
                     }
@@ -464,11 +468,15 @@
                     optWeights = lastRes.weights;
                     for (let i=startIdx; i<allDates.length-1; i++) {
                         let dayRet = 0;
+                        const currentDate = allDates[i+1];
                         for (let a=0; a<assetPool.length; a++) {
                             const p0 = dataStore[assetPool[a]][allDates[i]];
                             const p1 = dataStore[assetPool[a]][allDates[i+1]];
                             dayRet += lastRes.weights[a] * (p1-p0)/p0;
                         }
+                        // --- 叠加压测冲击 ---
+                        if (scenarioShocks[currentDate]) dayRet += scenarioShocks[currentDate];
+
                         dailyRets.push(dayRet);
                         netValues.push(netValues[netValues.length-1] * (1+dayRet));
                     }
@@ -486,13 +494,22 @@
                 optRet = res.ret;
                 optVol = res.vol;
                 optSharpe = res.sharpe;
+                
                 for (let i=1; i<allDates.length; i++) {
                     let dayRet = 0;
+                    const currentDate = allDates[i];
                     for (let a=0; a<assetPool.length; a++) {
                         const p0 = dataStore[assetPool[a]][allDates[i-1]];
                         const p1 = dataStore[assetPool[a]][allDates[i]];
                         dayRet += optWeights[a] * (p1-p0)/p0;
                     }
+                    
+                    // --- 叠加压测冲击 ---
+                    if (scenarioShocks[currentDate]) {
+                        dayRet += scenarioShocks[currentDate];
+                    }
+                    // --------------------
+
                     dailyRets.push(dayRet);
                     netValues.push(netValues[netValues.length-1] * (1+dayRet));
                 }
@@ -545,19 +562,16 @@
     }
 
     // ============================================================
-    //  图表绘制 (修改：直接使用全局 scenarios)
+    //  图表绘制 
     // ============================================================
     function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode) {
         if (!myChart) {
             myChart = echarts.init(document.getElementById('chart-container'));
         }
 
-        // ===== 修改：直接从全局 scenarios 读取，而非 DOM =====
         const scenarioData = scenarios.map(sc => {
             const nearest = findNearestDate(sc.date, dates);
-            if (nearest) {
-                return { ...sc, date: nearest };
-            }
+            if (nearest) return { ...sc, date: nearest };
             return null;
         }).filter(Boolean);
 
@@ -621,12 +635,28 @@
                 data: series.map(s => s.name),
                 bottom: 0
             },
-            grid: { left: 50, right: 20, top: 50, bottom: 40 },
+            // 优化了 bottom 边距，拉开 X 轴文字与底侧图例的距离，防止重叠
+            grid: { left: 50, right: 20, top: 50, bottom: 65 },
             xAxis: {
                 type: 'category',
                 data: dates,
                 boundaryGap: false,
-                axisLabel: { rotate: 30, fontSize: 10 }
+                axisLabel: { 
+                    rotate: 30, 
+                    fontSize: 9, // 缩小字体
+                    color: 'rgba(71, 85, 105, 0.7)', // 降低透明度以减弱视觉堆叠干扰
+                    interval: 4, // 间隔5个交易日 (即1周) 显示一次
+                    formatter: function(value, index) {
+                        const y = value.substring(0, 4);
+                        const md = value.substring(5);
+                        const prevDate = index > 0 ? dates[index - 1] : null;
+                        // 如果是第一个日期，或是跨年节点，则显示带年份的全称
+                        if (!prevDate || prevDate.substring(0, 4) !== y) {
+                            return value; 
+                        }
+                        return md; 
+                    }
+                }
             },
             yAxis: {
                 type: 'value',
@@ -686,17 +716,17 @@
     }
 
     // ============================================================
-    //  压力场景管理 (修改：添加/删除后立即重绘)
+    //  压力场景管理 (修复后)
     // ============================================================
     function addScenario() {
         const name = document.getElementById('scenario-name').value.trim() || '场景' + (scenarios.length+1);
         const type = document.getElementById('scenario-type').value;
         const value = parseFloat(document.getElementById('scenario-value').value);
         let date = document.getElementById('scenario-date').value;
+        
         if (!date) { alert('请选择日期'); return; }
         if (isNaN(value)) { alert('请输入有效数值'); return; }
 
-        // 获取交易日列表
         let allDates = currentResult ? currentResult.allDates : [];
         if (allDates.length === 0) {
             const start = document.getElementById('start-date').value;
@@ -705,37 +735,28 @@
             const code = 'sh000300';
             allDates = Object.keys(temp[code]).filter(d => d>=start && d<=end).sort();
         }
+        
         const nearest = findNearestDate(date, allDates);
         if (nearest) date = nearest;
         else { alert('日期不在数据范围内'); return; }
 
+        // 加入数组
         scenarios.push({ name, type, value, date });
         renderScenarios();
+        
         // 清空输入
         document.getElementById('scenario-name').value = '';
         document.getElementById('scenario-value').value = '';
 
-        // ===== 修改：已有结果则立即重绘，否则运行全量分析 =====
-        if (currentResult) {
-            renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights,
-                currentResult.dailyRets, currentResult.optRet, currentResult.optVol,
-                currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino,
-                currentResult.benchmarkValues, currentResult.benchmarkCode);
-        } else {
-            runFullAnalysis();
-        }
+        // 核心修复：直接重新运行分析并重算所有指标
+        runFullAnalysis();
     }
 
     function removeScenario(idx) {
         scenarios.splice(idx, 1);
         renderScenarios();
-        // ===== 修改：删除后立即重绘 =====
-        if (currentResult) {
-            renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights,
-                currentResult.dailyRets, currentResult.optRet, currentResult.optVol,
-                currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino,
-                currentResult.benchmarkValues, currentResult.benchmarkCode);
-        }
+        // 核心修复：删除后重新运行分析以抹除冲击
+        runFullAnalysis();
     }
 
     function renderScenarios() {
@@ -744,8 +765,8 @@
             <span class="scenario-item" data-name="${s.name}" data-type="${s.type}" data-value="${s.value}" data-date="${s.date}">
                 <span class="info">
                     <strong>${s.name}</strong>
-                    <span class="type">${s.type}</span>
-                    <span>${s.value}%</span>
+                    <span class="type">${s.type === 'market' ? '暴跌' : s.type === 'rate' ? '利率' : '波动'}</span>
+                    <span style="color:${s.value < 0 ? '#ef4444' : '#10b981'}">${s.value}%</span>
                     <span style="color:#64748b;font-size:11px;">${s.date}</span>
                 </span>
                 <span class="del" onclick="removeScenario(${idx})" style="cursor:pointer;color:#ef4444;font-weight:bold;">✕</span>
@@ -789,7 +810,6 @@
             benchSelect.appendChild(benchOpt);
         });
 
-        // 默认示例场景 (调整为有效交易日)
         const allDates = Object.keys(cachedData['sh000300']).sort();
         const d1 = findNearestDate('2025-06-01', allDates);
         const d2 = findNearestDate('2025-09-15', allDates);
@@ -799,7 +819,6 @@
 
         renderAssetTags();
         document.getElementById('benchmark-select').value = 'sh000300';
-        // 初次加载
         runFullAnalysis();
 
         window.addEventListener('resize', () => { if (myChart) myChart.resize(); });
