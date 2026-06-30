@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>量化资产配置系统 v1.2 / Quant Asset Allocation</title>
+    <title>量化资产配置系统 v1.1.1 / Quant Asset Allocation</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
@@ -35,11 +35,16 @@
         .stat-card .title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
         .stat-card .value { font-size: 22px; font-weight: 700; color: #1e293b; margin-top: 4px; }
         .stat-card .sub { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
-        .stat-card .weight-list { font-size: 11px; background: white; padding: 6px 8px; border-radius: 6px; margin-top: 6px; border: 1px dashed #cbd5e1; word-break: break-all; white-space: normal !important; max-height: 65px; overflow-y: auto; }
+        
+        /* 修改点 4: 取消最大高度和滚动，实现自适应展开 */
+        .stat-card .weight-list { font-size: 11px; background: white; padding: 6px 8px; border-radius: 6px; margin-top: 6px; border: 1px dashed #cbd5e1; word-break: break-all; white-space: normal !important; }
         body.lang-en .stat-card .weight-list { font-size: 10px !important; line-height: 1.2; }
 
         #chart-container { width: 100%; height: 500px; min-height: 400px; }
         #excess-chart-container { width: 100%; height: 160px; min-height: 120px; margin-top: 10px; }
+        /* 修改点 3: 增加第二个修正基准的超额收益图容器 */
+        #adj-excess-chart-container { width: 100%; height: 160px; min-height: 120px; margin-top: 10px; display: none; }
+        
         .settings-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 24px; }
         .settings-row { display: flex; flex-wrap: wrap; gap: 16px 30px; align-items: center; }
         .settings-row .group { display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; }
@@ -62,7 +67,7 @@
         .status-indicator { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; }
         .status-indicator .spinner-small { width: 18px; height: 18px; border: 2px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 768px) { body { padding: 10px; } .stats-grid { grid-template-columns: 1fr 1fr; } #chart-container { height: 350px; } #excess-chart-container { height: 120px; } .settings-row .group { flex: 1 1 100%; } }
+        @media (max-width: 768px) { body { padding: 10px; } .stats-grid { grid-template-columns: 1fr 1fr; } #chart-container { height: 350px; } #excess-chart-container, #adj-excess-chart-container { height: 120px; } .settings-row .group { flex: 1 1 100%; } }
         @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -96,6 +101,7 @@
         </div>
         <div id="chart-container"></div>
         <div id="excess-chart-container"></div>
+        <div id="adj-excess-chart-container"></div>
     </div>
 
     <div class="settings-area">
@@ -121,14 +127,14 @@
         <div class="settings-row">
             <div class="group" style="flex-direction:row; align-items:center; gap:10px;">
                 <label data-i18n="dOpt">🔧 优化方法</label>
-                <select id="optim-method" style="flex:1;">
+                <select id="optim-method" style="flex:1;" onchange="runFullAnalysis()">
                     <option value="mc" data-i18n="oMc">蒙特卡洛模拟</option>
                     <option value="qp" selected data-i18n="oQp">二次规划 (QP-最大夏普)</option>
                 </select>
             </div>
             <div class="group" style="flex-direction:row; align-items:center; gap:6px;">
                 <label data-i18n="dShort">🚫 限制做空</label>
-                <input type="checkbox" id="short-restrict" checked>
+                <input type="checkbox" id="short-restrict" checked onchange="runFullAnalysis()">
             </div>
             <div class="group">
                 <label data-i18n="dRoll">📦 滚动窗口 (月数)</label>
@@ -147,10 +153,20 @@
         <div class="settings-row">
             <div class="group" style="flex:1;">
                 <label data-i18n="dMode">🔀 场景模式</label>
-                <select id="scenario-mode" style="padding:8px 12px; border:1px solid var(--border); border-radius:8px;">
+                <select id="scenario-mode" style="padding:8px 12px; border:1px solid var(--border); border-radius:8px;" onchange="runFullAnalysis()">
                     <option value="static" selected data-i18n="sStatic">静态压力测试 (Static Stress)</option>
                     <option value="dynamic" data-i18n="sDynamic">动态滚动优化 (Dynamic Rolling)</option>
                 </select>
+            </div>
+            <div class="group" style="flex:1;">
+                <label data-i18n="dSelf">🔎 自检模式 (仅动态)</label>
+                <input type="checkbox" id="self-check" checked onchange="runFullAnalysis()">
+                <span style="font-size:11px; color:#64748b;" data-i18n="dSelfSub">检测样本不足/权重极端</span>
+            </div>
+            <div class="group" style="flex:1;">
+                <label data-i18n="dAdjBench">🔧 修正基准与超额 (压力测试)</label>
+                <input type="checkbox" id="show-adj-bench" checked onchange="runFullAnalysis()">
+                <span style="font-size:11px; color:#64748b;" data-i18n="dAdjBenchSub">在图表中对比受压基准</span>
             </div>
         </div>
 
@@ -173,7 +189,7 @@
         <div class="settings-row">
             <div class="group" style="flex:1;">
                 <label data-i18n="dBench">📊 基准指数 (对比虚线)</label>
-                <select id="benchmark-select" style="padding:8px; border:1px solid var(--border); border-radius:8px;">
+                <select id="benchmark-select" style="padding:8px; border:1px solid var(--border); border-radius:8px;" onchange="runFullAnalysis()">
                     <option value="" data-i18n="oNoB">无基准</option>
                 </select>
             </div>
@@ -241,7 +257,11 @@
         sReady: { zh: "✅ 就绪", en: "✅ Ready" },
         dMode: { zh: "🔀 场景模式", en: "🔀 Scenario Mode" },
         sStatic: { zh: "静态压力测试 (Static Stress)", en: "Static Stress Test" },
-        sDynamic: { zh: "动态滚动优化 (Dynamic Rolling)", en: "Dynamic Rolling Optimization" }
+        sDynamic: { zh: "动态滚动优化 (Dynamic Rolling)", en: "Dynamic Rolling Optimization" },
+        dSelf: { zh: "🔎 自检模式 (仅动态)", en: "🔎 Self-Check (Dynamic)" },
+        dSelfSub: { zh: "检测样本不足/权重极端", en: "Check sample/weight extremes" },
+        dAdjBench: { zh: "🔧 修正基准与超额 (压力测试)", en: "🔧 Stress-Adj Benchmark" },
+        dAdjBenchSub: { zh: "在图表中对比受压基准", en: "Show benchmark with stress impact" }
     };
 
     const INDEX_NAMES = {
@@ -278,7 +298,7 @@
         renderScenarios();
         if (currentResult) {
             updateWeightsUI(currentResult.weights, currentResult.assetPool);
-            renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights, currentResult.dailyRets, currentResult.optRet, currentResult.optVol, currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino, currentResult.benchmarkValues, currentResult.benchmarkCode, currentResult.excessReturns);
+            renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights, currentResult.dailyRets, currentResult.optRet, currentResult.optVol, currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino, currentResult.benchmarkValues, currentResult.benchmarkCode, currentResult.excessReturns, currentResult.adjBenchmarkValues, currentResult.adjExcessReturns);
         }
     }
 
@@ -309,11 +329,14 @@
     // ============================================================
     let myChart = null;
     let excessChart = null;
-    let assetPool = ['sh000300', 'sz399006', 'sh000688'];
+    let adjExcessChart = null; // 修正版超额收益图表
+    // 修改点 2: 初始资产池修改
+    let assetPool = ['sh000300', 'sz399006', 'sh000688', 'sh000001', 'sh000016'];
     let scenarios = [];
     let cachedData = null;
     let currentResult = null;
     let isCalculating = false;
+    let breatheInterval = null; 
 
     // ============================================================
     //  数据生成
@@ -393,11 +416,27 @@
     }
 
     // ============================================================
-    //  优化求解器（移除自检警报逻辑）
+    //  修改点 1: 重构极其稳定的 QP 优化求解器 (单纯形投影梯度上升算法)
     // ============================================================
+    function projectSimplex(v) {
+        let u = [...v].sort((a,b) => b - a);
+        let cssv = 0, rho = 0;
+        for (let i = 0; i < u.length; i++) {
+            cssv += u[i];
+            if (u[i] > (cssv - 1) / (i + 1)) rho = i;
+        }
+        let theta = (u.slice(0, rho + 1).reduce((a,b)=>a+b,0) - 1) / (rho + 1);
+        return v.map(x => Math.max(x - theta, 0));
+    }
+
+    function projectSumOne(v) {
+        let shift = (v.reduce((a,b)=>a+b,0) - 1) / v.length;
+        return v.map(x => x - shift);
+    }
+
     function solveQP(returns, riskFree, restrictShort) {
         const n = returns.length;
-        if (n === 0) return { weights: [], ret: 0, vol: 0, sharpe: 0 };
+        if (n === 0) return { weights: [], ret: 0, vol: 0, sharpe: 0, warnings: [] };
 
         const mu = returns.map(r => mean(r) * 252);
         const cov = Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => {
@@ -405,84 +444,69 @@
             return covariance(returns[i], returns[j], mi, mj) * 252;
         }));
 
-        const mu_excess = mu.map(m => m - riskFree);
-        
+        let warnings = [];
+        const sampleCount = returns[0] ? returns[0].length : 0;
+        if (sampleCount < n * 2) {
+            warnings.push(`⚠️ 样本天数(${sampleCount})少于资产数(${n})的2倍，优化结果可能不稳定`);
+        }
+
+        // 检测超额收益是否全为负
         let maxExcessIdx = 0;
-        for (let i = 0; i < n; i++) { if (mu_excess[i] > mu_excess[maxExcessIdx]) maxExcessIdx = i; }
-        if (mu_excess[maxExcessIdx] <= 0) {
-            return solveMinVarianceProjected(cov, mu, riskFree, restrictShort);
+        for (let i = 0; i < n; i++) { if (mu[i] - riskFree > mu[maxExcessIdx] - riskFree) maxExcessIdx = i; }
+        if (mu[maxExcessIdx] - riskFree <= 0) {
+            warnings.push('⚠️ 所有资产超额收益为负，降级为等权重最小方差组合');
+            let eqW = Array(n).fill(1 / n);
+            let pR = 0, pV = 0;
+            for(let i=0; i<n; i++) { pR += eqW[i]*mu[i]; for(let j=0; j<n; j++) pV += eqW[i]*eqW[j]*cov[i][j]; }
+            return { weights: eqW, ret: pR, vol: Math.sqrt(pV), sharpe: (pR - riskFree)/Math.sqrt(pV), warnings };
         }
 
-        let v = Array(n).fill(0);
-        v[maxExcessIdx] = 1.0 / mu_excess[maxExcessIdx];
-        const maxIter = 1500;
-        let lr = 0.01;
-        for (let iter = 0; iter < maxIter; iter++) {
-            let grad = Array(n).fill(0);
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) grad[i] += 2 * cov[i][j] * v[j];
-            }
-            let g_dot_mu = 0, mu_norm_sq = 0;
-            for (let i = 0; i < n; i++) {
-                g_dot_mu += grad[i] * mu_excess[i];
-                mu_norm_sq += mu_excess[i] * mu_excess[i];
-            }
-            let projectionFactor = g_dot_mu / (mu_norm_sq + 1e-12);
-            let v_next = Array(n).fill(0);
-            for (let i = 0; i < n; i++) {
-                v_next[i] = v[i] - lr * (grad[i] - projectionFactor * mu_excess[i]);
-                if (restrictShort) v_next[i] = Math.max(0, v_next[i]);
-            }
-            let currentScale = 0;
-            for (let i = 0; i < n; i++) currentScale += v_next[i] * mu_excess[i];
-            if (currentScale > 1e-6) {
-                for (let i = 0; i < n; i++) v_next[i] /= currentScale;
-            }
-            let delta = 0;
-            for (let i = 0; i < n; i++) delta += (v_next[i] - v[i]) ** 2;
-            v = v_next;
-            if (delta < 1e-10) break;
-            lr *= 0.998;
-        }
-
-        let sum_v = v.reduce((a, b) => a + b, 0);
+        // 使用 Projected Gradient Ascent 精确最优化夏普比率
         let w = Array(n).fill(1 / n);
-        if (Math.abs(sum_v) > 1e-6) {
-            w = v.map(x => x / sum_v);
-        }
-
-        let portReturn = 0, portVar = 0;
-        for (let i = 0; i < n; i++) {
-            portReturn += w[i] * mu[i];
-            for (let j = 0; j < n; j++) portVar += w[i] * w[j] * cov[i][j];
-        }
-        const portVol = Math.sqrt(portVar);
-        return { weights: w, ret: portReturn, vol: portVol, sharpe: (portReturn - riskFree) / (portVol || 1e-6) };
-    }
-
-    function solveMinVarianceProjected(cov, mu, riskFree, restrictShort) {
-        const n = cov.length;
-        let w = Array(n).fill(1 / n);
-        let lr = 0.01;
+        let lr = 0.1;
+        let bestSharpe = -Infinity;
+        let bestW = w.slice();
+        
         for (let iter = 0; iter < 1000; iter++) {
-            let grad = Array(n).fill(0);
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) grad[i] += 2 * cov[i][j] * w[j];
+            let portRet = 0, portVar = 0;
+            let cov_w = Array(n).fill(0);
+            for(let i=0; i<n; i++) {
+                portRet += w[i] * mu[i];
+                for(let j=0; j<n; j++) cov_w[i] += cov[i][j] * w[j];
             }
-            let mean_g = grad.reduce((a, b) => a + b, 0) / n;
-            let w_next = w.map((v, i) => v - lr * (grad[i] - mean_g));
-            if (restrictShort) w_next = w_next.map(x => Math.max(0, x));
-            let s = w_next.reduce((a, b) => a + b, 0);
-            w = w_next.map(x => x / (s || 1));
-            lr *= 0.995;
+            for(let i=0; i<n; i++) portVar += w[i] * cov_w[i];
+            let portVol = Math.sqrt(portVar) || 1e-6;
+            let sharpe = (portRet - riskFree) / portVol;
+
+            if (sharpe > bestSharpe) {
+                bestSharpe = sharpe;
+                bestW = w.slice();
+                lr *= 1.05; // 动能加速
+            } else {
+                lr *= 0.5;  // 退火减速
+            }
+
+            let grad = Array(n).fill(0);
+            for(let i=0; i<n; i++) {
+                grad[i] = (mu[i] * portVol - (portRet - riskFree) * (cov_w[i] / portVol)) / portVar;
+            }
+
+            let w_next = w.map((v, i) => v + lr * grad[i]);
+            w = restrictShort ? projectSimplex(w_next) : projectSumOne(w_next);
         }
-        let portReturn = 0, portVar = 0;
+
+        w = bestW;
+        let portRet = 0, portVar = 0;
         for (let i = 0; i < n; i++) {
-            portReturn += w[i] * mu[i];
+            portRet += w[i] * mu[i];
             for (let j = 0; j < n; j++) portVar += w[i] * w[j] * cov[i][j];
         }
         const portVol = Math.sqrt(portVar);
-        return { weights: w, ret: portReturn, vol: portVol, sharpe: (portReturn - riskFree) / (portVol || 1e-6) };
+
+        const maxWeight = Math.max(...w);
+        if (maxWeight > 0.9) warnings.push(`⚠️ 单资产权重高达${(maxWeight*100).toFixed(1)}%，建议增大窗口或增加约束`);
+
+        return { weights: w, ret: portRet, vol: portVol, sharpe: (portRet - riskFree) / (portVol || 1e-6), warnings };
     }
 
     function monteCarloOptimize(returns, numSim, riskFree, restrictShort) {
@@ -508,7 +532,7 @@
                 bestSharpe = sharpe; bestW = w.slice(); bestRet = portRet; bestVol = portVol;
             }
         }
-        return { weights: bestW, ret: bestRet, vol: bestVol, sharpe: bestSharpe };
+        return { weights: bestW, ret: bestRet, vol: bestVol, sharpe: bestSharpe, warnings: [] };
     }
 
     function setStatus(busy, message, isWarning) {
@@ -527,7 +551,7 @@
     }
 
     // ============================================================
-    //  主分析回测引擎（修复了 0月滚动和 T日当天的模型漏洞）
+    //  主分析回测引擎
     // ============================================================
     async function runFullAnalysis() {
         if (isCalculating) return;
@@ -542,7 +566,8 @@
             const method = document.getElementById('optim-method').value;
             const windowMonths = parseInt(document.getElementById('window-size').value) || 0;
             const benchmarkCode = document.getElementById('benchmark-select').value;
-            const scenarioMode = document.getElementById('scenario-mode').value;
+            const scenarioMode = document.getElementById('scenario-mode').value; 
+            const selfCheck = document.getElementById('self-check').checked;
 
             const allCodes = [...assetPool];
             if (benchmarkCode && !allCodes.includes(benchmarkCode)) allCodes.push(benchmarkCode);
@@ -570,20 +595,20 @@
                 if (targetDate) scenarioShocks[targetDate] = (scenarioShocks[targetDate] || 0) + (sc.value / 100);
             });
 
+            const lookbackDays = windowMonths > 0 ? windowMonths * 21 : 126;
             let netValues = [1.0];
             let dailyRets = [];
             let activeWeights = null;
             let finalDisplayedWeights = null;
+            let warnings = [];
 
-            // 静态模式：预先计算固定权重
+            // 静态模式预先计算
             let staticWeights = null;
             if (scenarioMode === 'static') {
                 const startIdx = globalDates.indexOf(backtestDates[0]);
-                // 修复漏洞：0 代表无限延伸窗口 (Expanding Window)
-                let lookStart = windowMonths > 0 ? startIdx - (windowMonths * 21) : 0;
+                let lookStart = startIdx - lookbackDays;
                 if (lookStart < 0) lookStart = 0;
-                // 修复漏洞：权重测算需包含 T日当天收盘价信息
-                const histDates = globalDates.slice(lookStart, startIdx + 1); 
+                const histDates = globalDates.slice(lookStart, startIdx);
                 if (histDates.length > 10) {
                     const retMatrix = assetPool.map(code => {
                         const r = [];
@@ -594,10 +619,9 @@
                         }
                         return r;
                     });
-                    let res;
-                    if (method === 'qp') res = solveQP(retMatrix, riskFree, restrictShort);
-                    else res = monteCarloOptimize(retMatrix, simCount, riskFree, restrictShort);
+                    let res = method === 'qp' ? solveQP(retMatrix, riskFree, restrictShort) : monteCarloOptimize(retMatrix, simCount, riskFree, restrictShort);
                     staticWeights = res.weights;
+                    if (res.warnings) warnings = warnings.concat(res.warnings);
                 } else {
                     staticWeights = Array(assetPool.length).fill(1 / assetPool.length);
                 }
@@ -611,15 +635,12 @@
                 const currentDate = backtestDates[i];
                 const nextDate = backtestDates[i+1];
 
-                // 动态模式：定期再平衡
                 if (scenarioMode === 'dynamic') {
                     if (i % 21 === 0 || activeWeights === null) {
                         const gIdx = globalDates.indexOf(currentDate);
-                        // 修复漏洞：0 代表无限延伸窗口 (Expanding Window)
-                        let startLookbackIdx = windowMonths > 0 ? gIdx - (windowMonths * 21) : 0;
+                        let startLookbackIdx = gIdx - lookbackDays;
                         if (startLookbackIdx < 0) startLookbackIdx = 0;
-                        // 修复漏洞：权重测算需包含 T日当天收盘价信息
-                        const winHistoryDates = globalDates.slice(startLookbackIdx, gIdx + 1);
+                        const winHistoryDates = globalDates.slice(startLookbackIdx, gIdx);
                         if (winHistoryDates.length > 10) {
                             const winReturnsMatrix = assetPool.map(code => {
                                 const r = [];
@@ -630,10 +651,9 @@
                                 }
                                 return r;
                             });
-                            let res;
-                            if (method === 'qp') res = solveQP(winReturnsMatrix, riskFree, restrictShort);
-                            else res = monteCarloOptimize(winReturnsMatrix, simCount, riskFree, restrictShort);
+                            let res = method === 'qp' ? solveQP(winReturnsMatrix, riskFree, restrictShort) : monteCarloOptimize(winReturnsMatrix, simCount, riskFree, restrictShort);
                             activeWeights = res.weights;
+                            if (res.warnings) warnings = warnings.concat(res.warnings);
                         } else {
                             activeWeights = Array(assetPool.length).fill(1 / assetPool.length);
                         }
@@ -643,7 +663,6 @@
                     if (!activeWeights) activeWeights = staticWeights || Array(assetPool.length).fill(1/assetPool.length);
                 }
 
-                // 计算日收益
                 let dayStrategyRet = 0;
                 for (let a = 0; a < assetPool.length; a++) {
                     const p0 = dataStore[assetPool[a]][currentDate];
@@ -679,7 +698,6 @@
             const calmar = maxDD ? optRet / maxDD : 0;
             const optSharpe = (optRet - riskFree) / (optVol || 1e-6);
 
-            // 更新UI
             const fmtPct = v => (v * 100).toFixed(2) + '%';
             document.getElementById('opt-return-vol').innerText = `${fmtPct(optRet)} / ${fmtPct(optVol)}`;
             document.getElementById('opt-drawdown').innerText = fmtPct(maxDD);
@@ -688,32 +706,46 @@
             
             updateWeightsUI(finalDisplayedWeights, assetPool);
 
-            // 基准净值
+            // 修改点 3: 同时计算常规基准 与 受压基准
             let benchmarkValues = null;
-            if (benchmarkCode && dataStore[benchmarkCode]) {
-                const bPrices = backtestDates.map(d => dataStore[benchmarkCode][d]);
-                const base = bPrices[0] || 1;
-                benchmarkValues = bPrices.map(p => p / base);
-            }
-
-            // 计算超额收益
+            let adjBenchmarkValues = null;
             let excessReturns = null;
-            if (benchmarkValues) {
-                const benchDailyRets = [];
+            let adjExcessReturns = null;
+            let benchDailyRets = [];
+            let adjBenchDailyRets = [];
+
+            if (benchmarkCode && dataStore[benchmarkCode]) {
+                benchmarkValues = [1.0];
+                adjBenchmarkValues = [1.0];
+                
                 for (let i = 1; i < backtestDates.length; i++) {
                     const p0 = dataStore[benchmarkCode][backtestDates[i-1]];
                     const p1 = dataStore[benchmarkCode][backtestDates[i]];
-                    benchDailyRets.push((p1 - p0) / p0);
+                    const r = (p1 - p0) / p0;
+                    benchDailyRets.push(r);
+                    benchmarkValues.push(benchmarkValues[i-1] * (1 + r));
+
+                    // 对基准赋予压力测试修正（相同冲击）
+                    const shock = scenarioShocks[backtestDates[i]] || 0;
+                    const adjR = r + shock;
+                    adjBenchDailyRets.push(adjR);
+                    adjBenchmarkValues.push(adjBenchmarkValues[i-1] * (1 + adjR));
                 }
+                
                 excessReturns = dailyRets.map((r, idx) => r - (benchDailyRets[idx] || 0));
+                adjExcessReturns = dailyRets.map((r, idx) => r - (adjBenchDailyRets[idx] || 0));
             }
 
-            currentResult = { netValues, allDates: backtestDates, dailyRets, optRet, optVol, maxDD, calmar, sharpe: optSharpe, sortino, weights: finalDisplayedWeights, assetPool, scenarios, benchmarkValues, benchmarkCode, excessReturns };
+            currentResult = { netValues, allDates: backtestDates, dailyRets, optRet, optVol, maxDD, calmar, sharpe: optSharpe, sortino, weights: finalDisplayedWeights, assetPool, scenarios, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns };
 
             setStatus(true, currentLang === 'zh' ? '⏳ 正在组装ECharts交互式看板...' : '⏳ Rendering Interactive Chart...');
-            renderChart(backtestDates, netValues, finalDisplayedWeights, dailyRets, optRet, optVol, maxDD, calmar, optSharpe, sortino, benchmarkValues, benchmarkCode, excessReturns);
+            renderChart(backtestDates, netValues, finalDisplayedWeights, dailyRets, optRet, optVol, maxDD, calmar, optSharpe, sortino, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns);
             
-            setStatus(false, currentLang === 'zh' ? '✅ 回测任务圆满成功' : '✅ Done');
+            if (warnings.length > 0 && selfCheck) {
+                setStatus(false, '⚠️ ' + warnings.join('; '), true);
+            } else {
+                setStatus(false, currentLang === 'zh' ? '✅ 回测任务圆满成功' : '✅ Done');
+            }
 
         } catch (err) {
             alert('计算异常中断报告: ' + err.message);
@@ -732,11 +764,17 @@
     }
 
     // ============================================================
-    //  图表渲染（含超额收益配色优化与 2 秒周期呼吸灯）
+    //  图表渲染（含超额收益双子图、呼吸灯、格式统一）
     // ============================================================
-    function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode, excessReturns) {
+    function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns) {
         if (!myChart) myChart = echarts.init(document.getElementById('chart-container'));
         if (!excessChart) excessChart = echarts.init(document.getElementById('excess-chart-container'));
+        if (!adjExcessChart) adjExcessChart = echarts.init(document.getElementById('adj-excess-chart-container'));
+
+        const showAdjBench = document.getElementById('show-adj-bench').checked;
+        
+        // 修改点 5: 统一可视化输出的日期格式为 yyyy/mm/dd
+        const formattedDates = dates.map(d => d.replace(/-/g, '/'));
 
         const scenarioData = scenarios.map(sc => {
             const nearest = findNearestDate(sc.date, dates);
@@ -744,9 +782,8 @@
             return null;
         }).filter(Boolean);
 
-        // 修改点1：取消压力测试线强制出现的动画
         const markLineData = scenarioData.map(sc => ({
-            xAxis: sc.date,
+            xAxis: sc.date.replace(/-/g, '/'),
             label: { 
                 formatter: `${getScenarioNameTransformed(sc)}\n${getTypeNameTransformed(sc.type)}: ${sc.value}%`, 
                 position: 'insideEndTop', 
@@ -761,19 +798,26 @@
 
         let series = [{
             name: sNav, type: 'line', data: netValues, smooth: true, symbol: 'none',
-            lineStyle: { width: 1.5, color: '#8b5cf6' },
+            lineStyle: { width: 1.5, color: '#8b5cf6' }, 
             areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1, [{ offset: 0, color: 'rgba(139,92,246,0.3)' }, { offset: 1, color: 'rgba(139,92,246,0.0)' }]) },
-            // 添加 animation: false，防止闪烁和飞行动画
-            markLine: { silent: true, animation: false, data: markLineData, label: { show: true, formatter: '{b}', fontSize: 10 } }
+            markLine: { silent: true, data: markLineData, label: { show: true, formatter: '{b}', fontSize: 10 } }
         }];
 
         if (benchmarkValues && benchmarkCode) {
             const benchName = getAssetName(benchmarkCode);
             series.push({
-                name: currentLang === 'zh' ? `基准指数 (${benchName})` : `Bench (${benchName})`,
+                name: currentLang === 'zh' ? `常规基准 (${benchName})` : `Base Bench (${benchName})`,
                 type: 'line', data: benchmarkValues, smooth: true, symbol: 'none',
-                lineStyle: { width: 1.2, color: '#ef4444', type: 'dashed' }
+                lineStyle: { width: 1.2, color: '#9ca3af', type: 'dashed' }
             });
+            // 压测修正基准曲线
+            if (showAdjBench && adjBenchmarkValues) {
+                series.push({
+                    name: currentLang === 'zh' ? `修正基准 (${benchName})` : `Adj Bench (${benchName})`,
+                    type: 'line', data: adjBenchmarkValues, smooth: true, symbol: 'none',
+                    lineStyle: { width: 1.5, color: '#ef4444', type: 'dotted' }
+                });
+            }
         }
 
         const option = {
@@ -787,16 +831,15 @@
                 { type: 'slider', start: 0, end: 100, bottom: 5, height: 20 }
             ],
             xAxis: {
-                type: 'category', data: dates, boundaryGap: false,
+                type: 'category', data: formattedDates, boundaryGap: false,
                 axisLabel: {
-                    rotate: 30, fontSize: 9, color: 'rgba(71, 85, 105, 0.7)', interval: Math.floor(dates.length / 15),
+                    rotate: 30, fontSize: 9, color: 'rgba(71, 85, 105, 0.7)', interval: Math.floor(formattedDates.length / 15),
                     formatter: function(value, index) {
                         if (!value) return '';
-                        const parts = value.split('-');
-                        const year = parts[0], month = parts[1], day = parts[2];
-                        if (month === '01' && day === '01') return year;
-                        if (index === 0) return year; 
-                        return month + '-' + day;
+                        const parts = value.split('/');
+                        if (parts[1] === '01' && parts[2] === '01') return parts[0];
+                        if (index === 0) return parts[0]; 
+                        return parts[1] + '/' + parts[2];
                     }
                 }
             },
@@ -806,23 +849,19 @@
         myChart.setOption(option, true);
         myChart.resize();
 
-        // 修改点3：更柔和的莫兰迪色系处理，减轻视觉疲劳
+        // --- 超额收益柱状图 1 (常规) ---
         if (excessReturns && benchmarkValues) {
-            const excessData = excessReturns.map(v => (v * 100).toFixed(2));
-            const colors = excessReturns.map(v => v >= 0 ? '#f87171' : '#34d399'); 
+            const excessData = excessReturns.map(v => (v * 100).toFixed(2)); 
+            const colors = excessReturns.map(v => v >= 0 ? '#ef4444' : '#10b981'); 
             const excessOption = {
-                title: { text: currentLang === 'zh' ? '📊 每日超额收益 (vs 基准)' : '📊 Daily Excess Return (vs Bench)', left: 'center', textStyle: { fontSize: 12 } },
+                title: { text: currentLang === 'zh' ? '📊 每日超额收益 (vs 常规基准)' : '📊 Daily Excess Return (vs Base Bench)', left: 'center', textStyle: { fontSize: 12 } },
                 tooltip: { trigger: 'axis', formatter: function(params) {
-                    const p = params[0];
-                    return p.name + '<br/>超额收益: ' + p.data + '%';
+                    const p = params[0]; return p.name + '<br/>超额收益: ' + p.data + '%';
                 }},
                 grid: { left: 60, right: 30, top: 30, bottom: 20 },
-                xAxis: { type: 'category', data: dates.slice(1), axisLabel: { show: false } },
+                xAxis: { type: 'category', data: formattedDates.slice(1), axisLabel: { show: false } },
                 yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
-                series: [{
-                    type: 'bar', data: excessData.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })),
-                    barWidth: '60%'
-                }]
+                series: [{ type: 'bar', data: excessData.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })), barWidth: '60%' }]
             };
             excessChart.setOption(excessOption, true);
             excessChart.resize();
@@ -831,32 +870,42 @@
             document.getElementById('excess-chart-container').style.display = 'none';
         }
 
-        // 修改点2：采用增量更新与正弦函数的丝滑 2秒周期呼吸灯特效
-        if (window.breatheInterval) clearInterval(window.breatheInterval);
-        let phase = 0;
-        window.breatheInterval = setInterval(() => {
-            if (!myChart) return;
-            phase += Math.PI / 10; // 2秒完成一整个周期 (20 * 100ms)
-            if (phase > Math.PI * 2) phase -= Math.PI * 2;
-            
-            // 将 sin 映射到 0~1 的平滑波动因子
-            let factor = (Math.sin(phase - Math.PI / 2) + 1) / 2;
-            let alpha = 0.4 + 0.6 * factor;     // 透明度从 0.4 丝滑过渡到 1.0
-            let lineWidth = 1.5 + 1.5 * factor; // 呼吸线宽从 1.5 变至 3.0
-            let shadowGlow = 2 + 8 * factor;    // 阴影泛光范围
-            
-            myChart.setOption({
-                series: [{
-                    name: sNav, // 精准匹配曲线，不刷新图表全局交互
-                    lineStyle: {
-                        color: `rgba(139, 92, 246, ${alpha})`, // #8b5cf6
-                        width: lineWidth,
-                        shadowBlur: shadowGlow,
-                        shadowColor: `rgba(139, 92, 246, ${alpha})`
-                    }
-                }]
-            });
-        }, 100);
+        // --- 超额收益柱状图 2 (修正) ---
+        if (showAdjBench && adjExcessReturns && adjBenchmarkValues) {
+            const adjExcessData = adjExcessReturns.map(v => (v * 100).toFixed(2));
+            const adjColors = adjExcessReturns.map(v => v >= 0 ? '#ef4444' : '#10b981');
+            const adjExcessOption = {
+                title: { text: currentLang === 'zh' ? '🔥 每日超额收益 (vs 修正基准)' : '🔥 Daily Excess Return (vs Adj Bench)', left: 'center', textStyle: { fontSize: 12 } },
+                tooltip: { trigger: 'axis', formatter: function(params) {
+                    const p = params[0]; return p.name + '<br/>修正超额: ' + p.data + '%';
+                }},
+                grid: { left: 60, right: 30, top: 30, bottom: 20 },
+                xAxis: { type: 'category', data: formattedDates.slice(1), axisLabel: { show: false } },
+                yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
+                series: [{ type: 'bar', data: adjExcessData.map((v, i) => ({ value: v, itemStyle: { color: adjColors[i] } })), barWidth: '60%' }]
+            };
+            adjExcessChart.setOption(adjExcessOption, true);
+            adjExcessChart.resize();
+            document.getElementById('adj-excess-chart-container').style.display = 'block';
+        } else {
+            document.getElementById('adj-excess-chart-container').style.display = 'none';
+        }
+
+        // --- 呼吸灯动画 ---
+        if (breatheInterval) clearInterval(breatheInterval);
+        let bright = 0.5;
+        breatheInterval = setInterval(() => {
+            bright += 0.02;
+            if (bright > 0.8) bright = 0.2;
+            const baseHue = 267; 
+            const lightness = 30 + bright * 30; 
+            const newColor = `hsl(${baseHue}, 70%, ${lightness}%)`;
+            const currentOpt = myChart.getOption();
+            if (currentOpt.series && currentOpt.series.length > 0) {
+                currentOpt.series[0].lineStyle.color = newColor;
+                myChart.setOption(currentOpt, true);
+            }
+        }, 2000);
     }
 
     // ============================================================
@@ -936,7 +985,7 @@
                     <strong>${getScenarioNameTransformed(s)}</strong>
                     <span class="type">${getTypeNameTransformed(s.type)}</span>
                     <span style="color:${s.value < 0 ? '#ef4444' : '#10b981'}">${s.value}%</span>
-                    <span style="color:#64748b;font-size:11px;">${s.date}</span>
+                    <span style="color:#64748b;font-size:11px;">${s.date.replace(/-/g, '/')}</span>
                 </span>
                 <span class="del" onclick="removeScenario(${idx})" style="cursor:pointer;color:#ef4444;font-weight:bold;">✕</span>
             </span>
@@ -970,9 +1019,9 @@
         scenarios.push({ name: '利率骤升', type: 'rate', value: 0.4, date: '2025-10-15' });
         renderScenarios();
 
-        // 默认窗口24个月，场景静态
         document.getElementById('window-size').value = 24;
         document.getElementById('scenario-mode').value = 'static';
+        document.getElementById('self-check').checked = true;
 
         renderAssetTags();
         document.getElementById('benchmark-select').value = 'sh000300';
@@ -981,6 +1030,7 @@
         window.addEventListener('resize', () => { 
             if (myChart) myChart.resize();
             if (excessChart) excessChart.resize();
+            if (adjExcessChart) adjExcessChart.resize();
         });
     }
 
