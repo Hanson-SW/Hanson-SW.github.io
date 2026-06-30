@@ -306,25 +306,30 @@
 
         // 修改1: 修补未定义函数引用和 Fallback 指向错误
         async function fetchAssetData(code) {
-        try {
-            const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error('Network fetch failed');
-            
-            const text = await resp.text();
-            if (text.trim().startsWith('<')) throw new Error('404 Not Found HTML intercept');
-            
-            const data = JSON.parse(text.replace(/NaN/g, 'null'));
-            const dict = {};
-            for (let i = 0; i < data.dates.length; i++) {
-                dict[data.dates[i]] = data.values[i][1];
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5秒超时熔断
+                
+                const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
+                const resp = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (!resp.ok) throw new Error('Network fetch failed');
+                
+                const text = await resp.text();
+                if (text.trim().startsWith('<')) throw new Error('404 Not Found HTML intercept');
+                
+                const data = JSON.parse(text.replace(/NaN/g, 'null'));
+                const dict = {};
+                for (let i = 0; i < data.dates.length; i++) {
+                    dict[data.dates[i]] = data.values[i][1];
+                }
+                return dict;
+            } catch (e) {
+                console.warn(`[${code}] 获取真实数据失败或超时，启用本地预置 Demo 数据:`, e.message);
+                return cachedDataStore[code] || null; 
             }
-            return dict;
-        } catch (e) {
-            console.warn(`[${code}] 获取真实数据失败，启用本地预置 Demo 数据:`, e);
-            return cachedDataStore[code] || null; // 修正变量名 cachedData -> cachedDataStore
         }
-    }
 
         function calculateMetrics(netValues, dailyReturns) {
             let totalReturn = netValues[netValues.length - 1] - 1;
