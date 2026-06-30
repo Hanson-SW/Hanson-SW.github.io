@@ -347,24 +347,26 @@
     }
 
     async function fetchAssetData(code) {
-        const start = document.getElementById('start-date').value;
-        const end = document.getElementById('end-date').value;
-        // 扩展兼容：如果是默认2025范围且本地有冷启动底料，直接走本地高性能缓存
-        if (start >= '2025-01-01' && end <= '2025-12-31' && cachedData[code]) {
-            return cachedData[code];
-        }
         try {
+            // 永远优先尝试获取真实的线上历史数据包，不再强制拦截 2025 年
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
             const resp = await fetch(url);
-            if (!resp.ok) return null;
+            if (!resp.ok) throw new Error('网络请求未响应正常状态码');
+            
             const text = await resp.text();
-            if (text.trim().startsWith('<')) return null;
+            if (text.trim().startsWith('<')) throw new Error('遇到HTML页面(可能是404)');
+            
             const data = JSON.parse(text.replace(/NaN/g,'null'));
             const dict = {};
-            for (let i=0; i<data.dates.length; i++) dict[data.dates[i]] = data.values[i][1];
+            // 读取 JSON 中 values[i][1] 对应的 close (收盘价) 数据
+            for (let i=0; i<data.dates.length; i++) {
+                dict[data.dates[i]] = data.values[i][1]; 
+            }
             return dict;
-        } catch { 
-            return null;
+        } catch (e) { 
+            // 仅在真实数据获取失败(跨域/断网/文件不存在)时，优雅降级为本地 mock 数据
+            console.warn(`[${code}] 真实数据拉取失败，自动降级为本地预设模拟数据:`, e);
+            return cachedData[code] || null;
         }
     }
 
