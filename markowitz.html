@@ -380,13 +380,20 @@
         return s / (x.length-1);
     }
 
+    // 【关键修复点】：添加 1.5 秒超时控制，避免被墙或网络慢时网页长时间卡死
     async function fetchAssetData(code) {
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5秒拉不到立马熔断，使用初始数据
+            
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
-            const resp = await fetch(url);
+            const resp = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
             if (!resp.ok) throw new Error('网络请求未响应正常状态码');
             const text = await resp.text();
             if (text.trim().startsWith('<')) throw new Error('遇到HTML页面(可能是404)');
+            
             const data = JSON.parse(text.replace(/NaN/g,'null'));
             const dict = {};
             for (let i=0; i<data.dates.length; i++) {
@@ -394,7 +401,7 @@
             }
             return dict;
         } catch (e) {
-            console.warn(`[${code}] 真实数据拉取失败，自动降级为本地预设模拟数据:`, e);
+            console.warn(`[${code}] 真实数据拉取失败或超时，自动降级为本地初始数据:`, e.message);
             return cachedData[code] || null;
         }
     }
@@ -864,7 +871,7 @@
                 series: [{ type: 'bar', data: excessData.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })), barWidth: '60%' }]
             };
             
-            // 【关键修复】先 display:block 保证容器撑开，然后再渲染图表和 resize
+            // 先 display:block 保证容器撑开，然后再渲染图表和 resize
             document.getElementById('excess-chart-container').style.display = 'block';
             excessChart.setOption(excessOption, true);
             excessChart.resize();
@@ -887,7 +894,7 @@
                 series: [{ type: 'bar', data: adjExcessData.map((v, i) => ({ value: v, itemStyle: { color: adjColors[i] } })), barWidth: '60%' }]
             };
             
-            // 【关键修复】先 display:block 保证容器撑开，然后再渲染图表和 resize
+            // 先 display:block 保证容器撑开，然后再渲染图表和 resize
             document.getElementById('adj-excess-chart-container').style.display = 'block';
             adjExcessChart.setOption(adjExcessOption, true);
             adjExcessChart.resize();
