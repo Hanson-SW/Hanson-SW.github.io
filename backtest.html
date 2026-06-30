@@ -304,9 +304,9 @@
 
         function removeAssetRow(index) { portfolioConfig.splice(index, 1); renderPortfolioDOM(); }
 
+        // 修改1: 修补未定义函数引用和 Fallback 指向错误
         async function fetchAssetData(code) {
         try {
-            // 永远优先尝试获取真实的线上历史数据包
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
             const resp = await fetch(url);
             if (!resp.ok) throw new Error('Network fetch failed');
@@ -322,7 +322,7 @@
             return dict;
         } catch (e) {
             console.warn(`[${code}] 获取真实数据失败，启用本地预置 Demo 数据:`, e);
-            return cachedData[code] || null;
+            return cachedDataStore[code] || null; // 修正变量名 cachedData -> cachedDataStore
         }
     }
 
@@ -368,7 +368,7 @@
                 const allCodes = [benchmarkCode, ...portfolioConfig.map(item => item.code)];
                 
                 await Promise.all(allCodes.map(async (code) => {
-                    let res = await fetchPriceSeries(code);
+                    let res = await fetchAssetData(code); // 修正未定义函数名: fetchPriceSeries -> fetchAssetData
                     if (res) dataStore[code] = res;
                 }));
 
@@ -528,7 +528,22 @@
                 ],
                 xAxis: [
                     { type: 'category', boundaryGap: false, data: dates, gridIndex: 0, axisLabel: { show: false } },
-                    { type: 'category', boundaryGap: false, data: dates, gridIndex: 1 }
+                    { 
+                        type: 'category', 
+                        boundaryGap: false, 
+                        data: dates, 
+                        gridIndex: 1,
+                        // 修改2: X轴期初及跨年年份智能标注
+                        axisLabel: {
+                            formatter: function (value, index) {
+                                if (index === 0) return value.substring(0, 4) + '\n' + value.substring(5);
+                                let currentYear = value.substring(0, 4);
+                                let prevYear = dates[index - 1] ? dates[index - 1].substring(0, 4) : currentYear;
+                                if (currentYear !== prevYear) return currentYear + '\n' + value.substring(5);
+                                return value.substring(5);
+                            }
+                        }
+                    }
                 ],
                 yAxis: [
                     { type: 'value', scale: true, gridIndex: 0, name: tY1 },
@@ -578,13 +593,15 @@
                     {
                         name: sNav, type: 'line', data: pNAV, smooth: true, symbol: 'none',
                         xAxisIndex: 0, yAxisIndex: 0, zlevel: 1,
-                        lineStyle: { width: 2.5, color: '#ef4444' },
+                        // 修改3: 线条变细 (起始状态)
+                        lineStyle: { width: 1.5, color: '#ef4444' },
                         markPoint: { data: tradeMarkers, symbol: 'pin', symbolSize: 22, label: { fontSize: 10, color: '#fff' } }
                     },
                     {
                         name: sBench, type: 'line', data: bNAV, smooth: true, symbol: 'none',
                         xAxisIndex: 0, yAxisIndex: 0, zlevel: 0,
-                        lineStyle: { width: 1.5, color: '#94a3b8', type: 'dashed' }
+                        // 修改3: 基准线条变细
+                        lineStyle: { width: 1.0, color: '#94a3b8', type: 'dashed' }
                     },
                     {
                         name: sExcess, type: 'bar', data: excess,
@@ -595,6 +612,32 @@
             };
             
             myChart.setOption(option, true);
+
+            // 修改4: 加入2秒循环呼吸灯特效 (通过 Echarts 增量更新不刷新全局)
+            if (window.breathTimer) clearInterval(window.breathTimer);
+            let phase = 0;
+            window.breathTimer = setInterval(() => {
+                phase += Math.PI / 10; // 2秒完成一整个周期 (20 * 100ms)
+                if (phase > Math.PI * 2) phase -= Math.PI * 2;
+                
+                // 将 sin 映射到 0~1 的波动因子
+                let factor = (Math.sin(phase - Math.PI / 2) + 1) / 2;
+                let alpha = 0.4 + 0.6 * factor;   // 颜色透明度渐变 0.4 到 1.0
+                let lineWidth = 1.0 + 1.2 * factor; // 呼吸线宽 1.0 到 2.2
+                let shadowGlow = 2 + 8 * factor;    // 阴影发光渐变
+
+                myChart.setOption({
+                    series: [{
+                        name: sNav, // 精确匹配策略曲线进行局部更新
+                        lineStyle: {
+                            color: `rgba(239, 68, 68, ${alpha})`, // #ef4444
+                            width: lineWidth,
+                            shadowBlur: shadowGlow,
+                            shadowColor: `rgba(239, 68, 68, ${alpha})`
+                        }
+                    }]
+                });
+            }, 100);
         }
 
         updateBenchName();
