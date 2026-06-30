@@ -24,7 +24,7 @@
             letter-spacing: -0.2px !important;
             white-space: nowrap !important;
         }
-        body.lang-en .stat-card .title { font-size: 9.5px !important; letter-spacing: -0.5px !important;}
+        body.lang-en .stat-card .title { font-size: 11px !important; letter-spacing: -0.2px !important;}
         body.lang-en .btn { padding-left: 8px !important; padding-right: 8px !important; }
         body.lang-en .group label, body.lang-en .stat-sub { font-size: 11px !important; white-space: nowrap !important; }
 
@@ -32,7 +32,7 @@
         .report-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
         .stat-card { background: #f1f5f9; border-radius: 12px; padding: 14px 18px; border-left: 4px solid var(--accent); display: flex; flex-direction: column; justify-content: space-between; }
-        .stat-card .title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
+        .stat-card .title { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
         .stat-card .value { font-size: 22px; font-weight: 700; color: #1e293b; margin-top: 4px; }
         .stat-card .sub { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
         
@@ -200,7 +200,7 @@
                 <label style="font-weight:600;" data-i18n="dStress">⚠️ 压力测试场景</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <input type="text" id="scenario-name" data-i18n="phName" placeholder="场景名称" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; width:120px;">
-                    <select id="scenario-type" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
+                    <input type="text" id="scenario-date" placeholder="yyyy/mm/dd" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; width:105px;">
                         <option value="market" data-i18n="sm">市场暴跌</option>
                         <option value="rate" data-i18n="sr">利率骤升</option>
                         <option value="vol" data-i18n="sv">波动率冲击</option>
@@ -788,9 +788,9 @@
                 formatter: `${getScenarioNameTransformed(sc)}\n${getTypeNameTransformed(sc.type)}: ${sc.value}%`, 
                 position: 'insideEndTop', 
                 fontSize: 10, 
-                color: '#ef4444' 
+                color: 'rgba(239, 68, 68, 0.7)' // 标签文字透明度70%
             },
-            lineStyle: { color: '#ef4444', type: 'dashed', width: 2 }
+            lineStyle: { color: 'rgba(239, 68, 68, 0.7)', type: 'dashed', width: 2 } // 虚线透明度70%
         }));
 
         const sTitle = currentLang === 'zh' ? 'Walk-forward 净值表现与压力回测' : 'Walk-forward NAV & Stress Test';
@@ -800,7 +800,8 @@
             name: sNav, type: 'line', data: netValues, smooth: true, symbol: 'none',
             lineStyle: { width: 1.5, color: '#8b5cf6' }, 
             areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1, [{ offset: 0, color: 'rgba(139,92,246,0.3)' }, { offset: 1, color: 'rgba(139,92,246,0.0)' }]) },
-            markLine: { silent: true, data: markLineData, label: { show: true, formatter: '{b}', fontSize: 10 } }
+            // 强制加入 animation: false 拦截所有出场展开动画
+            markLine: { silent: true, animation: false, data: markLineData, label: { show: true, formatter: '{b}', fontSize: 10 } }
         }];
 
         if (benchmarkValues && benchmarkCode) {
