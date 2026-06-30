@@ -304,23 +304,27 @@
 
         function removeAssetRow(index) { portfolioConfig.splice(index, 1); renderPortfolioDOM(); }
 
-        async function fetchPriceSeries(code) {
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
-            if (startDate === '2025-01-01' && endDate === '2025-12-31' && cachedDataStore[code]) return cachedDataStore[code];
-
+        async function fetchAssetData(code) {
+        try {
+            // 永远优先尝试获取真实的线上历史数据包
             const url = `https://hanson-sw.github.io/data/${code}.json?t=${Date.now()}`;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) return null;
-                const textData = await response.text();
-                if (textData.trim().startsWith("<")) return null;
-                const cleanData = JSON.parse(textData.replace(/NaN/g, 'null'));
-                const priceDict = {};
-                for (let i = 0; i < cleanData.dates.length; i++) priceDict[cleanData.dates[i]] = cleanData.values[i][1];
-                return priceDict;
-            } catch { return null; }
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('Network fetch failed');
+            
+            const text = await resp.text();
+            if (text.trim().startsWith('<')) throw new Error('404 Not Found HTML intercept');
+            
+            const data = JSON.parse(text.replace(/NaN/g, 'null'));
+            const dict = {};
+            for (let i = 0; i < data.dates.length; i++) {
+                dict[data.dates[i]] = data.values[i][1];
+            }
+            return dict;
+        } catch (e) {
+            console.warn(`[${code}] 获取真实数据失败，启用本地预置 Demo 数据:`, e);
+            return cachedData[code] || null;
         }
+    }
 
         function calculateMetrics(netValues, dailyReturns) {
             let totalReturn = netValues[netValues.length - 1] - 1;
