@@ -6,7 +6,7 @@ from datetime import datetime
 
 DATA_DIR = "data"
 
-# 我们配置的 10 大核心指数代码池 (格式: {"AkShare请求代码": "保存的文件名"})
+# 我们配置的 10 大核心指数代码池
 INDEX_POOL = {
     "sh000001": "sh000001",  # 上证指数
     "sz399001": "sz399001",  # 深证成指
@@ -21,33 +21,33 @@ INDEX_POOL = {
 
 def update_index_data(symbol, filename):
     file_path = os.path.join(DATA_DIR, f"{filename}.json")
-    print(f"正在获取 [{symbol}] 的数据...")
+    print(f"正在获取 [{symbol}] 的全量历史数据...")
     
     try:
-        # 抓取日线数据
+        # 直接抓取全量历史日线数据
         df_new = ak.stock_zh_index_daily(symbol=symbol)
-        df_new = df_new[['date', 'open', 'close', 'low', 'high', 'volume']]
         
-        # 🌟 核心修复：剔除掉价格数据为空(NaN)的交易日，保证数据纯净
+        # 提取有效列，严格保证索引1是close（前端通过 values[i][1] 读取收盘价）
+        df_new = df_new[['date', 'open', 'close', 'low', 'high']]
+        
+        # 强制将日期转为标准 YYYY-MM-DD 字符串
+        df_new['date'] = pd.to_datetime(df_new['date']).dt.strftime('%Y-%m-%d')
+        
+        # 剔除价格数据为空的交易日
         df_new = df_new.dropna(subset=['open', 'close', 'low', 'high'])
         
-        # 增量合并逻辑
-        if os.path.exists(file_path):
-            df_old = pd.read_json(file_path)
-            df_combined = pd.concat([df_old, df_new]).drop_duplicates(subset=['date'], keep='last')
-            df_combined = df_combined.sort_values(by='date').reset_index(drop=True)
-        else:
-            df_combined = df_new.sort_values(by='date').reset_index(drop=True)
+        # 全量覆盖逻辑：排序、去重
+        df_new = df_new.sort_values(by='date').drop_duplicates(subset=['date'], keep='last').reset_index(drop=True)
 
         # 格式化并保存
         result = {
-            "dates": df_combined['date'].tolist(),
-            "values": df_combined[['open', 'close', 'low', 'high']].values.tolist()
+            "dates": df_new['date'].tolist(),
+            "values": df_new[['open', 'close', 'low', 'high']].values.tolist()
         }
         
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False)
-        print(f"✅ [{symbol}] 更新成功！")
+        print(f"✅ [{symbol}] 更新成功，共保存 {len(df_new)} 个交易日数据！")
         
     except Exception as e:
         print(f"❌ [{symbol}] 数据抓取失败: {e}")
