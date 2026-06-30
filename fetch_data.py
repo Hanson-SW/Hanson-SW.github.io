@@ -23,7 +23,7 @@ def update_index_data(symbol, filename):
     file_path = os.path.join(DATA_DIR, f"{filename}.json")
     print(f"正在获取 [{symbol}] 的数据...")
     
- try:
+    try:
         # 抓取日线数据
         df_new = ak.stock_zh_index_daily(symbol=symbol)
         df_new = df_new[['date', 'open', 'close', 'low', 'high', 'volume']]
