@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>量化资产配置系统 v1.1.1.0 / Quant Asset Allocation</title>
+    <title>量化资产配置系统 v1.2 / Quant Asset Allocation</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
@@ -24,6 +24,7 @@
             letter-spacing: -0.2px !important;
             white-space: nowrap !important;
         }
+        /* 针对英文版的字体大小和间距微调，防错乱 */
         body.lang-en .stat-card .title { font-size: 11px !important; letter-spacing: -0.2px !important;}
         body.lang-en .btn { padding-left: 8px !important; padding-right: 8px !important; }
         body.lang-en .group label, body.lang-en .stat-sub { font-size: 11px !important; white-space: nowrap !important; }
@@ -32,17 +33,17 @@
         .report-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
         .stat-card { background: #f1f5f9; border-radius: 12px; padding: 14px 18px; border-left: 4px solid var(--accent); display: flex; flex-direction: column; justify-content: space-between; }
+        /* 针对中文版卡片标题（预期年化收益等）放大至13.5px */
         .stat-card .title { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
         .stat-card .value { font-size: 22px; font-weight: 700; color: #1e293b; margin-top: 4px; }
         .stat-card .sub { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
         
-        /* 修改点 4: 取消最大高度和滚动，实现自适应展开 */
+        /* 修复排版 */
         .stat-card .weight-list { font-size: 11px; background: white; padding: 6px 8px; border-radius: 6px; margin-top: 6px; border: 1px dashed #cbd5e1; white-space: normal !important; word-break: break-word; line-height: 1.4; }
         body.lang-en .stat-card .weight-list { font-size: 10px !important; white-space: normal !important; }
 
         #chart-container { width: 100%; height: 500px; min-height: 400px; }
-        #excess-chart-container { width: 100%; height: 160px; min-height: 120px; margin-top: 10px; }
-        /* 修改点 3: 增加第二个修正基准的超额收益图容器 */
+        #excess-chart-container { width: 100%; height: 160px; min-height: 120px; margin-top: 10px; display: none; }
         #adj-excess-chart-container { width: 100%; height: 160px; min-height: 120px; margin-top: 10px; display: none; }
         
         .settings-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 24px; }
@@ -200,7 +201,7 @@
                 <label style="font-weight:600;" data-i18n="dStress">⚠️ 压力测试场景</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <input type="text" id="scenario-name" data-i18n="phName" placeholder="场景名称" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; width:120px;">
-                    <input type="text" id="scenario-date" placeholder="yyyy/mm/dd" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; width:105px;">
+                    <select id="scenario-type" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
                         <option value="market" data-i18n="sm">市场暴跌</option>
                         <option value="rate" data-i18n="sr">利率骤升</option>
                         <option value="vol" data-i18n="sv">波动率冲击</option>
@@ -329,8 +330,7 @@
     // ============================================================
     let myChart = null;
     let excessChart = null;
-    let adjExcessChart = null; // 修正版超额收益图表
-    // 修改点 2: 初始资产池修改
+    let adjExcessChart = null;
     let assetPool = ['sh000300', 'sz399006', 'sh000688', 'sh000001', 'sh000016'];
     let scenarios = [];
     let cachedData = null;
@@ -416,7 +416,7 @@
     }
 
     // ============================================================
-    //  修改点 1: 重构极其稳定的 QP 优化求解器 (单纯形投影梯度上升算法)
+    //  优化求解器
     // ============================================================
     function projectSimplex(v) {
         let u = [...v].sort((a,b) => b - a);
@@ -450,7 +450,6 @@
             warnings.push(`⚠️ 样本天数(${sampleCount})少于资产数(${n})的2倍，优化结果可能不稳定`);
         }
 
-        // 检测超额收益是否全为负
         let maxExcessIdx = 0;
         for (let i = 0; i < n; i++) { if (mu[i] - riskFree > mu[maxExcessIdx] - riskFree) maxExcessIdx = i; }
         if (mu[maxExcessIdx] - riskFree <= 0) {
@@ -461,7 +460,6 @@
             return { weights: eqW, ret: pR, vol: Math.sqrt(pV), sharpe: (pR - riskFree)/Math.sqrt(pV), warnings };
         }
 
-        // 使用 Projected Gradient Ascent 精确最优化夏普比率
         let w = Array(n).fill(1 / n);
         let lr = 0.1;
         let bestSharpe = -Infinity;
@@ -481,9 +479,9 @@
             if (sharpe > bestSharpe) {
                 bestSharpe = sharpe;
                 bestW = w.slice();
-                lr *= 1.05; // 动能加速
+                lr *= 1.05; 
             } else {
-                lr *= 0.5;  // 退火减速
+                lr *= 0.5;  
             }
 
             let grad = Array(n).fill(0);
@@ -706,7 +704,7 @@
             
             updateWeightsUI(finalDisplayedWeights, assetPool);
 
-            // 修改点 3: 同时计算常规基准 与 受压基准
+            // 常规基准 与 受压基准计算
             let benchmarkValues = null;
             let adjBenchmarkValues = null;
             let excessReturns = null;
@@ -725,7 +723,7 @@
                     benchDailyRets.push(r);
                     benchmarkValues.push(benchmarkValues[i-1] * (1 + r));
 
-                    // 对基准赋予压力测试修正（相同冲击）
+                    // 对基准赋予压力测试修正
                     const shock = scenarioShocks[backtestDates[i]] || 0;
                     const adjR = r + shock;
                     adjBenchDailyRets.push(adjR);
@@ -739,6 +737,8 @@
             currentResult = { netValues, allDates: backtestDates, dailyRets, optRet, optVol, maxDD, calmar, sharpe: optSharpe, sortino, weights: finalDisplayedWeights, assetPool, scenarios, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns };
 
             setStatus(true, currentLang === 'zh' ? '⏳ 正在组装ECharts交互式看板...' : '⏳ Rendering Interactive Chart...');
+            
+            // 渲染图表
             renderChart(backtestDates, netValues, finalDisplayedWeights, dailyRets, optRet, optVol, maxDD, calmar, optSharpe, sortino, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns);
             
             if (warnings.length > 0 && selfCheck) {
@@ -768,55 +768,12 @@
     // ============================================================
     function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns) {
         if (!myChart) myChart = echarts.init(document.getElementById('chart-container'));
-        // --- 超额收益柱状图 1 (常规) ---
-        if (excessReturns && benchmarkValues) {
-            const excessData = excessReturns.map(v => (v * 100).toFixed(2)); 
-            const colors = excessReturns.map(v => v >= 0 ? '#ef4444' : '#10b981'); 
-            const excessOption = {
-                title: { text: currentLang === 'zh' ? '📊 每日超额收益 (vs 常规基准)' : '📊 Daily Excess Return (vs Base Bench)', left: 'center', textStyle: { fontSize: 12 } },
-                tooltip: { trigger: 'axis', formatter: function(params) {
-                    const p = params[0]; return p.name + '<br/>超额收益: ' + p.data + '%';
-                }},
-                grid: { left: 60, right: 30, top: 30, bottom: 20 },
-                xAxis: { type: 'category', data: formattedDates.slice(1), axisLabel: { show: false } },
-                yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
-                series: [{ type: 'bar', data: excessData.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })), barWidth: '60%' }]
-            };
-            
-            // 【关键修复】先显示容器，再渲染和调整大小
-            document.getElementById('excess-chart-container').style.display = 'block';
-            excessChart.setOption(excessOption, true);
-            excessChart.resize();
-        } else {
-            document.getElementById('excess-chart-container').style.display = 'none';
-        }
-
-        // --- 超额收益柱状图 2 (修正) ---
-        if (showAdjBench && adjExcessReturns && adjBenchmarkValues) {
-            const adjExcessData = adjExcessReturns.map(v => (v * 100).toFixed(2));
-            const adjColors = adjExcessReturns.map(v => v >= 0 ? '#ef4444' : '#10b981');
-            const adjExcessOption = {
-                title: { text: currentLang === 'zh' ? '🔥 每日超额收益 (vs 修正基准)' : '🔥 Daily Excess Return (vs Adj Bench)', left: 'center', textStyle: { fontSize: 12 } },
-                tooltip: { trigger: 'axis', formatter: function(params) {
-                    const p = params[0]; return p.name + '<br/>修正超额: ' + p.data + '%';
-                }},
-                grid: { left: 60, right: 30, top: 30, bottom: 20 },
-                xAxis: { type: 'category', data: formattedDates.slice(1), axisLabel: { show: false } },
-                yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
-                series: [{ type: 'bar', data: adjExcessData.map((v, i) => ({ value: v, itemStyle: { color: adjColors[i] } })), barWidth: '60%' }]
-            };
-            
-            // 【关键修复】先显示容器，再渲染和调整大小
-            document.getElementById('adj-excess-chart-container').style.display = 'block';
-            adjExcessChart.setOption(adjExcessOption, true);
-            adjExcessChart.resize();
-        } else {
-            document.getElementById('adj-excess-chart-container').style.display = 'none';
-        }
+        if (!excessChart) excessChart = echarts.init(document.getElementById('excess-chart-container'));
+        if (!adjExcessChart) adjExcessChart = echarts.init(document.getElementById('adj-excess-chart-container'));
 
         const showAdjBench = document.getElementById('show-adj-bench').checked;
         
-        // 修改点 5: 统一可视化输出的日期格式为 yyyy/mm/dd
+        // 统一可视化输出的日期格式为 yyyy/mm/dd
         const formattedDates = dates.map(d => d.replace(/-/g, '/'));
 
         const scenarioData = scenarios.map(sc => {
@@ -831,7 +788,7 @@
                 formatter: `${getScenarioNameTransformed(sc)}\n${getTypeNameTransformed(sc.type)}: ${sc.value}%`, 
                 position: 'insideEndTop', 
                 fontSize: 10, 
-                color: 'rgba(239, 68, 68, 0.7)' // 标签文字透明度70%
+                color: 'rgba(239, 68, 68, 0.7)' // 透明度70%
             },
             lineStyle: { color: 'rgba(239, 68, 68, 0.7)', type: 'dashed', width: 2 } // 虚线透明度70%
         }));
@@ -843,7 +800,7 @@
             name: sNav, type: 'line', data: netValues, smooth: true, symbol: 'none',
             lineStyle: { width: 1.5, color: '#8b5cf6' }, 
             areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1, [{ offset: 0, color: 'rgba(139,92,246,0.3)' }, { offset: 1, color: 'rgba(139,92,246,0.0)' }]) },
-            // 强制加入 animation: false 拦截所有出场展开动画
+            // 强制 animation: false，杜绝标注线进场展开动画
             markLine: { silent: true, animation: false, data: markLineData, label: { show: true, formatter: '{b}', fontSize: 10 } }
         }];
 
@@ -854,7 +811,6 @@
                 type: 'line', data: benchmarkValues, smooth: true, symbol: 'none',
                 lineStyle: { width: 1.2, color: '#9ca3af', type: 'dashed' }
             });
-            // 压测修正基准曲线
             if (showAdjBench && adjBenchmarkValues) {
                 series.push({
                     name: currentLang === 'zh' ? `修正基准 (${benchName})` : `Adj Bench (${benchName})`,
@@ -907,9 +863,11 @@
                 yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
                 series: [{ type: 'bar', data: excessData.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })), barWidth: '60%' }]
             };
+            
+            // 【关键修复】先 display:block 保证容器撑开，然后再渲染图表和 resize
+            document.getElementById('excess-chart-container').style.display = 'block';
             excessChart.setOption(excessOption, true);
             excessChart.resize();
-            document.getElementById('excess-chart-container').style.display = 'block';
         } else {
             document.getElementById('excess-chart-container').style.display = 'none';
         }
@@ -928,9 +886,11 @@
                 yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
                 series: [{ type: 'bar', data: adjExcessData.map((v, i) => ({ value: v, itemStyle: { color: adjColors[i] } })), barWidth: '60%' }]
             };
+            
+            // 【关键修复】先 display:block 保证容器撑开，然后再渲染图表和 resize
+            document.getElementById('adj-excess-chart-container').style.display = 'block';
             adjExcessChart.setOption(adjExcessOption, true);
             adjExcessChart.resize();
-            document.getElementById('adj-excess-chart-container').style.display = 'block';
         } else {
             document.getElementById('adj-excess-chart-container').style.display = 'none';
         }
@@ -1002,7 +962,7 @@
         const type = document.getElementById('scenario-type').value;
         const value = parseFloat(document.getElementById('scenario-value').value);
         
-        // 【核心修改点】自动将用户输入的 yyyy/mm/dd 转换为底层识别的 - 格式
+        // 自动将用户输入的 yyyy/mm/dd 转换为底层识别的 - 格式
         const dateInput = document.getElementById('scenario-date').value.trim();
         let date = dateInput.replace(/\//g, '-');
         
