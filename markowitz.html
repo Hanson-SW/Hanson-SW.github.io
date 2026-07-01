@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量化资产配置系统 v1.2 / Quant Asset Allocation</title>
+    <script src="./echarts.min.js"></script>
+    <script src="./html2canvas.min.js"></script>
+    <link rel="stylesheet" href="./all.min.css" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; position: relative;}
+        
+        /* 双语切换按钮样式 */
+        .top-utility-bar { position: absolute; top: 15px; right: 20px; z-index: 1000; }
+        .lang-toggle-btn { background: rgba(255,255,255,0.8); border: 1px solid #cbd5e1; border-radius: 20px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; backdrop-filter: blur(5px); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .lang-toggle-btn:hover { transform: scale(1.06) translateY(-2px); box-shadow: 0 10px 20px rgba(139, 92, 246, 0.15); }
+        .lang-toggle-btn.en-active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        body.lang-en [data-i18n], body.lang-en input::placeholder, body.lang-en select, body.lang-en option, body.lang-en .btn {
+            font-family: 'Arial Narrow', -apple-system, sans-serif !important;
+            font-size: 0.85em !important; 
+            letter-spacing: -0.2px !important;
+            white-space: nowrap !important;
+        }
+        /* 针对英文版的字体大小和间距微调，防错乱 */
+        body.lang-en .stat-card .title { font-size: 11px !important; letter-spacing: -0.2px !important;}
+        body.lang-en .btn { padding-left: 8px !important; padding-right: 8px !important; }
+        body.lang-en .group label, body.lang-en .stat-sub { font-size: 11px !important; white-space: nowrap !important; }
+
+        .app-container { max-width: 1400px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+        .report-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: #f1f5f9; border-radius: 12px; padding: 14px 18px; border-left: 4px solid var(--accent); display: flex; flex-direction: column; justify-content: space-between; }
+        /* 针对中文版卡片标题（预期年化收益等）放大至13.5px */
+        .stat-card .title { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
+        .stat-card .value { font-size: 22px; font-weight: 700; color: #1e293b; margin-top: 4px; }
+        .stat-card .sub { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+        
+        /* 修复排版 */
+        .stat-card .weight-list { font-size: 11px; background: white; padding: 6px 8px; border-radius: 6px; margin-top: 6px; border: 1px dashed #cbd5e1; white-space: normal !important; word-break: break-word; line-height: 1.4; }
+        body.lang-en .stat-card .weight-list { font-size: 10px !important; white-space: normal !important; }
+
+        #chart-container { width: 100%; height: 500px; min-height: 400px; }
+        #excess-chart-container { width: 100%; height: 160px; min-height: 120px; margin-top: 10px; display: none; }
+        #adj-excess-chart-container { width: 100%; height: 160px; min-height: 120px; margin-top: 10px; display: none; }
+        
+        .settings-area { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 24px; }
+        .settings-row { display: flex; flex-wrap: wrap; gap: 16px 30px; align-items: center; }
+        .settings-row .group { display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; }
+        .settings-row .group label { font-size: 12px; font-weight: 600; color: #475569; }
+        .settings-row .group input, .settings-row .group select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: white; transition: 0.15s; }
+        .settings-row .group input:focus, .settings-row .group select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+        .settings-row .group input[type="checkbox"] { width: 18px; height: 18px; margin-top: 6px; accent-color: var(--accent); }
+        .btn { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.15s; font-size: 14px; }
+        .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 2px dashed var(--border); color: #64748b; }
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #f5f3ff; }
+        .btn-danger { background: #ef4444; padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+        .btn-sm { padding: 4px 12px; font-size: 12px; }
+        .asset-tag { display: inline-flex; align-items: center; background: #e2e8f0; padding: 4px 10px 4px 14px; border-radius: 20px; gap: 8px; font-size: 13px; font-weight: 500; }
+        .asset-tag .del { cursor: pointer; color: #ef4444; font-weight: bold; }
+        .scenario-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+        .scenario-item { background: #f1f5f9; border-radius: 20px; padding: 6px 14px 6px 18px; display: inline-flex; align-items: center; gap: 12px; font-size: 13px; border: 1px solid var(--border); }
+        .scenario-item .info { display: flex; gap: 6px; align-items: center; }
+        .scenario-item .info .type { background: #cbd5e1; border-radius: 12px; padding: 0 8px; font-size: 11px; color: #1e293b; }
+        .status-indicator { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; }
+        .status-indicator .spinner-small { width: 18px; height: 18px; border: 2px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+        .data-health { font-size: 12px; color: #64748b; background: #f8fafc; border: 1px dashed var(--border); border-radius: 8px; padding: 8px 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) { body { padding: 10px; } .stats-grid { grid-template-columns: 1fr 1fr; } #chart-container { height: 350px; } #excess-chart-container, #adj-excess-chart-container { height: 120px; } .settings-row .group { flex: 1 1 100%; } }
+        @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="top-utility-bar">
+    <button onclick="toggleLang()" class="lang-toggle-btn" id="langBtn">
+        <i class="fas fa-globe"></i> <span data-i18n="langBtn">中 / EN</span>
+    </button>
+</div>
+
+<div class="app-container" id="app">
+
+    <div class="report-area" id="reportArea">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card" style="border-left-color:#f59e0b;">
+                <div class="title" data-i18n="stat1Title">📈 预期年化收益 / 波动</div>
+                <div class="value" id="opt-return-vol">-- / --</div>
+                <div class="sub" id="sub-return-vol" data-i18n="stat1Sub">最优组合</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#10b981;">
+                <div class="title" data-i18n="stat2Title">🛡️ 最大回撤 / 卡玛</div>
+                <div class="value" id="opt-drawdown">--</div>
+                <div class="sub" id="sub-risk-metrics">MaxDD: --<br>Calmar: --</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#ef4444;">
+                <div class="title" data-i18n="stat3Title">🏆 夏普 / 索提诺</div>
+                <div class="value" id="opt-sharpe-sortino">-- / --</div>
+                <div class="weight-list" id="opt-weights" data-i18n="loading">加载中...</div>
+            </div>
+        </div>
+        <div id="chart-container"></div>
+        <div id="excess-chart-container"></div>
+        <div id="adj-excess-chart-container"></div>
+    </div>
+
+    <div class="settings-area">
+        <div class="settings-row">
+            <div class="group">
+                <label data-i18n="dStart">📅 开始日期</label>
+                <input type="date" id="start-date" value="2025-01-01">
+            </div>
+            <div class="group">
+                <label data-i18n="dEnd">📅 结束日期</label>
+                <input type="date" id="end-date" value="2025-12-31">
+            </div>
+            <div class="group">
+                <label data-i18n="dSim">🔄 蒙特卡洛模拟次数</label>
+                <input type="number" id="sim-count" value="3000" min="500" step="500">
+            </div>
+            <div class="group">
+                <label data-i18n="dRf">📉 无风险利率 (年化)</label>
+                <input type="number" id="risk-free-rate" value="2.0" step="0.1"> %
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="group" style="flex-direction:row; align-items:center; gap:10px;">
+                <label data-i18n="dOpt">🔧 优化方法</label>
+                <select id="optim-method" style="flex:1;" onchange="runFullAnalysis()">
+                    <option value="mc" data-i18n="oMc">蒙特卡洛模拟</option>
+                    <option value="qp" selected data-i18n="oQp">二次规划 (QP-最大夏普)</option>
+                </select>
+            </div>
+            <div class="group" style="flex-direction:row; align-items:center; gap:6px;">
+                <label data-i18n="dShort">🚫 限制做空</label>
+                <input type="checkbox" id="short-restrict" checked onchange="runFullAnalysis()">
+            </div>
+            <div class="group">
+                <label data-i18n="dRoll">📦 滚动窗口 (月数)</label>
+                <input type="number" id="window-size" value="24" min="0" step="1" style="width:80px;">
+                <span style="font-size:12px; color:#64748b;" data-i18n="dRollSub">(0=不使用滚动)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button class="btn" onclick="runFullAnalysis()" data-i18n="btnRe">🚀 重新分析</button>
+                <span class="status-indicator" id="statusIndicator">
+                    <span class="spinner-small" id="statusSpinner"></span>
+                    <span id="statusText" data-i18n="sReady">✅ 就绪</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="group" style="flex:1;">
+                <label data-i18n="dMode">🔀 场景模式</label>
+                <select id="scenario-mode" style="padding:8px 12px; border:1px solid var(--border); border-radius:8px;" onchange="runFullAnalysis()">
+                    <option value="static" selected data-i18n="sStatic">静态压力测试 (Static Stress)</option>
+                    <option value="dynamic" data-i18n="sDynamic">动态滚动优化 (Dynamic Rolling)</option>
+                </select>
+            </div>
+            <div class="group" style="flex:1;">
+                <label data-i18n="dSelf">🔎 自检模式 (仅动态)</label>
+                <input type="checkbox" id="self-check" checked onchange="runFullAnalysis()">
+                <span style="font-size:11px; color:#64748b;" data-i18n="dSelfSub">检测样本不足/权重极端</span>
+            </div>
+            <div class="group" style="flex:1;">
+                <label data-i18n="dAdjBench">🔧 修正基准与超额 (压力测试)</label>
+                <input type="checkbox" id="show-adj-bench" checked onchange="runFullAnalysis()">
+                <span style="font-size:11px; color:#64748b;" data-i18n="dAdjBenchSub">在图表中对比受压基准</span>
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="group" style="flex:2;">
+                <label data-i18n="dPool">📦 资产池 (代码, 用逗号分隔)</label>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <input type="text" id="asset-input" data-i18n="phPool" placeholder="例如 sh000300, sz399006" style="flex:1; min-width:150px;" list="stock-database">
+                    <datalist id="stock-database"></datalist>
+                    <select id="asset-select" style="padding:8px; border:1px solid var(--border); border-radius:8px; min-width:130px;">
+                        <option value="" data-i18n="oSelIdx">— 选择指数 —</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline" onclick="addSelectedAsset()" data-i18n="btnAdd">➕ 添加</button>
+                    <button class="btn btn-sm btn-outline" onclick="updateAssetPool()" data-i18n="btnUp">更新池</button>
+                </div>
+                <div id="asset-tags" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="group" style="flex:1;">
+                <label data-i18n="dBench">📊 基准指数 (对比虚线)</label>
+                <select id="benchmark-select" style="padding:8px; border:1px solid var(--border); border-radius:8px;" onchange="runFullAnalysis()">
+                    <option value="" data-i18n="oNoB">无基准</option>
+                </select>
+            </div>
+            <div class="group" style="flex:2;">
+                <label>Data Health</label>
+                <div class="data-health" id="data-health">Data: loading cache...</div>
+            </div>
+        </div>
+
+        <div class="settings-row" style="flex-direction:column; align-items:stretch;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <label style="font-weight:600;" data-i18n="dStress">⚠️ 压力测试场景</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <input type="text" id="scenario-name" data-i18n="phName" placeholder="场景名称" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; width:120px;">
+                    <select id="scenario-type" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
+                        <option value="market" data-i18n="sm">市场暴跌</option>
+                        <option value="rate" data-i18n="sr">利率骤升</option>
+                        <option value="vol" data-i18n="sv">波动率冲击</option>
+                    </select>
+                    <input type="number" id="scenario-value" data-i18n="phPct" placeholder="% 变化" style="width:80px; padding:6px 10px; border:1px solid var(--border); border-radius:6px;" step="0.1">
+                    <input type="text" id="scenario-date" placeholder="yyyy/mm/dd" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; width:105px;">
+                    <button class="btn btn-sm" onclick="addScenario()" data-i18n="sAdd">➕ 添加</button>
+                </div>
+            </div>
+            <div class="scenario-list" id="scenario-list"></div>
+        </div>
+
+        <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
+            <button class="btn btn-outline" onclick="downloadReport()" data-i18n="btnDl">📥 下载报告截图</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================= 翻译引擎与配置 =================
+    const i18n = {
+        stat1Title: { zh: "📈 预期年化收益 / 波动", en: "📈 Exp. Return / Vol" },
+        stat1Sub: { zh: "最优组合", en: "Opt. Portfolio" },
+        stat2Title: { zh: "🛡️ 最大回撤 / 卡玛", en: "🛡️ Max DD / Calmar" },
+        stat3Title: { zh: "🏆 夏普 / 索提诺", en: "🏆 Sharpe / Sortino" },
+        dStart: { zh: "📅 开始日期", en: "📅 Start Date" },
+        dEnd: { zh: "📅 结束日期", en: "📅 End Date" },
+        dSim: { zh: "🔄 蒙特卡洛模拟次数", en: "🔄 MC Sim Count" },
+        dRf: { zh: "📉 无风险利率 (年化)", en: "📉 Risk-Free Rate" },
+        dOpt: { zh: "🔧 优化方法", en: "🔧 Optimizer" },
+        oMc: { zh: "蒙特卡洛模拟", en: "Monte Carlo Sim" },
+        oQp: { zh: "二次规划 (QP-最大夏普)", en: "Quadratic Prog(QP-Max Sharpe)" },
+        dShort: { zh: "🚫 限制做空", en: "🚫 No Shorting" },
+        dRoll: { zh: "📦 滚动窗口 (月数)", en: "📦 Rolling Window (M)" },
+        dRollSub: { zh: "(0=不使用滚动)", en: "(0=No Roll)" },
+        btnRe: { zh: "🚀 重新分析", en: "🚀 Re-Analyze" },
+        dPool: { zh: "📦 资产池 (代码, 用逗号分隔)", en: "📦 Asset Pool (Tickers)" },
+        btnAdd: { zh: "➕ 添加", en: "➕ Add" },
+        btnUp: { zh: "更新池", en: "Update Pool" },
+        dBench: { zh: "📊 基准指数 (对比虚线)", en: "📊 Benchmark (Dashed)" },
+        oNoB: { zh: "无基准", en: "No Benchmark" },
+        dStress: { zh: "⚠️ 压力测试场景", en: "⚠️ Stress Test" },
+        sm: { zh: "市场暴跌", en: "Market Crash" },
+        sr: { zh: "利率骤升", en: "Rate Hike" },
+        sv: { zh: "波动率冲击", en: "Vol Shock" },
+        sAdd: { zh: "➕ 添加", en: "➕ Add" },
+        btnDl: { zh: "📥 下载报告截图", en: "📥 Download Report" },
+        langBtn: { zh: "中 / EN", en: "EN / 中" },
+        loading: { zh: "加载中...", en: "Loading..." },
+        phPool: { zh: "例如 sh000300, sz399006", en: "e.g. sh000300" },
+        oSelIdx: { zh: "— 选择指数 —", en: "— Select Index —" },
+        phName: { zh: "场景名称", en: "Scenario Name" },
+        phPct: { zh: "% 变化", en: "% Change" },
+        sReady: { zh: "✅ 就绪", en: "✅ Ready" },
+        dMode: { zh: "🔀 场景模式", en: "🔀 Scenario Mode" },
+        sStatic: { zh: "静态压力测试 (Static Stress)", en: "Static Stress Test" },
+        sDynamic: { zh: "动态滚动优化 (Dynamic Rolling)", en: "Dynamic Rolling Optimization" },
+        dSelf: { zh: "🔎 自检模式 (仅动态)", en: "🔎 Self-Check (Dynamic)" },
+        dSelfSub: { zh: "检测样本不足/权重极端", en: "Check sample/weight extremes" },
+        dAdjBench: { zh: "🔧 修正基准与超额 (压力测试)", en: "🔧 Stress-Adj Benchmark" },
+        dAdjBenchSub: { zh: "在图表中对比受压基准", en: "Show benchmark with stress impact" }
+    };
+
+    const INDEX_NAMES = {
+        'sh000001': '上证指数', 'sz399001': '深证成指', 'sz399006': '创业板指',
+        'sh000300': '沪深300', 'sh000016': '上证50', 'sh000905': '中证500',
+        'sh000852': '中证1000', 'sh000688': '科创50', 'sz399300': '沪深300(深)'
+    };
+    const INDEX_NAMES_EN = {
+        'sh000001': 'SSE Comp', 'sz399001': 'SZSE Comp', 'sz399006': 'ChiNext',
+        'sh000300': 'CSI 300', 'sh000016': 'SSE 50', 'sh000905': 'CSI 500',
+        'sh000852': 'CSI 1000', 'sh000688': 'STAR 50', 'sz399300': 'CSI 300(SZ)'
+    };
+    let INDEX_LIST = Object.entries(INDEX_NAMES).map(([code, name]) => ({ code, name }));
+
+    let currentLang = 'zh';
+    const DATA_TIMEOUT_MS = 500;
+    let assetManifest = null;
+    let assetUniverse = INDEX_LIST.map(({code, name}) => ({
+        symbol: code,
+        name_zh: name,
+        name_en: INDEX_NAMES_EN[code] || code,
+        end_date: null,
+        rows: null,
+        status: 'builtin'
+    }));
+
+    function getActiveAssets() {
+        const endDate = document.getElementById('end-date')?.value || '2025-01-01';
+        return assetUniverse.filter(asset => !asset.end_date || asset.end_date >= endDate);
+    }
+
+    function rebuildIndexListFromUniverse() {
+        INDEX_LIST = getActiveAssets().map(asset => ({ code: asset.symbol, name: getAssetName(asset.symbol) }));
+    }
+
+    function populateAssetControls() {
+        const select = document.getElementById('asset-select');
+        const datalist = document.getElementById('stock-database');
+        const benchSelect = document.getElementById('benchmark-select');
+        if (!select || !datalist || !benchSelect) return;
+        const selectedAsset = select.value;
+        const selectedBench = benchSelect.value;
+        select.innerHTML = `<option value="" data-i18n="oSelIdx">${i18n.oSelIdx[currentLang]}</option>`;
+        datalist.innerHTML = '';
+        benchSelect.innerHTML = `<option value="" data-i18n="oNoB">${i18n.oNoB[currentLang]}</option>`;
+        INDEX_LIST.forEach(({code, name}) => {
+            const opt = document.createElement('option');
+            opt.value = code; opt.textContent = `${code} (${name})`; select.appendChild(opt);
+            const dlOpt = document.createElement('option');
+            dlOpt.value = code; dlOpt.textContent = `${code} (${name})`; datalist.appendChild(dlOpt);
+            const benchOpt = document.createElement('option');
+            benchOpt.value = code; benchOpt.textContent = `${code} (${name})`; benchSelect.appendChild(benchOpt);
+        });
+        if (INDEX_LIST.some(item => item.code === selectedAsset)) select.value = selectedAsset;
+        if (INDEX_LIST.some(item => item.code === selectedBench)) benchSelect.value = selectedBench;
+    }
+
+    function updateDataHealth(status) {
+        const el = document.getElementById('data-health');
+        if (!el) return;
+        const activeCount = getActiveAssets().length;
+        const totalCount = assetUniverse.length;
+        if (!assetManifest) {
+            el.innerText = currentLang === 'zh'
+                ? `数据状态: 使用内置资产池 (${activeCount} 个)`
+                : `Data: fallback asset list (${activeCount})`;
+            return;
+        }
+        const generated = assetManifest.generated_at ? assetManifest.generated_at.slice(0, 10) : '--';
+        const latest = assetUniverse.reduce((max, asset) => asset.end_date && asset.end_date > max ? asset.end_date : max, '');
+        const staleCount = assetUniverse.filter(asset => asset.status === 'stale_cache').length;
+        const staleText = staleCount ? (currentLang === 'zh' ? ` | 缓存 ${staleCount}` : ` | stale ${staleCount}`) : '';
+        el.innerText = currentLang === 'zh'
+            ? `数据状态: ${status || 'OK'} | 可用 ${activeCount}/${totalCount}${staleText} | 最新 ${latest || '--'} | 清单 ${generated}`
+            : `Data: ${status || 'OK'} | active ${activeCount}/${totalCount}${staleText} | latest ${latest || '--'} | manifest ${generated}`;
+    }
+
+    function readBrowserCache(key) {
+        try { return localStorage.getItem(key); }
+        catch (e) { return null; }
+    }
+
+    function writeBrowserCache(key, value) {
+        try { localStorage.setItem(key, value); }
+        catch (e) { /* Cache is opportunistic; ignore quota/privacy failures. */ }
+    }
+
+    async function fetchTextWithCache(url, cacheKey) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), DATA_TIMEOUT_MS);
+        try {
+            const resp = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!resp.ok) throw new Error('network request failed');
+            const text = await resp.text();
+            if (text.trim().startsWith('<')) throw new Error('unexpected html response');
+            writeBrowserCache(cacheKey, text);
+            return { text, source: 'network' };
+        } catch (e) {
+            clearTimeout(timeoutId);
+            const cached = readBrowserCache(cacheKey);
+            if (cached) return { text: cached, source: 'browser-cache' };
+            throw e;
+        }
+    }
+
+    async function loadAssetManifest() {
+        try {
+            const result = await fetchTextWithCache(`data/asset_manifest.json?t=${Date.now()}`, 'pa_asset_manifest_v1');
+            assetManifest = JSON.parse(result.text);
+            assetUniverse = assetManifest.assets || assetUniverse;
+            assetUniverse.forEach(asset => {
+                INDEX_NAMES[asset.symbol] = asset.name_zh || asset.symbol;
+                INDEX_NAMES_EN[asset.symbol] = asset.name_en || asset.symbol;
+            });
+            rebuildIndexListFromUniverse();
+            updateDataHealth(result.source === 'browser-cache' ? 'Cache' : 'OK');
+        } catch (e) {
+            console.warn('Asset manifest unavailable, using built-in asset list:', e.message);
+            rebuildIndexListFromUniverse();
+            updateDataHealth('Fallback');
+        }
+    }
+
+    function toggleLang() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        document.body.classList.toggle('lang-en', currentLang === 'en');
+        
+        const btn = document.getElementById('langBtn');
+        if(currentLang === 'en') btn.classList.add('en-active');
+        else btn.classList.remove('en-active');
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if(i18n[key]) {
+                if(el.tagName === 'INPUT') el.placeholder = i18n[key][currentLang];
+                else el.innerHTML = i18n[key][currentLang];
+            }
+        });
+
+        renderAssetTags();
+        renderScenarios();
+        rebuildIndexListFromUniverse();
+        populateAssetControls();
+        updateDataHealth(assetManifest ? 'OK' : 'Fallback');
+        if (currentResult) {
+            updateWeightsUI(currentResult.weights, currentResult.assetPool);
+            renderChart(currentResult.allDates, currentResult.netValues, currentResult.weights, currentResult.dailyRets, currentResult.optRet, currentResult.optVol, currentResult.maxDD, currentResult.calmar, currentResult.sharpe, currentResult.sortino, currentResult.benchmarkValues, currentResult.benchmarkCode, currentResult.excessReturns, currentResult.adjBenchmarkValues, currentResult.adjExcessReturns);
+        }
+    }
+
+    function getAssetName(code) {
+        return currentLang === 'zh' ? (INDEX_NAMES[code] || code) : (INDEX_NAMES_EN[code] || code);
+    }
+
+    function getScenarioNameTransformed(s) {
+        if (s.type === 'market' && (s.name === '市场暴跌' || s.name === 'Market Crash')) {
+            return currentLang === 'zh' ? '市场暴跌' : 'Market Crash';
+        }
+        if (s.type === 'rate' && (s.name === '利率骤升' || s.name === 'Rate Hike')) {
+            return currentLang === 'zh' ? '利率骤升' : 'Rate Hike';
+        }
+        if (s.type === 'vol' && (s.name === '波动率冲击' || s.name === 'Vol Shock')) {
+            return currentLang === 'zh' ? '波动率冲击' : 'Vol Shock';
+        }
+        return s.name;
+    }
+
+    function getTypeNameTransformed(t) {
+        if(currentLang === 'zh') return t === 'market' ? '暴跌' : (t === 'rate' ? '利率' : '波动');
+        return t === 'market' ? 'Crash' : (t === 'rate' ? 'Rate' : 'Vol');
+    }
+
+    // ============================================================
+    //  全局控制变量
+    // ============================================================
+    let myChart = null;
+    let excessChart = null;
+    let adjExcessChart = null;
+    let assetPool = ['sh000300', 'sz399006', 'sh000688', 'sh000001', 'sh000016'];
+    let scenarios = [];
+    let cachedData = null;
+    let currentResult = null;
+    let isCalculating = false;
+    let breatheInterval = null; 
+
+    // ============================================================
+    //  数据生成
+    // ============================================================
+    function generateDeterministicData() {
+        const store = {};
+        const assets = Object.keys(INDEX_NAMES);
+        const dates = [];
+        let d = new Date('2024-01-01');
+        const end = new Date('2025-12-31');
+        while (d <= end) {
+            if (d.getDay() !== 0 && d.getDay() !== 6) dates.push(d.toISOString().slice(0,10));
+            d.setDate(d.getDate() + 1);
+        }
+        let seed = 1024;
+        function lcg() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+        const initPrices = { 'sh000001':3000, 'sz399001':11000, 'sz399006':1900, 'sh000300':3400, 'sh000016':2600, 'sh000905':5600, 'sh000852':6200, 'sh000688':850, 'sz399300':3400 };
+        const vols = { 'sh000001':0.012, 'sz399001':0.016, 'sz399006':0.022, 'sh000300':0.012, 'sh000016':0.010, 'sh000905':0.018, 'sh000852':0.020, 'sh000688':0.026, 'sz399300':0.012 };
+        assets.forEach(code => { store[code] = {}; });
+        let prices = {};
+        assets.forEach(code => { prices[code] = initPrices[code] || 1000; });
+        dates.forEach(date => {
+            let mf = lcg() - 0.488;
+            assets.forEach(code => {
+                let vol = vols[code] || 0.015;
+                let r = mf * vol + (lcg() - 0.5) * vol * 0.6 + 0.0002;
+                prices[code] *= (1 + r);
+                store[code][date] = prices[code];
+            });
+        });
+        return store;
+    }
+    cachedData = generateDeterministicData();
+
+    // ============================================================
+    //  基础数学计算
+    // ============================================================
+    function mean(arr) { return arr.reduce((a,b)=>a+b,0) / arr.length; }
+    function covariance(x, y, mx, my) {
+        let s=0; for (let i=0;i<x.length;i++) s += (x[i]-mx)*(y[i]-my);
+        return s / (x.length-1);
+    }
+
+    // 【关键修复点】：添加 1.5 秒超时控制，避免被墙或网络慢时网页长时间卡死
+    async function fetchAssetData(code) {
+        try {
+            const result = await fetchTextWithCache(`data/${code}.json?t=${Date.now()}`, `pa_asset_${code}_v1`);
+            const data = JSON.parse(result.text.replace(/NaN/g,'null'));
+            const dict = {};
+            for (let i=0; i<data.dates.length; i++) {
+                dict[data.dates[i]] = data.values[i][1];
+            }
+            return dict;
+        } catch (e) {
+            console.warn(`[${code}] 真实数据拉取失败或超时，自动降级为本地预设模拟数据:`, e.message);
+            // 只要 1.5 秒连不上，就会瞬间触发这里的 cachedData，你的初始数据秒出！
+            return cachedData[code] || null;
+        }
+    }
+
+    function findNearestDate(targetDate, dateArray) {
+        if (!targetDate || !dateArray || dateArray.length === 0) return null;
+        let nearest = dateArray[0];
+        let minDiff = Math.abs(new Date(dateArray[0]) - new Date(targetDate));
+        for (let i = 1; i < dateArray.length; i++) {
+            const diff = Math.abs(new Date(dateArray[i]) - new Date(targetDate));
+            if (diff < minDiff) {
+                minDiff = diff;
+                nearest = dateArray[i];
+            } else if (diff > minDiff) {
+                break;
+            }
+        }
+        return nearest;
+    }
+
+    // ============================================================
+    //  优化求解器
+    // ============================================================
+    function projectSimplex(v) {
+        let u = [...v].sort((a,b) => b - a);
+        let cssv = 0, rho = 0;
+        for (let i = 0; i < u.length; i++) {
+            cssv += u[i];
+            if (u[i] > (cssv - 1) / (i + 1)) rho = i;
+        }
+        let theta = (u.slice(0, rho + 1).reduce((a,b)=>a+b,0) - 1) / (rho + 1);
+        return v.map(x => Math.max(x - theta, 0));
+    }
+
+    function projectSumOne(v) {
+        let shift = (v.reduce((a,b)=>a+b,0) - 1) / v.length;
+        return v.map(x => x - shift);
+    }
+
+    function solveQP(returns, riskFree, restrictShort) {
+        const n = returns.length;
+        if (n === 0) return { weights: [], ret: 0, vol: 0, sharpe: 0, warnings: [] };
+
+        const mu = returns.map(r => mean(r) * 252);
+        const cov = Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => {
+            const mi = mean(returns[i]), mj = mean(returns[j]);
+            return covariance(returns[i], returns[j], mi, mj) * 252;
+        }));
+
+        let warnings = [];
+        const sampleCount = returns[0] ? returns[0].length : 0;
+        if (sampleCount < n * 2) {
+            warnings.push(`⚠️ 样本天数(${sampleCount})少于资产数(${n})的2倍，优化结果可能不稳定`);
+        }
+
+        let maxExcessIdx = 0;
+        for (let i = 0; i < n; i++) { if (mu[i] - riskFree > mu[maxExcessIdx] - riskFree) maxExcessIdx = i; }
+        if (mu[maxExcessIdx] - riskFree <= 0) {
+            warnings.push('⚠️ 所有资产超额收益为负，降级为等权重最小方差组合');
+            let eqW = Array(n).fill(1 / n);
+            let pR = 0, pV = 0;
+            for(let i=0; i<n; i++) { pR += eqW[i]*mu[i]; for(let j=0; j<n; j++) pV += eqW[i]*eqW[j]*cov[i][j]; }
+            return { weights: eqW, ret: pR, vol: Math.sqrt(pV), sharpe: (pR - riskFree)/Math.sqrt(pV), warnings };
+        }
+
+        let w = Array(n).fill(1 / n);
+        let lr = 0.1;
+        let bestSharpe = -Infinity;
+        let bestW = w.slice();
+        
+        for (let iter = 0; iter < 1000; iter++) {
+            let portRet = 0, portVar = 0;
+            let cov_w = Array(n).fill(0);
+            for(let i=0; i<n; i++) {
+                portRet += w[i] * mu[i];
+                for(let j=0; j<n; j++) cov_w[i] += cov[i][j] * w[j];
+            }
+            for(let i=0; i<n; i++) portVar += w[i] * cov_w[i];
+            let portVol = Math.sqrt(portVar) || 1e-6;
+            let sharpe = (portRet - riskFree) / portVol;
+
+            if (sharpe > bestSharpe) {
+                bestSharpe = sharpe;
+                bestW = w.slice();
+                lr *= 1.05; 
+            } else {
+                lr *= 0.5;  
+            }
+
+            let grad = Array(n).fill(0);
+            for(let i=0; i<n; i++) {
+                grad[i] = (mu[i] * portVol - (portRet - riskFree) * (cov_w[i] / portVol)) / portVar;
+            }
+
+            let w_next = w.map((v, i) => v + lr * grad[i]);
+            w = restrictShort ? projectSimplex(w_next) : projectSumOne(w_next);
+        }
+
+        w = bestW;
+        let portRet = 0, portVar = 0;
+        for (let i = 0; i < n; i++) {
+            portRet += w[i] * mu[i];
+            for (let j = 0; j < n; j++) portVar += w[i] * w[j] * cov[i][j];
+        }
+        const portVol = Math.sqrt(portVar);
+
+        const maxWeight = Math.max(...w);
+        if (maxWeight > 0.9) warnings.push(`⚠️ 单资产权重高达${(maxWeight*100).toFixed(1)}%，建议增大窗口或增加约束`);
+
+        return { weights: w, ret: portRet, vol: portVol, sharpe: (portRet - riskFree) / (portVol || 1e-6), warnings };
+    }
+
+    function monteCarloOptimize(returns, numSim, riskFree, restrictShort) {
+        const n = returns.length;
+        const mu = returns.map(r => mean(r) * 252);
+        const cov = Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => {
+            const mi = mean(returns[i]), mj = mean(returns[j]);
+            return covariance(returns[i], returns[j], mi, mj) * 252;
+        }));
+        let bestSharpe = -Infinity, bestW = null, bestRet=0, bestVol=0;
+        for (let s=0; s<numSim; s++) {
+            let w = Array.from({length:n}, () => restrictShort ? Math.random() : (Math.random() - 0.5) * 2);
+            let sum = w.reduce((a,b)=>a+b,0);
+            w = w.map(v => v / (sum || 1));
+            let portRet = 0, portVar = 0;
+            for (let i=0; i<n; i++) {
+                portRet += w[i] * mu[i];
+                for (let j=0; j<n; j++) portVar += w[i]*w[j]*cov[i][j];
+            }
+            const portVol = Math.sqrt(portVar);
+            const sharpe = (portRet - riskFree) / (portVol || 1e-6);
+            if (sharpe > bestSharpe) {
+                bestSharpe = sharpe; bestW = w.slice(); bestRet = portRet; bestVol = portVol;
+            }
+        }
+        return { weights: bestW, ret: bestRet, vol: bestVol, sharpe: bestSharpe, warnings: [] };
+    }
+
+    function setStatus(busy, message, isWarning) {
+        const spinner = document.getElementById('statusSpinner');
+        const text = document.getElementById('statusText');
+        if (busy) {
+            spinner.style.display = 'inline-block';
+            text.textContent = message || (currentLang === 'zh' ? '⏳ 运算中...' : '⏳ Calc...');
+            text.style.color = '#475569';
+        } else {
+            spinner.style.display = 'none';
+            text.textContent = message || (currentLang === 'zh' ? '✅ 就绪' : '✅ Ready');
+            if (isWarning) text.style.color = '#ef4444';
+            else text.style.color = '#475569';
+        }
+    }
+
+    // ============================================================
+    //  主分析回测引擎
+    // ============================================================
+    async function runFullAnalysis() {
+        if (isCalculating) return;
+        isCalculating = true;
+        setStatus(true, currentLang === 'zh' ? '⏳ 正在获取资产底层数据...' : '⏳ Fetching data...');
+        try {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const simCount = parseInt(document.getElementById('sim-count').value) || 3000;
+            const riskFree = parseFloat(document.getElementById('risk-free-rate').value) / 100;
+            const restrictShort = document.getElementById('short-restrict').checked;
+            const method = document.getElementById('optim-method').value;
+            const windowMonths = parseInt(document.getElementById('window-size').value) || 0;
+            const benchmarkCode = document.getElementById('benchmark-select').value;
+            const scenarioMode = document.getElementById('scenario-mode').value; 
+            const selfCheck = document.getElementById('self-check').checked;
+
+            const allCodes = [...assetPool];
+            if (benchmarkCode && !allCodes.includes(benchmarkCode)) allCodes.push(benchmarkCode);
+
+            const dataStore = {};
+            await Promise.all(allCodes.map(async (code) => {
+                const dict = await fetchAssetData(code);
+                if (dict) dataStore[code] = dict;
+            }));
+            for (let code of allCodes) {
+                if (!dataStore[code]) throw new Error(currentLang === 'zh' ? `数据源读取故障: ${code}` : `Data missing: ${code}`);
+            }
+
+            let globalDates = Object.keys(dataStore[assetPool[0]]).sort();
+            for (let code of allCodes) {
+                globalDates = globalDates.filter(d => dataStore[code][d] !== undefined && dataStore[code][d] !== null);
+            }
+
+            const backtestDates = globalDates.filter(d => d >= startDate && d <= endDate).sort();
+            if (backtestDates.length < 15) throw new Error(currentLang === 'zh' ? '选定区间内有效交易日过少' : 'Insufficient trading days');
+
+            const scenarioShocks = {};
+            scenarios.forEach(sc => {
+                const targetDate = findNearestDate(sc.date, backtestDates);
+                if (targetDate) scenarioShocks[targetDate] = (scenarioShocks[targetDate] || 0) + (sc.value / 100);
+            });
+
+            const lookbackDays = windowMonths > 0 ? windowMonths * 21 : 126;
+            let netValues = [1.0];
+            let dailyRets = [];
+            let activeWeights = null;
+            let finalDisplayedWeights = null;
+            let warnings = [];
+
+            // 静态模式预先计算
+            let staticWeights = null;
+            if (scenarioMode === 'static') {
+                const startIdx = globalDates.indexOf(backtestDates[0]);
+                let lookStart = startIdx - lookbackDays;
+                if (lookStart < 0) lookStart = 0;
+                const histDates = globalDates.slice(lookStart, startIdx);
+                if (histDates.length > 10) {
+                    const retMatrix = assetPool.map(code => {
+                        const r = [];
+                        for (let j = 1; j < histDates.length; j++) {
+                            const p0 = dataStore[code][histDates[j-1]];
+                            const p1 = dataStore[code][histDates[j]];
+                            r.push((p1 - p0) / p0);
+                        }
+                        return r;
+                    });
+                    let res = method === 'qp' ? solveQP(retMatrix, riskFree, restrictShort) : monteCarloOptimize(retMatrix, simCount, riskFree, restrictShort);
+                    staticWeights = res.weights;
+                    if (res.warnings) warnings = warnings.concat(res.warnings);
+                } else {
+                    staticWeights = Array(assetPool.length).fill(1 / assetPool.length);
+                }
+                finalDisplayedWeights = staticWeights;
+                activeWeights = staticWeights.slice();
+            }
+
+            setStatus(true, currentLang === 'zh' ? '⏳ 量化引擎Walk-forward动态回测中...' : '⏳ Walk-forward Backtesting...');
+
+            for (let i = 0; i < backtestDates.length - 1; i++) {
+                const currentDate = backtestDates[i];
+                const nextDate = backtestDates[i+1];
+
+                if (scenarioMode === 'dynamic') {
+                    if (i % 21 === 0 || activeWeights === null) {
+                        const gIdx = globalDates.indexOf(currentDate);
+                        let startLookbackIdx = gIdx - lookbackDays;
+                        if (startLookbackIdx < 0) startLookbackIdx = 0;
+                        const winHistoryDates = globalDates.slice(startLookbackIdx, gIdx);
+                        if (winHistoryDates.length > 10) {
+                            const winReturnsMatrix = assetPool.map(code => {
+                                const r = [];
+                                for (let j = 1; j < winHistoryDates.length; j++) {
+                                    const p0 = dataStore[code][winHistoryDates[j-1]];
+                                    const p1 = dataStore[code][winHistoryDates[j]];
+                                    r.push((p1 - p0) / p0);
+                                }
+                                return r;
+                            });
+                            let res = method === 'qp' ? solveQP(winReturnsMatrix, riskFree, restrictShort) : monteCarloOptimize(winReturnsMatrix, simCount, riskFree, restrictShort);
+                            activeWeights = res.weights;
+                            if (res.warnings) warnings = warnings.concat(res.warnings);
+                        } else {
+                            activeWeights = Array(assetPool.length).fill(1 / assetPool.length);
+                        }
+                        if (!finalDisplayedWeights) finalDisplayedWeights = activeWeights.slice();
+                    }
+                } else {
+                    if (!activeWeights) activeWeights = staticWeights || Array(assetPool.length).fill(1/assetPool.length);
+                }
+
+                let dayStrategyRet = 0;
+                for (let a = 0; a < assetPool.length; a++) {
+                    const p0 = dataStore[assetPool[a]][currentDate];
+                    const p1 = dataStore[assetPool[a]][nextDate];
+                    dayStrategyRet += activeWeights[a] * ((p1 - p0) / p0);
+                }
+
+                if (scenarioShocks[nextDate]) {
+                    dayStrategyRet += scenarioShocks[nextDate];
+                }
+
+                dailyRets.push(dayStrategyRet);
+                netValues.push(netValues[netValues.length - 1] * (1 + dayStrategyRet));
+            }
+
+            if(!finalDisplayedWeights) finalDisplayedWeights = activeWeights || Array(assetPool.length).fill(1/assetPool.length);
+
+            // 绩效统计
+            const totalBacktestDays = dailyRets.length;
+            const optRet = mean(dailyRets) * 252;
+            const optVol = Math.sqrt(dailyRets.reduce((a,b)=>a+b*b,0)/totalBacktestDays - mean(dailyRets)**2) * Math.sqrt(252);
+
+            let peak = 1.0, maxDD = 0;
+            for (let v of netValues) {
+                if (v > peak) peak = v;
+                const dd = (peak - v) / peak;
+                if (dd > maxDD) maxDD = dd;
+            }
+            const negRets = dailyRets.filter(r => r < 0);
+            let downsideVar = negRets.length ? negRets.reduce((a,b)=>a+b*b,0) / totalBacktestDays : 0;
+            const downsideVol = Math.sqrt(downsideVar) * Math.sqrt(252);
+            const sortino = downsideVol ? (optRet - riskFree) / downsideVol : 0;
+            const calmar = maxDD ? optRet / maxDD : 0;
+            const optSharpe = (optRet - riskFree) / (optVol || 1e-6);
+
+            const fmtPct = v => (v * 100).toFixed(2) + '%';
+            document.getElementById('opt-return-vol').innerText = `${fmtPct(optRet)} / ${fmtPct(optVol)}`;
+            document.getElementById('opt-drawdown').innerText = fmtPct(maxDD);
+            document.getElementById('sub-risk-metrics').innerHTML = `MaxDD: ${fmtPct(maxDD)}<br>Calmar: ${calmar.toFixed(2)}`;
+            document.getElementById('opt-sharpe-sortino').innerText = `${optSharpe.toFixed(2)} / ${sortino.toFixed(2)}`;
+            
+            updateWeightsUI(finalDisplayedWeights, assetPool);
+
+            // 常规基准 与 受压基准计算
+            let benchmarkValues = null;
+            let adjBenchmarkValues = null;
+            let excessReturns = null;
+            let adjExcessReturns = null;
+            let benchDailyRets = [];
+            let adjBenchDailyRets = [];
+
+            if (benchmarkCode && dataStore[benchmarkCode]) {
+                benchmarkValues = [1.0];
+                adjBenchmarkValues = [1.0];
+                
+                for (let i = 1; i < backtestDates.length; i++) {
+                    const p0 = dataStore[benchmarkCode][backtestDates[i-1]];
+                    const p1 = dataStore[benchmarkCode][backtestDates[i]];
+                    const r = (p1 - p0) / p0;
+                    benchDailyRets.push(r);
+                    benchmarkValues.push(benchmarkValues[i-1] * (1 + r));
+
+                    // 对基准赋予压力测试修正
+                    const shock = scenarioShocks[backtestDates[i]] || 0;
+                    const adjR = r + shock;
+                    adjBenchDailyRets.push(adjR);
+                    adjBenchmarkValues.push(adjBenchmarkValues[i-1] * (1 + adjR));
+                }
+                
+                excessReturns = dailyRets.map((r, idx) => r - (benchDailyRets[idx] || 0));
+                adjExcessReturns = dailyRets.map((r, idx) => r - (adjBenchDailyRets[idx] || 0));
+            }
+
+            currentResult = { netValues, allDates: backtestDates, dailyRets, optRet, optVol, maxDD, calmar, sharpe: optSharpe, sortino, weights: finalDisplayedWeights, assetPool, scenarios, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns };
+
+            setStatus(true, currentLang === 'zh' ? '⏳ 正在组装ECharts交互式看板...' : '⏳ Rendering Interactive Chart...');
+            
+            // 渲染图表
+            renderChart(backtestDates, netValues, finalDisplayedWeights, dailyRets, optRet, optVol, maxDD, calmar, optSharpe, sortino, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns);
+            
+            if (warnings.length > 0 && selfCheck) {
+                setStatus(false, '⚠️ ' + warnings.join('; '), true);
+            } else {
+                setStatus(false, currentLang === 'zh' ? '✅ 回测任务圆满成功' : '✅ Done');
+            }
+
+        } catch (err) {
+            alert('计算异常中断报告: ' + err.message);
+            setStatus(false, '❌ 错误: ' + err.message);
+        } finally {
+            isCalculating = false;
+        }
+    }
+
+    function updateWeightsUI(weights, pool) {
+        let wStr = pool.map((code, i) => {
+            const name = getAssetName(code);
+            return `${code.toUpperCase()}(${name}): ${(weights[i] * 100).toFixed(1)}%`;
+        }).join(' | ');
+        document.getElementById('opt-weights').innerText = (currentLang === 'zh' ? '基准配比: ' : 'Base Mix: ') + wStr;
+    }
+
+    // ============================================================
+    //  图表渲染（含超额收益双子图、呼吸灯、格式统一）
+    // ============================================================
+    function renderChart(dates, netValues, weights, dailyRets, ret, vol, maxDD, calmar, sharpe, sortino, benchmarkValues, benchmarkCode, excessReturns, adjBenchmarkValues, adjExcessReturns) {
+        if (!myChart) myChart = echarts.init(document.getElementById('chart-container'));
+        if (!excessChart) excessChart = echarts.init(document.getElementById('excess-chart-container'));
+        if (!adjExcessChart) adjExcessChart = echarts.init(document.getElementById('adj-excess-chart-container'));
+
+        const showAdjBench = document.getElementById('show-adj-bench').checked;
+        
+        // 统一可视化输出的日期格式为 yyyy/mm/dd
+        const formattedDates = dates.map(d => d.replace(/-/g, '/'));
+
+        const scenarioData = scenarios.map(sc => {
+            const nearest = findNearestDate(sc.date, dates);
+            if (nearest) return { ...sc, date: nearest };
+            return null;
+        }).filter(Boolean);
+
+        const markLineData = scenarioData.map(sc => ({
+            xAxis: sc.date.replace(/-/g, '/'),
+            label: { 
+                formatter: `${getScenarioNameTransformed(sc)}\n${getTypeNameTransformed(sc.type)}: ${sc.value}%`, 
+                position: 'insideEndTop', 
+                fontSize: 10, 
+                color: 'rgba(239, 68, 68, 0.7)' // 透明度70%
+            },
+            lineStyle: { color: 'rgba(239, 68, 68, 0.7)', type: 'dashed', width: 2 } // 虚线透明度70%
+        }));
+
+        const sTitle = currentLang === 'zh' ? 'Walk-forward 净值表现与压力回测' : 'Walk-forward NAV & Stress Test';
+        const sNav = currentLang === 'zh' ? '策略组合净值' : 'Strategy NAV';
+
+        let series = [{
+            name: sNav, type: 'line', data: netValues, smooth: true, symbol: 'none',
+            lineStyle: { width: 1.5, color: '#8b5cf6' }, 
+            areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1, [{ offset: 0, color: 'rgba(139,92,246,0.3)' }, { offset: 1, color: 'rgba(139,92,246,0.0)' }]) },
+            // 强制 animation: false，杜绝标注线进场展开动画
+            markLine: { silent: true, animation: false, data: markLineData, label: { show: true, formatter: '{b}', fontSize: 10 } }
+        }];
+
+        if (benchmarkValues && benchmarkCode) {
+            const benchName = getAssetName(benchmarkCode);
+            series.push({
+                name: currentLang === 'zh' ? `常规基准 (${benchName})` : `Base Bench (${benchName})`,
+                type: 'line', data: benchmarkValues, smooth: true, symbol: 'none',
+                lineStyle: { width: 1.2, color: '#9ca3af', type: 'dashed' }
+            });
+            if (showAdjBench && adjBenchmarkValues) {
+                series.push({
+                    name: currentLang === 'zh' ? `修正基准 (${benchName})` : `Adj Bench (${benchName})`,
+                    type: 'line', data: adjBenchmarkValues, smooth: true, symbol: 'none',
+                    lineStyle: { width: 1.5, color: '#ef4444', type: 'dotted' }
+                });
+            }
+        }
+
+        const option = {
+            title: { text: sTitle, left: 'center', top: 5, textStyle: { fontSize: 16 } },
+            tooltip: { trigger: 'axis' },
+            toolbox: { feature: { dataZoom: { yAxisIndex: 'none' }, saveAsImage: { name: 'Quant_Portfolio_Report', pixelRatio: 2 } }, right: 20, top: 10 },
+            legend: { data: series.map(s => s.name), bottom: 35 },
+            grid: { left: 60, right: 30, top: 60, bottom: 85 },
+            dataZoom: [
+                { type: 'inside', start: 0, end: 100 },
+                { type: 'slider', start: 0, end: 100, bottom: 5, height: 20 }
+            ],
+            xAxis: {
+                type: 'category', data: formattedDates, boundaryGap: false,
+                axisLabel: {
+                    rotate: 30, fontSize: 9, color: 'rgba(71, 85, 105, 0.7)', interval: Math.floor(formattedDates.length / 15),
+                    formatter: function(value, index) {
+                        if (!value) return '';
+                        const parts = value.split('/');
+                        if (parts[1] === '01' && parts[2] === '01') return parts[0];
+                        if (index === 0) return parts[0]; 
+                        return parts[1] + '/' + parts[2];
+                    }
+                }
+            },
+            yAxis: { type: 'value', name: currentLang === 'zh' ? '净值' : 'NAV', scale: true, nameGap: 25 },
+            series: series
+        };
+        myChart.setOption(option, true);
+        myChart.resize();
+
+        // --- 超额收益柱状图 1 (常规) ---
+        if (excessReturns && benchmarkValues) {
+            const excessData = excessReturns.map(v => (v * 100).toFixed(2)); 
+            const colors = excessReturns.map(v => v >= 0 ? '#ef4444' : '#10b981'); 
+            const excessOption = {
+                title: { text: currentLang === 'zh' ? '📊 每日超额收益 (vs 常规基准)' : '📊 Daily Excess Return (vs Base Bench)', left: 'center', textStyle: { fontSize: 12 } },
+                tooltip: { trigger: 'axis', formatter: function(params) {
+                    const p = params[0]; return p.name + '<br/>超额收益: ' + p.data + '%';
+                }},
+                grid: { left: 60, right: 30, top: 30, bottom: 20 },
+                xAxis: { type: 'category', data: formattedDates.slice(1), axisLabel: { show: false } },
+                yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
+                series: [{ type: 'bar', data: excessData.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })), barWidth: '60%' }]
+            };
+            
+            // 先 display:block 保证容器撑开，然后再渲染图表和 resize
+            document.getElementById('excess-chart-container').style.display = 'block';
+            excessChart.setOption(excessOption, true);
+            excessChart.resize();
+        } else {
+            document.getElementById('excess-chart-container').style.display = 'none';
+        }
+
+        // --- 超额收益柱状图 2 (修正) ---
+        if (showAdjBench && adjExcessReturns && adjBenchmarkValues) {
+            const adjExcessData = adjExcessReturns.map(v => (v * 100).toFixed(2));
+            const adjColors = adjExcessReturns.map(v => v >= 0 ? '#ef4444' : '#10b981');
+            const adjExcessOption = {
+                title: { text: currentLang === 'zh' ? '🔥 每日超额收益 (vs 修正基准)' : '🔥 Daily Excess Return (vs Adj Bench)', left: 'center', textStyle: { fontSize: 12 } },
+                tooltip: { trigger: 'axis', formatter: function(params) {
+                    const p = params[0]; return p.name + '<br/>修正超额: ' + p.data + '%';
+                }},
+                grid: { left: 60, right: 30, top: 30, bottom: 20 },
+                xAxis: { type: 'category', data: formattedDates.slice(1), axisLabel: { show: false } },
+                yAxis: { type: 'value', name: '%', scale: true, nameGap: 15 },
+                series: [{ type: 'bar', data: adjExcessData.map((v, i) => ({ value: v, itemStyle: { color: adjColors[i] } })), barWidth: '60%' }]
+            };
+            
+            // 先 display:block 保证容器撑开，然后再渲染图表和 resize
+            document.getElementById('adj-excess-chart-container').style.display = 'block';
+            adjExcessChart.setOption(adjExcessOption, true);
+            adjExcessChart.resize();
+        } else {
+            document.getElementById('adj-excess-chart-container').style.display = 'none';
+        }
+
+        // --- 呼吸灯动画 ---
+        if (breatheInterval) clearInterval(breatheInterval);
+        let bright = 0.5;
+        breatheInterval = setInterval(() => {
+            bright += 0.02;
+            if (bright > 0.8) bright = 0.2;
+            const baseHue = 267; 
+            const lightness = 30 + bright * 30; 
+            const newColor = `hsl(${baseHue}, 70%, ${lightness}%)`;
+            const currentOpt = myChart.getOption();
+            if (currentOpt.series && currentOpt.series.length > 0) {
+                currentOpt.series[0].lineStyle.color = newColor;
+                myChart.setOption(currentOpt, true);
+            }
+        }, 2000);
+    }
+
+    // ============================================================
+    //  UI 操作函数
+    // ============================================================
+    function updateAssetPool() {
+        const input = document.getElementById('asset-input');
+        const codes = input.value.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+        if (codes.length < 2) { alert(currentLang === 'zh' ? '资产池内请至少保留2个标的进行对冲分散' : 'Need at least 2 tickers'); return; }
+        assetPool = codes;
+        renderAssetTags();
+        runFullAnalysis();
+    }
+
+    function renderAssetTags() {
+        const container = document.getElementById('asset-tags');
+        container.innerHTML = assetPool.map((code, idx) => {
+            const name = getAssetName(code);
+            return `<span class="asset-tag">
+                ${code.toUpperCase()} (${name})
+                <span class="del" onclick="removeAsset(${idx})">✕</span>
+            </span>`;
+        }).join('');
+        document.getElementById('asset-input').value = assetPool.join(', ');
+    }
+
+    function removeAsset(idx) {
+        assetPool.splice(idx, 1);
+        if (assetPool.length < 2) assetPool = ['sh000300', 'sz399006'];
+        renderAssetTags();
+        runFullAnalysis();
+    }
+
+    function addSelectedAsset() {
+        const select = document.getElementById('asset-select');
+        const code = select.value;
+        if (!code) { alert(currentLang === 'zh' ? '请先在下拉单内选择目标指数' : 'Please select an index'); return; }
+        if (!assetPool.includes(code)) {
+            assetPool.push(code);
+            renderAssetTags();
+            runFullAnalysis();
+        } else {
+            alert(currentLang === 'zh' ? '该标的已存在于资产池中' : 'Asset already in pool');
+        }
+        select.value = '';
+    }
+
+    function addScenario() {
+        const name = document.getElementById('scenario-name').value.trim() || (currentLang === 'zh' ? '用户自定义测试' : 'Custom Shock');
+        const type = document.getElementById('scenario-type').value;
+        const value = parseFloat(document.getElementById('scenario-value').value);
+        
+        // 自动将用户输入的 yyyy/mm/dd 转换为底层识别的 - 格式
+        const dateInput = document.getElementById('scenario-date').value.trim();
+        let date = dateInput.replace(/\//g, '-');
+        
+        if (!date) { alert(currentLang === 'zh' ? '请选择该压力场景爆发的日期' : 'Please select a date'); return; }
+        if (isNaN(value)) { alert(currentLang === 'zh' ? '变动百分比请输入合法数字' : 'Enter valid number'); return; }
+        let allDates = currentResult ? currentResult.allDates : Object.keys(cachedData['sh000300']).sort();
+        const nearest = findNearestDate(date, allDates);
+        if (nearest) date = nearest;
+        else { alert(currentLang === 'zh' ? '输入日期超出回测有效数据包范围' : 'Date out of bounds'); return; }
+        scenarios.push({ name, type, value, date });
+        renderScenarios();
+        document.getElementById('scenario-name').value = '';
+        document.getElementById('scenario-value').value = '';
+        runFullAnalysis();
+    }
+
+    function removeScenario(idx) {
+        scenarios.splice(idx, 1);
+        renderScenarios();
+        runFullAnalysis();
+    }
+
+    function renderScenarios() {
+        const container = document.getElementById('scenario-list');
+        container.innerHTML = scenarios.map((s, idx) => `
+            <span class="scenario-item" data-name="${s.name}" data-type="${s.type}" data-value="${s.value}" data-date="${s.date}">
+                <span class="info">
+                    <strong>${getScenarioNameTransformed(s)}</strong>
+                    <span class="type">${getTypeNameTransformed(s.type)}</span>
+                    <span style="color:${s.value < 0 ? '#ef4444' : '#10b981'}">${s.value}%</span>
+                    <span style="color:#64748b;font-size:11px;">${s.date.replace(/-/g, '/')}</span>
+                </span>
+                <span class="del" onclick="removeScenario(${idx})" style="cursor:pointer;color:#ef4444;font-weight:bold;">✕</span>
+            </span>
+        `).join('');
+    }
+
+    function downloadReport() {
+        const element = document.getElementById('app');
+        html2canvas(element, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `Quant_Portfolio_Report_${new Date().toISOString().slice(0,10)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(err => alert('报告截图汇出失败: ' + err));
+    }
+
+    function initUI() {
+        rebuildIndexListFromUniverse();
+        populateAssetControls();
+
+        scenarios.push({ name: '市场暴跌', type: 'market', value: -12.5, date: '2025-06-12' });
+        scenarios.push({ name: '利率骤升', type: 'rate', value: 0.4, date: '2025-10-15' });
+        renderScenarios();
+
+        document.getElementById('window-size').value = 24;
+        document.getElementById('scenario-mode').value = 'static';
+        document.getElementById('self-check').checked = true;
+
+        renderAssetTags();
+        updateDataHealth('Fallback');
+        document.getElementById('benchmark-select').value = 'sh000300';
+        document.getElementById('end-date').addEventListener('change', () => {
+            rebuildIndexListFromUniverse();
+            populateAssetControls();
+            updateDataHealth(assetManifest ? 'OK' : 'Fallback');
+        });
+        runFullAnalysis();
+        loadAssetManifest().then(() => {
+            populateAssetControls();
+            renderAssetTags();
+            const runWhenIdle = () => {
+                if (isCalculating) setTimeout(runWhenIdle, 100);
+                else runFullAnalysis();
+            };
+            runWhenIdle();
+        });
+
+        window.addEventListener('resize', () => { 
+            if (myChart) myChart.resize();
+            if (excessChart) excessChart.resize();
+            if (adjExcessChart) adjExcessChart.resize();
+        });
+    }
+
+    window.onload = initUI;
+</script>
+</body>
+</html>
