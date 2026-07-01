@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-07-01T05:24:53+00:00",
+  "generated_at": "2026-07-01T05:37:26+00:00",
   "total_assets": 16,
-  "ok_assets": 14,
-  "stale_cache_assets": 2,
+  "ok_assets": 16,
+  "stale_cache_assets": 0,
   "usable_assets": 16,
   "failed_assets": 0,
   "records": [
@@ -140,31 +140,31 @@
       "symbol": "gold_gld",
       "name_zh": "黄金ETF",
       "status": "ok",
-      "rows": 5185,
+      "rows": 5436,
       "start_date": "2004-11-18",
-      "end_date": "2025-06-30",
+      "end_date": "2026-06-30",
       "missing_price_rows": 0,
       "error": null
     },
     {
       "symbol": "semi_soxx",
       "name_zh": "半导体ETF",
-      "status": "stale_cache",
+      "status": "ok",
       "rows": 6277,
       "start_date": "2001-07-13",
       "end_date": "2026-06-30",
       "missing_price_rows": 0,
-      "error": "empty normalized price frame"
+      "error": null
     },
     {
       "symbol": "health_xlv",
       "name_zh": "医药健康ETF",
-      "status": "stale_cache",
+      "status": "ok",
       "rows": 6921,
       "start_date": "1998-12-22",
       "end_date": "2026-06-30",
       "missing_price_rows": 0,
-      "error": "empty normalized price frame"
+      "error": null
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-07-01T05:24:53+00:00",
+  "generated_at": "2026-07-01T05:37:26+00:00",
   "source": "AkShare stock_zh_index_daily",
   "assets": [
     {
@@ -195,8 +195,8 @@
       "style": "gold",
       "frequency": "daily",
       "start_date": "2004-11-18",
-      "end_date": "2025-06-30",
-      "rows": 5185,
+      "end_date": "2026-06-30",
+      "rows": 5436,
       "status": "ok"
     },
     {
@@ -211,7 +211,7 @@
       "start_date": "2001-07-13",
       "end_date": "2026-06-30",
       "rows": 6277,
-      "status": "stale_cache"
+      "status": "ok"
     },
     {
       "symbol": "health_xlv",
@@ -225,7 +225,7 @@
       "start_date": "1998-12-22",
       "end_date": "2026-06-30",
       "rows": 6921,
-      "status": "stale_cache"
+      "status": "ok"
     }
   ]
 }
