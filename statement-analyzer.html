@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Financial Statement & Valuation Analyzer</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #8b5cf6;
+      --accent-2: #10b981;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --card-soft: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #334155;
+      --heading: #1e293b;
+      --muted: #64748b;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+      --base-font: 14px;
+      --scale: 1;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(139, 92, 246, 0.10), transparent 28%),
+        radial-gradient(circle at 92% 8%, rgba(16, 185, 129, 0.08), transparent 26%),
+        var(--bg);
+      color: var(--text);
+      padding: 14px 18px 14px 142px;
+      display: block;
+      justify-content: initial;
+      position: relative;
+      font-size: var(--base-font);
+      line-height: 1.55;
+    }
+    body.lang-en [data-i18n],
+    body.lang-en input::placeholder,
+    body.lang-en select,
+    body.lang-en option,
+    body.lang-en .btn,
+    body.lang-en button {
+      font-family: "Arial Narrow", -apple-system, sans-serif !important;
+      font-size: 0.92em !important;
+      letter-spacing: 0 !important;
+    }
+    .top-utility-bar {
+      position: fixed;
+      top: 15px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: min(420px, calc(100vw - 32px));
+    }
+    .lang-toggle-btn, .utility-btn {
+      background: rgba(255,255,255,0.84);
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      padding: 0.42rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 6px 16px rgba(15,23,42,0.05);
+      white-space: nowrap;
+    }
+    .utility-btn { padding: 0.42rem 0.72rem; }
+    .lang-toggle-btn:hover, .utility-btn:hover {
+      transform: scale(1.06) translateY(-2px);
+      box-shadow: 0 10px 20px rgba(139, 92, 246, 0.15);
+    }
+    .lang-toggle-btn.en-active, .utility-btn.primary-mini {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .app-container {
+      max-width: none;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    .container { width: 100%; margin: 0 auto; }
+    header.hero, .panel {
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+      border: 1px solid var(--border);
+      min-width: 0;
+    }
+    .report-area, .settings-area {
+      background: transparent;
+      border-radius: 0;
+      box-shadow: none;
+      border: 0;
+      min-width: 0;
+    }
+    header.hero { padding: 22px; margin-top: 52px; }
+    .hero-grid { display: grid; grid-template-columns: 1.18fr 0.82fr; gap: 20px; align-items: stretch; }
+    .hero-card { padding: 8px 4px; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: #6d28d9; background: #f5f3ff; border: 1px solid #ddd6fe;
+      border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 800;
+    }
+    h1 { margin: 18px 0 12px; font-size: clamp(30px, 4.6vw, 54px); line-height: 1.06; letter-spacing: -0.045em; color: var(--heading); }
+    .hero-card p, .section-title p, .small { color: var(--muted); }
+    .hero-card p { font-size: 16px; max-width: 860px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+    button, .btn {
+      background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 8px;
+      font-weight: 700; cursor: pointer; transition: 0.15s; font-size: 14px;
+    }
+    button:hover, .btn:hover { opacity: 0.90; transform: translateY(-1px); }
+    button.ghost, .btn-outline { background: transparent; border: 2px dashed var(--border); color: #64748b; }
+    button.ghost:hover, .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #f5f3ff; }
+    button.danger { background: #ef4444; }
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+    .file-label { display: inline-flex; align-items: center; justify-content: center; }
+    .file-label input { display: none; }
+    .quick-stats { padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .stat, .metric-card, .report-card {
+      background: #f1f5f9; border-radius: 12px; padding: 14px 18px; border-left: 4px solid var(--accent);
+      display: flex; flex-direction: column; justify-content: space-between; min-height: 112px;
+    }
+    .stat:nth-child(2), .metric-card:nth-child(2n) { border-left-color: #10b981; }
+    .stat:nth-child(3), .metric-card:nth-child(3n) { border-left-color: #f59e0b; }
+    .stat:nth-child(4), .metric-card:nth-child(4n) { border-left-color: #6366f1; }
+    .stat .label, .metric-card .name, .report-card .label {
+      color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 800;
+    }
+    .stat .value, .metric-card .number, .report-card .value { font-size: 22px; font-weight: 800; color: #1e293b; margin-top: 4px; letter-spacing: -0.02em; }
+    .stat .hint, .metric-card .desc { color: #64748b; font-size: 12px; margin-top: 6px; }
+    nav.sticky {
+      position: fixed;
+      left: 16px;
+      top: 84px;
+      width: 116px;
+      max-height: calc(100vh - 104px);
+      overflow-y: auto;
+      z-index: 850;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(18px);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 10px;
+    }
+    .nav-title { font-size: 9.5px; font-weight: 900; letter-spacing: .08em; color: #64748b; text-transform: uppercase; padding: 4px 8px 8px; border-bottom: 1px dashed var(--border); margin-bottom: 8px; }
+    .nav-inner { display: flex; flex-direction: column; gap: 7px; overflow: visible; padding: 0; }
+    .nav-inner a {
+      display: flex; align-items: center; gap: 8px; width: 100%; color: #64748b; border: 1px solid var(--border); background: #fff;
+      padding: 7px 7px; border-radius: 10px; font-size: 9.5px; font-weight: 850; line-height: 1.15;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .nav-inner a:hover, .nav-inner a.active { color: #fff; background: var(--accent); border-color: var(--accent); transform: translateX(2px); }
+    main { display: flex; flex-direction: column; gap: 16px; }
+    section { scroll-margin-top: 32px; }
+    .section-title { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 14px; }
+    .section-title h2 { margin: 0; font-size: 22px; color: var(--heading); letter-spacing: -0.02em; }
+    .section-title p { margin: 5px 0 0; font-size: 14px; max-width: 860px; }
+    .report-area, .settings-area { padding: 8px 0; }
+    .panel { padding: 14px; min-width: 0; overflow: hidden; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .upload-box { border: 2px dashed #c4b5fd; background: #f5f3ff; border-radius: 18px; padding: 22px; min-height: 190px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+    .upload-box input { width: 100%; color: var(--muted); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 800; border: 1px solid var(--border); background: #fff; color: #64748b; white-space: nowrap; }
+    .badge.good { color: #047857; border-color: #a7f3d0; background: #ecfdf5; }
+    .badge.warn { color: #92400e; border-color: #fde68a; background: #fffbeb; }
+    .badge.bad { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+    table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 12px; table-layout: auto; }
+    th, td { padding: 8px 9px; text-align: right; border-bottom: 1px solid #e2e8f0; white-space: nowrap; vertical-align: top; }
+    th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: #fff; z-index: 1; }
+    th { color: #475569; background: #f8fafc; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 800; }
+    td { color: #334155; }
+    tr:hover td { background: #f8fafc; }
+    .chart { width: 100%; height: 360px; border: 1px solid var(--border); border-radius: 16px; background: #fff; }
+    .chart.small-chart { height: 310px; }
+    .input-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+    label.input, .group { display: flex; flex-direction: column; gap: 6px; color: #475569; font-size: 12px; font-weight: 700; }
+    label.input input, label.input select, textarea, .group input, .group select {
+      width: 100%; background: #fff; color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+      padding: 9px 11px; outline: none; font-size: 14px; transition: 0.15s;
+    }
+    label.input input:focus, label.input select:focus, textarea:focus, .group input:focus, .group select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+    textarea { min-height: 190px; resize: vertical; font-family: var(--sans); line-height: 1.55; }
+    .warning-list { display: grid; gap: 10px; }
+    .warning-item { padding: 12px 14px; border-radius: 12px; border: 1px solid #fde68a; background: #fffbeb; color: #92400e; font-size: 13px; }
+    .warning-item.good { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+    .warning-item.bad { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+    .warning-item strong { display: block; margin-bottom: 3px; color: inherit; }
+    .code-block { font-family: var(--mono); font-size: 12px; background: #0f172a; color: #dbeafe; border-radius: 12px; padding: 14px; overflow: auto; max-height: 340px; white-space: pre; }
+    .report { background: #fff; color: #1e293b; padding: 18px; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .report h2, .report h3 { color: #1e293b; margin: 12px 0 10px; }
+    .report-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+    .period-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 14px; }
+    .period-toolbar .group { width: min(260px, 100%); }
+    .analysis-note { color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.5; flex: 1; min-width: 240px; }
+    footer { text-align: center; color: #64748b; padding: 24px 0 12px; font-size: 12px; }
+    .self-check { display: grid; gap: 8px; margin-top: 10px; }
+    .self-check div { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 11px; font-size: 12px; color: #475569; }
+    .collapsible-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .collapsible-toggle { background:#fff; color:#475569; border:1px solid var(--border); padding:6px 10px; border-radius:999px; font-size:11px; font-weight:850; white-space:nowrap; }
+    .collapsible-toggle:hover { color:var(--accent); border-color:var(--accent); background:#f5f3ff; }
+    .collapsible-content[hidden] { display:none !important; }
+    .section-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .tiny-btn { padding:6px 10px; font-size:11px; border-radius:999px; background:#fff; color:#475569; border:1px solid var(--border); white-space:nowrap; }
+    .tiny-btn:hover { color:var(--accent); border-color:var(--accent); background:#f5f3ff; }
+    .info-dot { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; margin-left:5px; border-radius:50%; border:1px solid #cbd5e1; background:#fff; color:#64748b; font-size:10px; font-weight:900; cursor:help; position:relative; flex:0 0 auto; }
+    .info-dot:hover::after { content:attr(data-tip); position:absolute; left:50%; top:21px; transform:translateX(-20%); width:min(290px, 70vw); background:#0f172a; color:#fff; padding:9px 11px; border-radius:8px; line-height:1.45; font-size:11px; font-weight:550; white-space:normal; z-index:5000; box-shadow:0 10px 24px rgba(15,23,42,.22); }
+    label.input > span:first-child, .group > label { display:inline-flex; align-items:center; gap:3px; min-width:0; }
+    .deal-status { margin-top:10px; font-size:12px; color:#64748b; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:8px 10px; }
+    .inferred-cell { color:#7c3aed; font-weight:800; }
+    .inference-note { color:#7c3aed; font-size:10px; margin-left:2px; }
+
+    @media (max-width: 1180px) { body { padding-left: 78px; } nav.sticky { width: 54px; left: 12px; top: 84px; padding: 8px; } .nav-title { text-align:center; padding: 4px 0 8px; } .nav-title span { display:none; } .nav-inner a { font-size: 0; justify-content: center; padding: 10px 8px; } .nav-inner a::before { content: attr(data-short); font-size: 12px; font-weight: 900; } }
+    @media (max-width: 980px) { .hero-grid, .grid-2, .grid-3 { grid-template-columns: 1fr; } .grid-4, .cards, .report-grid { grid-template-columns: repeat(2, 1fr); } .input-grid { grid-template-columns: repeat(2, 1fr); } header.hero { margin-top: 86px; } }
+    @media (max-width: 620px) { body { padding: 84px 10px 10px; } nav.sticky { position: fixed; left: 10px; right: 10px; top: 54px; width: auto; max-height: 54px; overflow-x: auto; overflow-y: hidden; border-radius: 14px; } .nav-title { display: none; } .nav-inner { flex-direction: row; overflow-x: auto; } .nav-inner a { font-size: 12px; min-width: max-content; padding: 7px 10px; } .nav-inner a::before { content: none; } .grid-2, .grid-3, .grid-4, .cards, .report-grid, .quick-stats, .input-grid { grid-template-columns: 1fr; } .section-title { align-items: flex-start; flex-direction: column; } .top-utility-bar { position: fixed; top: 8px; right: 10px; } header.hero { margin-top: 0; padding: 16px; } .report-area, .settings-area { padding: 8px 0; } .panel { padding: 12px; } }
+
+    .statements-grid .panel, .deal-grid .panel { min-width: 0; }
+    .deal-grid .input-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)) !important; }
+    #statements .table-wrap, #deals .table-wrap { max-width: 100%; }
+    body.exporting .top-utility-bar, body.exporting nav.sticky { display: none !important; }
+    body.exporting { padding-left: 18px !important; }
+    body.exporting .app-container { width: 100% !important; max-width: none !important; }
+    @media print { .top-utility-bar, nav.sticky, .hero-actions, #upload { display: none !important; } body { background: white; padding: 0; } .app-container { transform: none; } .report { border: none; } }
+  </style>
+</head>
+<body>
+  <div class="top-utility-bar">
+    <button onclick="toggleLang()" class="lang-toggle-btn" id="langBtn">🌐 <span data-i18n="langBtn">中 / EN</span></button>
+    <button onclick="exportPDF()" class="utility-btn primary-mini" data-i18n="downloadReportShort">导出整页图片</button>
+  </div>
+
+  <div class="app-container" id="app">
+    <header class="hero">
+      <div class="container hero-grid">
+        <div class="hero-card">
+          <span class="eyebrow" data-i18n="eyebrow">AI Financial Statement & Valuation Analyzer · Pure Front-End MVP</span>
+          <h1 data-i18n="heroTitle">三表分析、估值建模与投研报告生成平台</h1>
+          <p data-i18n="heroDesc">上传标准 Excel / CSV 三张财务报表，系统自动清洗数据、识别科目、计算盈利能力、成长性、杠杆、现金流质量、NOPAT、NOA 与 business risk 指标，并生成 DCF、Trading Comps、M&A、LBO、AI mock 报告和网页图片报告。</p>
+          <div class="hero-actions">
+            <button class="primary" id="loadSampleBtn" data-i18n="loadSample">加载示例公司数据</button>
+            <button class="ghost" id="downloadTemplateBtn" data-i18n="downloadTemplate">下载 CSV 模板</button>
+            <button class="ghost nav-action" data-target="upload" data-i18n="uploadStatements">上传三张表</button>
+          </div>
+        </div>
+        <div class="panel quick-stats">
+          <div class="stat"><div class="label" data-i18n="healthScore">Financial health score</div><div class="value" id="heroScore">--</div><div class="hint" data-i18n="healthHint">综合盈利、成长、现金流、杠杆与流动性</div></div>
+          <div class="stat"><div class="label" data-i18n="dcfEquity">DCF equity value</div><div class="value" id="heroEquityValue">--</div><div class="hint" data-i18n="dcfHint">基于五年预测和终值法</div></div>
+          <div class="stat"><div class="label" data-i18n="nopatMargin">NOPAT margin</div><div class="value" id="heroNopatMargin">--</div><div class="hint" data-i18n="nopatHint">选择期间的税后经营利润率</div></div>
+          <div class="stat"><div class="label" data-i18n="businessRisk">Business risk UCC</div><div class="value" id="heroBusinessRisk">--</div><div class="hint" data-i18n="businessRiskHint">无杠杆资本成本代理指标</div></div>
+        </div>
+      </div>
+    </header>
+
+    <nav class="sticky" id="stickyNav">
+      <div class="nav-title">☰ <span data-i18n="navTitle">Model Navigation</span></div>
+      <div class="container nav-inner">
+        <a class="nav-link" href="#upload" data-target="upload" data-i18n="navUpload" data-short="1">Upload</a>
+        <a class="nav-link" href="#statements" data-target="statements" data-i18n="navStatements" data-short="2">Statements</a>
+        <a class="nav-link" href="#metrics" data-target="metrics" data-i18n="navMetrics" data-short="3">Metrics</a>
+        <a class="nav-link" href="#diagnostics" data-target="diagnostics" data-i18n="navDiagnostics" data-short="4">Diagnostics</a>
+        <a class="nav-link" href="#valuation" data-target="valuation" data-i18n="navValuation" data-short="5">Valuation</a>
+        <a class="nav-link" href="#deals" data-target="deals" data-i18n="navDeals" data-short="6">M&A / LBO</a>
+        <a class="nav-link" href="#charts" data-target="charts" data-i18n="navCharts" data-short="7">Charts</a>
+        <a class="nav-link" href="#ai" data-target="ai" data-i18n="navAi" data-short="AI">AI Mock Report</a>
+        <a class="nav-link" href="#report" data-target="report" data-i18n="navReport" data-short="IMG">Image Report</a>
+      </div>
+    </nav>
+
+    <main class="container">
+      <section id="upload" class="settings-area">
+        <div class="section-title">
+          <div><h2 data-i18n="uploadTitle">1. 三表上传与标准化</h2><p data-i18n="uploadDesc">支持单个 Excel 工作簿或多个 CSV 文件。系统会自动检测 sheet 类型、清理空行空列、识别年度/季度列、处理括号负数、千分位、空值、重复科目，并把不同科目名称映射到标准字段。</p></div>
+          <span class="badge good" data-i18n="noBackend">No backend required</span>
+        </div>
+        <div class="grid-2">
+          <div class="upload-box">
+            <strong data-i18n="uploadBoxTitle">上传 Excel / CSV</strong>
+            <input id="fileInput" type="file" multiple accept=".xlsx,.xls,.csv" />
+            <div class="small" data-i18n="uploadTip">建议命名：Income Statement / Balance Sheet / Cash Flow Statement。也支持 FY2024、2024Q1、Q1 2024、2024 年等期间格式。</div>
+            <div class="grid-2" style="gap:10px;">
+              <label class="input"><span data-i18n="companyName">Company Name</span><input id="companyInput" type="text" placeholder="Uploaded Company"></label>
+              <label class="input"><span data-i18n="currency">Currency</span><input id="currencyInput" type="text" value="USD"></label>
+            </div>
+            <div class="hero-actions" style="margin-top: 4px;"><button class="primary" id="parseBtn" data-i18n="parseBtn">解析并生成模型</button><button class="danger" id="resetBtn" data-i18n="resetBtn">清空数据</button><button class="ghost" id="exportJsonBtn" data-i18n="exportJson">导出标准 JSON</button><label class="ghost file-label" for="jsonInput" data-i18n="importJson">导入标准 JSON</label><input id="jsonInput" type="file" accept=".json,application/json" hidden></div>
+          </div>
+          <div class="panel">
+            <div class="collapsible-head">
+              <strong data-i18n="parseStatusTitle">解析状态与清洗日志</strong>
+              <button class="collapsible-toggle" type="button" data-toggle-target="parseStatusPanel" data-i18n="showDetails">展开</button>
+            </div>
+            <div id="parseStatusPanel" class="collapsible-content" hidden>
+              <div id="parseStatus" class="warning-list" style="margin-top: 12px;"></div>
+              <div class="code-block" id="standardJsonPreview" style="margin-top: 12px;">等待上传或加载示例数据...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="statements" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="statementsTitle">2. 标准化三张表</h2><p data-i18n="statementsDesc">上传数据会被统一到标准 JSON，再渲染为三张报表。缺失科目会被保留为空值，不会让 AI 随意补数字；紫色标记代表规则推理补出的数据。</p></div><div class="section-actions" style="margin-top:10px;"><button class="collapsible-toggle" type="button" data-toggle-target="statementsPanel" data-i18n="showStatements">展开三张表</button><button class="tiny-btn" id="downloadStatementsXlsx" type="button" data-i18n="downloadStatementsXlsx">下载 XLSX</button><button class="tiny-btn" id="downloadStatementsImage" type="button" data-i18n="downloadStatementsImage">下载图片</button></div></div></div>
+        <div id="statementsPanel" class="collapsible-content" hidden>
+          <div class="grid-3 statements-grid">
+            <div class="panel"><h3 data-i18n="incomeStatement">Income Statement</h3><div id="incomeTable" class="table-wrap"></div></div>
+            <div class="panel"><h3 data-i18n="balanceSheet">Balance Sheet</h3><div id="balanceTable" class="table-wrap"></div></div>
+            <div class="panel"><h3 data-i18n="cashFlowStatement">Cash Flow Statement</h3><div id="cashflowTable" class="table-wrap"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="metrics" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="metricsTitle">3. 关键财务指标</h2><p data-i18n="metricsDesc">覆盖盈利能力、成长性、杠杆、流动性、现金流质量、NOPAT margin、NOA / Upcoming Sales 与 Unlevered Cost of Capital [Business Risk]。期间选择会根据上传数据自动生成。</p></div></div>
+        <div class="period-toolbar">
+          <div class="group"><label data-i18n="periodSelect">选择分析期间</label><select id="periodSelect"></select></div>
+          <div class="analysis-note" id="periodNote">--</div>
+        </div>
+        <div class="cards" id="metricCards"></div>
+        <div class="panel" style="margin-top: 16px;"><h3 data-i18n="detailedMetrics">Detailed Metrics Table</h3><div id="metricsTable" class="table-wrap"></div></div>
+      </section>
+
+      <section id="diagnostics" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="diagnosticsTitle">4. 财务质量与风险诊断</h2><p data-i18n="diagnosticsDesc">基于规则模型检测收入质量、现金流质量、杠杆、流动性、存货和应收账款异常。</p></div><span class="badge" id="healthBadge">--</span></div>
+        <div class="grid-2"><div class="panel"><h3 data-i18n="scoreBreakdown">Financial Health Score Breakdown</h3><div id="scoreBreakdown" class="cards" style="grid-template-columns: repeat(2, 1fr);"></div></div><div class="panel"><h3 data-i18n="redFlags">Risk Flags</h3><div id="diagnosticList" class="warning-list"></div></div></div>
+        <div class="panel" style="margin-top:16px;">
+          <div class="collapsible-head"><div><h3 data-i18n="modelSelfCheckTitle">Model Self-Check</h3><p class="small" data-i18n="modelSelfCheckDesc">自动检查上传、清洗、指标、估值、报告和 API 接入准备度。</p></div><button class="collapsible-toggle" type="button" data-toggle-target="modelSelfCheckPanel" data-i18n="showSelfCheck">展开自检</button></div>
+          <div id="modelSelfCheckPanel" class="collapsible-content" hidden><div id="modelSelfCheck" class="self-check"></div></div>
+        </div>
+      </section>
+
+      <section id="valuation" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="valuationTitle">5. DCF 与 Trading Comps</h2><p data-i18n="valuationDesc">DCF 使用选择期间作为预测基期；Trading Comps 使用静态样例数据库，适合 GitHub Pages 展示。</p></div></div>
+        <div class="grid-2">
+          <div class="panel"><h3>DCF Valuation Engine</h3><div id="dcfInputs" class="input-grid">
+            <label class="input">Revenue Growth %<input id="dcfGrowth" type="number" value="8" step="0.5"></label>
+            <label class="input">EBIT Margin %<input id="dcfEbitMargin" type="number" value="18" step="0.5"></label>
+            <label class="input">Tax Rate %<input id="dcfTax" type="number" value="22" step="0.5"></label>
+            <label class="input">D&A % Sales<input id="dcfDa" type="number" value="4" step="0.5"></label>
+            <label class="input">Capex % Sales<input id="dcfCapex" type="number" value="5" step="0.5"></label>
+            <label class="input">NWC % Sales<input id="dcfNwc" type="number" value="1.5" step="0.5"></label>
+            <label class="input">WACC %<input id="dcfWacc" type="number" value="10" step="0.25"></label>
+            <label class="input">Terminal Growth %<input id="dcfTerminal" type="number" value="2.5" step="0.25"></label>
+            <label class="input">Diluted Shares<input id="dcfShares" type="number" value="100"></label>
+          </div><div class="hero-actions"><button class="primary" id="runDcfBtn" data-i18n="refreshValuation">刷新估值模型</button></div><div id="dcfTable" class="table-wrap"></div></div>
+          <div class="panel"><h3>Trading Comps & Football Field</h3><div id="compsTable" class="table-wrap"></div><div id="footballChart" class="chart small-chart" style="margin-top: 16px;"></div></div>
+        </div>
+      </section>
+
+      <section id="deals" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="dealsTitle">6. M&A Accretion / Dilution 与 LBO</h2><p data-i18n="dealsDesc">用于展示 IB / PE 建模能力。当前为简化模型，适合作品集 MVP。</p></div></div>
+        <div class="grid-2 deal-grid">
+          <div class="panel"><h3>M&A Accretion / Dilution</h3><div class="input-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <label class="input">Acquirer NI<input id="maAcqNI" type="number" value="500"></label><label class="input">Acquirer Shares<input id="maAcqShares" type="number" value="100"></label><label class="input">Acquirer Share Price<input id="maSharePrice" type="number" value="50"></label><label class="input">Purchase Price<input id="maPurchase" type="number" value="1000"></label><label class="input">Target NI<input id="maTargetNI" type="number" value="120"></label><label class="input">Annual Synergy<input id="maSynergy" type="number" value="50"></label><label class="input">Debt Financing %<input id="maDebtPct" type="number" value="50"></label><label class="input">Stock Financing %<input id="maStockPct" type="number" value="30"></label><label class="input">Cash Financing %<input id="maCashPct" type="number" value="20"></label><label class="input">Cost of Debt %<input id="maDebtCost" type="number" value="6"></label><label class="input">Tax Rate %<input id="maTax" type="number" value="22"></label>
+          </div><div class="hero-actions"><button class="primary" id="runMaBtn" data-i18n="runMa">计算 M&A Model</button></div><div id="maStatus" class="deal-status">修改输入后点击计算，或直接改变输入自动刷新。</div><div id="maTable" class="table-wrap"></div></div>
+          <div class="panel"><h3>LBO Return Model</h3><div class="input-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <label class="input">Entry EBITDA<input id="lboEbitda" type="number" value="300"></label><label class="input">Entry Multiple<input id="lboEntryMultiple" type="number" value="10"></label><label class="input">Debt / EBITDA<input id="lboDebtMultiple" type="number" value="5"></label><label class="input">EBITDA Growth %<input id="lboGrowth" type="number" value="6"></label><label class="input">FCF Conversion %<input id="lboFcfConv" type="number" value="45"></label><label class="input">Exit Multiple<input id="lboExitMultiple" type="number" value="10"></label><label class="input">Holding Years<input id="lboYears" type="number" value="5"></label>
+          </div><div class="hero-actions"><button class="primary" id="runLboBtn" data-i18n="runLbo">计算 LBO Model</button></div><div id="lboStatus" class="deal-status">修改输入后点击计算，或直接改变输入自动刷新。</div><div id="lboTable" class="table-wrap"></div></div>
+        </div>
+      </section>
+
+      <section id="charts" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="chartsTitle">7. 可视化 Dashboard</h2><p data-i18n="chartsDesc">使用 ECharts 展示收入、利润率、现金流、债务结构、DCF 和同业估值区间。</p></div></div>
+        <div class="grid-2"><div id="revenueChart" class="chart"></div><div id="marginChart" class="chart"></div><div id="fcfChart" class="chart"></div><div id="debtChart" class="chart"></div><div id="dcfChart" class="chart"></div><div id="compsChart" class="chart"></div></div>
+      </section>
+
+      <section id="ai" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="aiTitle">8. AI Mock Report Copilot</h2><p data-i18n="aiDesc">当前默认为 mock，不会调用真实 API。下方保留 Cloudflare Worker / Vercel Function 接入位，方便后续安全连接 OpenAI API。</p></div><button class="primary" id="generateAiBtn" data-i18n="generateAi">生成 AI Mock 报告</button></div>
+        <div class="panel" style="margin-bottom:14px;">
+          <div class="input-grid">
+            <label class="input"><span data-i18n="reportStyle">报告风格</span><select id="reportStyle"><option value="er">Equity Research</option><option value="ib">Investment Banking Pitch</option><option value="pe">Private Equity Memo</option><option value="credit">Credit Risk Memo</option><option value="wm">Wealth Management Client Report</option></select></label>
+            <label class="input"><span data-i18n="aiMode">AI 模式</span><select id="aiMode"><option value="mock">Mock only</option><option value="worker">API-ready placeholder</option></select></label>
+            <label class="input"><span data-i18n="apiEndpoint">Serverless API endpoint</span><input id="apiEndpoint" type="text" placeholder="/api/generate-report"></label>
+            <label class="input"><span data-i18n="modelName">Model label</span><input id="modelName" type="text" value="gpt-4.1-mini / future"></label>
+          </div>
+          <div id="aiReadiness" class="analysis-note" style="margin-top:12px;">--</div>
+        </div>
+        <textarea id="aiNarrative" placeholder="AI report will appear here..."></textarea>
+      </section>
+
+      <section id="report" class="settings-area">
+        <div class="section-title"><div><h2 data-i18n="reportTitle">9. 网页报告预览与下载</h2><p data-i18n="reportDesc">整合公司概览、期间选择、关键指标、风险诊断、DCF、Comps、M&A、LBO 和 AI mock 文本；顶部按钮可导出整页 PNG 图片。</p></div></div>
+        <div id="reportPreview" class="report"></div>
+      </section>
+    </main>
+    <footer>Built as a pure front-end MVP for GitHub Pages · Financial Engineering + Corporate Valuation + AI Reporting Roadmap</footer>
+  </div>
+
+  <script>
+    const fmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+    const fmt2 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+    const fmt0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+    let currentLang = 'zh';
+    let pageZoom = 1;
+
+    const i18n = {
+      langBtn:{zh:'中 / EN',en:'EN / 中'}, downloadReportShort:{zh:'导出整页图片',en:'Export full-page image'}, navTitle:{zh:'模型目录',en:'Model Navigation'},
+      eyebrow:{zh:'AI Financial Statement & Valuation Analyzer · 纯前端 MVP',en:'AI Financial Statement & Valuation Analyzer · Pure Front-End MVP'},
+      heroTitle:{zh:'三表分析、估值建模与投研报告生成平台',en:'Financial statement, valuation and investment report platform'},
+      heroDesc:{zh:'上传标准 Excel / CSV 三张财务报表，系统自动清洗数据、识别科目、计算盈利能力、成长性、杠杆、现金流质量、NOPAT、NOA 与 business risk 指标，并生成 DCF、Trading Comps、M&A、LBO、AI mock 报告和网页图片报告。',en:'Upload Excel / CSV financial statements. The tool cleans data, maps accounts, calculates profitability, growth, leverage, cash-flow quality, NOPAT, NOA and business-risk metrics, then generates DCF, trading comps, M&A, LBO, AI mock narrative and a downloadable full-page image report.'},
+      loadSample:{zh:'加载示例公司数据',en:'Load sample data'}, downloadTemplate:{zh:'下载 CSV 模板',en:'Download CSV template'}, uploadStatements:{zh:'上传三张表',en:'Upload statements'}, exportPdf:{zh:'导出网页图片',en:'Export webpage image'},
+      healthScore:{zh:'Financial health score',en:'Financial health score'}, healthHint:{zh:'综合盈利、成长、现金流、杠杆与流动性',en:'Profitability, growth, cash flow, leverage and liquidity'}, dcfEquity:{zh:'DCF equity value',en:'DCF equity value'}, dcfHint:{zh:'基于五年预测和终值法',en:'Five-year forecast plus terminal value'}, nopatMargin:{zh:'NOPAT margin',en:'NOPAT margin'}, nopatHint:{zh:'选择期间的税后经营利润率',en:'After-tax operating margin for selected period'}, businessRisk:{zh:'Business risk UCC',en:'Business risk UCC'}, businessRiskHint:{zh:'无杠杆资本成本代理指标',en:'Unlevered cost of capital proxy'},
+      navUpload:{zh:'Upload 上传',en:'Upload'}, navStatements:{zh:'Statements 三张表',en:'Statements'}, navMetrics:{zh:'Metrics 指标',en:'Metrics'}, navDiagnostics:{zh:'Diagnostics 诊断',en:'Diagnostics'}, navValuation:{zh:'Valuation 估值',en:'Valuation'}, navDeals:{zh:'M&A / LBO',en:'M&A / LBO'}, navCharts:{zh:'Charts 图表',en:'Charts'}, navAi:{zh:'AI Mock Report',en:'AI Mock Report'}, navReport:{zh:'Image Report 报告',en:'Image Report'},
+      uploadTitle:{zh:'1. 三表上传与标准化',en:'1. Statement upload and standardization'}, uploadDesc:{zh:'支持单个 Excel 工作簿或多个 CSV 文件。系统会自动检测 sheet 类型、清理空行空列、识别年度/季度列、处理括号负数、千分位、空值、重复科目，并把不同科目名称映射到标准字段。',en:'Supports one Excel workbook or multiple CSV files. The parser detects statement type, removes empty rows/columns, recognizes annual/quarterly headers, handles bracketed negatives, thousands separators, blanks and duplicate accounts, and maps varied account names to standard fields.'}, noBackend:{zh:'No backend required',en:'No backend required'}, uploadBoxTitle:{zh:'上传 Excel / CSV',en:'Upload Excel / CSV'}, uploadTip:{zh:'建议命名：Income Statement / Balance Sheet / Cash Flow Statement。也支持 FY2024、2024Q1、Q1 2024、2024 年等期间格式。',en:'Recommended names: Income Statement / Balance Sheet / Cash Flow Statement. Period formats such as FY2024, 2024Q1, Q1 2024 and 2024 are supported.'}, companyName:{zh:'Company Name 公司名称',en:'Company Name'}, currency:{zh:'Currency 货币',en:'Currency'}, parseBtn:{zh:'解析并生成模型',en:'Parse and build model'}, resetBtn:{zh:'清空数据',en:'Reset data'}, exportJson:{zh:'导出标准 JSON',en:'Export standard JSON'}, importJson:{zh:'导入标准 JSON',en:'Import standard JSON'}, parseStatusTitle:{zh:'解析状态与清洗日志',en:'Parsing status and cleaning log'}, showDetails:{zh:'展开',en:'Show'}, hideDetails:{zh:'隐藏',en:'Hide'}, showStatements:{zh:'展开三张表',en:'Show statements'}, hideStatements:{zh:'隐藏三张表',en:'Hide statements'}, downloadStatementsXlsx:{zh:'下载 XLSX',en:'Download XLSX'}, downloadStatementsImage:{zh:'下载图片',en:'Download image'}, showSelfCheck:{zh:'展开自检',en:'Show self-check'}, hideSelfCheck:{zh:'隐藏自检',en:'Hide self-check'},
+      statementsTitle:{zh:'2. 标准化三张表',en:'2. Standardized statements'}, statementsDesc:{zh:'上传数据会被统一到标准 JSON，再渲染为三张报表。缺失科目会被保留为空值，不会让 AI 随意补数字。',en:'Uploaded data is converted into standardized JSON and then rendered as three statements. Missing accounts remain blank; AI is not allowed to invent numbers.'}, incomeStatement:{zh:'Income Statement 利润表',en:'Income Statement'}, balanceSheet:{zh:'Balance Sheet 资产负债表',en:'Balance Sheet'}, cashFlowStatement:{zh:'Cash Flow Statement 现金流量表',en:'Cash Flow Statement'},
+      metricsTitle:{zh:'3. 关键财务指标',en:'3. Key financial metrics'}, metricsDesc:{zh:'覆盖盈利能力、成长性、杠杆、流动性、现金流质量、NOPAT margin、NOA / Upcoming Sales 与 Unlevered Cost of Capital [Business Risk]。期间选择会根据上传数据自动生成。',en:'Covers profitability, growth, leverage, liquidity, cash-flow quality, NOPAT margin, NOA / upcoming sales and unlevered cost of capital [business risk]. Period choices are generated from uploaded data.'}, periodSelect:{zh:'选择分析期间',en:'Select analysis period'}, detailedMetrics:{zh:'Detailed Metrics Table 详细指标表',en:'Detailed Metrics Table'},
+      diagnosticsTitle:{zh:'4. 财务质量与风险诊断',en:'4. Financial quality and risk diagnostics'}, diagnosticsDesc:{zh:'基于规则模型检测收入质量、现金流质量、杠杆、流动性、存货和应收账款异常。',en:'Rules-based checks for revenue quality, cash-flow quality, leverage, liquidity, inventory and receivables risk.'}, scoreBreakdown:{zh:'Financial Health Score Breakdown',en:'Financial Health Score Breakdown'}, redFlags:{zh:'Risk Flags 风险提示',en:'Risk Flags'}, modelSelfCheckTitle:{zh:'Model Self-Check 模型自检',en:'Model Self-Check'}, modelSelfCheckDesc:{zh:'自动检查上传、清洗、指标、估值、报告和 API 接入准备度。',en:'Automatically checks parsing, cleaning, metrics, valuation, reporting and API readiness.'},
+      valuationTitle:{zh:'5. DCF 与 Trading Comps',en:'5. DCF and trading comps'}, valuationDesc:{zh:'DCF 使用选择期间作为预测基期；Trading Comps 使用静态样例数据库，适合 GitHub Pages 展示。',en:'DCF uses the selected period as the forecast base; trading comps use a static demo database for GitHub Pages.'}, refreshValuation:{zh:'刷新估值模型',en:'Refresh valuation model'},
+      dealsTitle:{zh:'6. M&A Accretion / Dilution 与 LBO',en:'6. M&A accretion/dilution and LBO'}, dealsDesc:{zh:'用于展示 IB / PE 建模能力。当前为简化模型，适合作品集 MVP。',en:'Designed to demonstrate IB / PE modeling ability. Current version is a simplified portfolio MVP.'}, runMa:{zh:'计算 M&A Model',en:'Run M&A model'}, runLbo:{zh:'计算 LBO Model',en:'Run LBO model'}, chartsTitle:{zh:'7. 可视化 Dashboard',en:'7. Visualization dashboard'}, chartsDesc:{zh:'使用 ECharts 展示收入、利润率、现金流、债务结构、DCF 和同业估值区间。',en:'Uses ECharts to show revenue, margin, cash flow, debt structure, DCF and comps valuation ranges.'}, aiTitle:{zh:'8. AI Mock Report Copilot',en:'8. AI mock report copilot'}, aiDesc:{zh:'当前默认为 mock，不会调用真实 API。下方保留 Cloudflare Worker / Vercel Function 接入位，方便后续安全连接 OpenAI API。',en:'Default mode is mock-only. The controls below reserve a Cloudflare Worker / Vercel Function integration path for a future secure OpenAI API connection.'}, generateAi:{zh:'生成 AI Mock 报告',en:'Generate AI mock report'}, reportStyle:{zh:'报告风格',en:'Report style'}, aiMode:{zh:'AI 模式',en:'AI mode'}, apiEndpoint:{zh:'Serverless API endpoint',en:'Serverless API endpoint'}, modelName:{zh:'模型标签',en:'Model label'}, reportTitle:{zh:'9. 网页报告预览与下载',en:'9. Web report preview and download'}, reportDesc:{zh:'整合公司概览、期间选择、关键指标、风险诊断、DCF、Comps、M&A、LBO 和 AI mock 文本；顶部按钮可导出整页 PNG 图片。',en:'Combines company overview, selected period, key metrics, diagnostics, DCF, comps, M&A, LBO and AI mock text. Use the top button to export the full page as a PNG image.'}
+    };
+    function t(key){ return (i18n[key] && i18n[key][currentLang]) || key; }
+    function applyI18n(){ document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en'; document.body.classList.toggle('lang-en', currentLang==='en'); document.getElementById('langBtn').classList.toggle('en-active', currentLang==='en'); document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (i18n[key]) el.textContent = i18n[key][currentLang]; }); renderDynamicLanguage(); }
+    function toggleLang(){ currentLang = currentLang === 'zh' ? 'en' : 'zh'; applyI18n(); }
+    function changeZoom(delta){ pageZoom = Math.max(0.85, Math.min(1.18, +(pageZoom + delta).toFixed(2))); document.documentElement.style.setProperty('--scale', pageZoom); }
+    function resetZoom(){ pageZoom = 1; document.documentElement.style.setProperty('--scale', 1); }
+
+    const accountMapping = {
+      revenue:['revenue','sales','net sales','total revenue','turnover','营业收入','收入','主营业务收入'], revenueGrowth:['revenue growth','sales growth','growth','growth rate','收入增长率','销售增长率','增长率'], cogs:['cogs','cost of revenue','cost of sales','cost of goods sold','营业成本','主营业务成本'], grossProfit:['gross profit','gross income','毛利'], operatingIncome:['operating income','operating profit','ebit','income from operations','营业利润','息税前利润'], ebitda:['ebitda','adjusted ebitda'], interestExpense:['interest expense','finance cost','finance expense','interest and finance charges','财务费用','利息费用'], taxExpense:['tax expense','income tax','provision for income taxes','所得税','所得税费用'], netIncome:['net income','net profit','profit attributable','profit for the year','归母净利润','净利润'],
+      cash:['cash','cash and cash equivalents','cash equivalents','cash & equivalents','货币资金','现金及现金等价物'], shortTermDebt:['short-term debt','short term debt','current debt','short-term borrowings','短期借款','一年内到期的非流动负债'], longTermDebt:['long-term debt','long term debt','non-current debt','long-term borrowings','长期借款','应付债券'], totalDebt:['total debt','interest bearing debt','borrowings','有息负债','总债务'], accountsReceivable:['accounts receivable','trade receivables','receivables','应收账款'], inventory:['inventory','inventories','存货'], currentAssets:['current assets','total current assets','流动资产合计'], currentLiabilities:['current liabilities','total current liabilities','流动负债合计'], totalAssets:['total assets','assets total','资产总计'], totalLiabilities:['total liabilities','liabilities total','负债合计'], totalEquity:['total equity','shareholders equity','shareholders\' equity','stockholders equity','equity attributable','股东权益','所有者权益'],
+      operatingCashFlow:['operating cash flow','cash from operations','net cash provided by operating activities','net cash generated from operating activities','cfo','经营活动现金流','经营活动产生的现金流量净额'], capex:['capital expenditure','capex','purchase of ppe','purchase of property plant equipment','payments for property plant and equipment','资本开支','购建固定资产'], depreciationAmortization:['depreciation','depreciation and amortization','d&a','折旧摊销','折旧和摊销']
+    };
+    const statementLabels = { incomeStatement:'Income Statement', balanceSheet:'Balance Sheet', cashFlowStatement:'Cash Flow Statement' };
+    const fieldLabels = { revenue:'Revenue', revenueGrowth:'Revenue Growth', cogs:'COGS', grossProfit:'Gross Profit', operatingIncome:'Operating Income / EBIT', ebitda:'EBITDA', interestExpense:'Interest Expense', taxExpense:'Tax Expense', netIncome:'Net Income', cash:'Cash & Equivalents', shortTermDebt:'Short-term Debt', longTermDebt:'Long-term Debt', totalDebt:'Total Debt', accountsReceivable:'Accounts Receivable', inventory:'Inventory', currentAssets:'Current Assets', currentLiabilities:'Current Liabilities', totalAssets:'Total Assets', totalLiabilities:'Total Liabilities', totalEquity:'Total Equity', operatingCashFlow:'Operating Cash Flow', capex:'Capital Expenditure', depreciationAmortization:'D&A', freeCashFlow:'Free Cash Flow' };
+
+    const sampleCompany = { companyName:'Sample Advanced Manufacturing Co.', currency:'USD', periods:['2021','2022','2023','2024','2025Q1'], incomeStatement:{ revenue:[1250,1430,1680,1920,510], cogs:[650,742,875,998,263], grossProfit:[600,688,805,922,247], operatingIncome:[210,262,324,392,104], ebitda:[280,342,414,500,132], interestExpense:[24,28,31,34,9], taxExpense:[42,53,65,78,20], netIncome:[144,181,228,280,75] }, balanceSheet:{ cash:[150,178,210,260,275], shortTermDebt:[90,95,105,120,122], longTermDebt:[420,430,445,460,462], totalDebt:[510,525,550,580,584], accountsReceivable:[170,205,246,286,304], inventory:[220,242,275,320,336], currentAssets:[690,780,890,1010,1055], currentLiabilities:[410,455,505,560,585], totalAssets:[2250,2480,2790,3100,3180], totalLiabilities:[1250,1350,1480,1600,1625], totalEquity:[1000,1130,1310,1500,1555] }, cashFlowStatement:{ operatingCashFlow:[180,220,270,330,82], capex:[-80,-90,-100,-120,-31], depreciationAmortization:[70,80,90,108,28], freeCashFlow:[100,130,170,210,51] } };
+    const compsDatabase = [ { company:'LVMH', ticker:'MC FP', marketCap:350000, netDebt:20000, revenue:86000, ebitda:27000, ebit:22000, netIncome:15000 }, { company:'Hermès', ticker:'RMS FP', marketCap:230000, netDebt:-8000, revenue:13500, ebitda:6200, ebit:5600, netIncome:4300 }, { company:'Richemont', ticker:'CFR SW', marketCap:78000, netDebt:-6000, revenue:20500, ebitda:5200, ebit:4100, netIncome:2900 }, { company:'Kering', ticker:'KER FP', marketCap:35000, netDebt:9000, revenue:19600, ebitda:5200, ebit:3900, netIncome:2300 }, { company:'Swatch', ticker:'UHR SW', marketCap:12000, netDebt:-1800, revenue:7800, ebitda:1600, ebit:1200, netIncome:900 } ];
+
+    let financialData = null, metrics = null, diagnostics = null, dcfResults = null, compsResults = null, maResults = null, lboResults = null;
+    function cleanName(v){ return String(v||'').toLowerCase().replace(/[\u00a0\u200b]/g,' ').replace(/[’]/g,"'").replace(/[^a-z0-9\u4e00-\u9fa5]+/g,' ').replace(/\s+/g,' ').trim(); }
+    function cleanCell(v){ return String(v ?? '').replace(/[\u00a0\u200b]/g,' ').trim(); }
+    function toNum(value){ if(value===null||value===undefined) return null; if(typeof value==='number') return Number.isFinite(value)?value:null; let s=String(value).replace(/[\u00a0\u200b]/g,'').trim(); if(!s || /^(--|—|-|n\/?a|n\.?m\.?|nil|null)$/i.test(s)) return null; let neg=false; if(/^\(.*\)$/.test(s)){ neg=true; s=s.slice(1,-1); } s=s.replace(/[$€£¥￥,]/g,'').replace(/%$/,''); if(/-$/.test(s)){ neg=true; s=s.slice(0,-1); } const n=parseFloat(s); return Number.isFinite(n) ? (neg ? -n : n) : null; }
+    function safeDiv(a,b){ return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(b)>1e-9 ? a/b : null; }
+    function latest(arr){ if(!arr) return null; for(let i=arr.length-1;i>=0;i--) if(Number.isFinite(arr[i])) return arr[i]; return null; }
+    function selectedIdx(){ const el=document.getElementById('periodSelect'); const i=el?parseInt(el.value,10):NaN; return Number.isFinite(i)?i:((financialData?.periods?.length||1)-1); }
+    function selectedVal(arr){ return Array.isArray(arr) ? arr[selectedIdx()] : null; }
+    function money(v,currency){ if(!Number.isFinite(v)) return '--'; return `${currency||financialData?.currency||'USD'} ${fmt0.format(v)}`; }
+    function pct(v){ return Number.isFinite(v) ? `${fmt2.format(v*100)}%` : '--'; }
+    function ratio(v){ return Number.isFinite(v) ? `${fmt2.format(v)}x` : '--'; }
+    function statementValueDisplay(field, v){ if(!Number.isFinite(v)) return '--'; if(/growth|margin|rate/i.test(field)) return pct(rateFromInput(v)); return money(v); }
+    function rateFromInput(v){ if(!Number.isFinite(v)) return null; return Math.abs(v)>1 ? v/100 : v; }
+    function median(nums){ const a=nums.filter(Number.isFinite).sort((x,y)=>x-y); if(!a.length) return null; const m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2; }
+    function inferSeriesMissing(series, growthSeries, field, stmtName, periods){
+      const out=(series||[]).slice(); const log=[];
+      for(let i=0;i<out.length;i++){
+        if(Number.isFinite(out[i])) continue;
+        let inferred=null, method='';
+        const g=Array.isArray(growthSeries)?rateFromInput(growthSeries[i]):null;
+        if(i>0 && Number.isFinite(out[i-1]) && Number.isFinite(g)){ inferred=out[i-1]*(1+g); method=`growth row ${fmt2.format(g*100)}%`; }
+        if(!Number.isFinite(inferred) && i<out.length-1 && Number.isFinite(out[i+1])){
+          const gNext=Array.isArray(growthSeries)?rateFromInput(growthSeries[i+1]):null;
+          if(Number.isFinite(gNext)) { inferred=out[i+1]/(1+gNext); method=`reverse growth row ${fmt2.format(gNext*100)}%`; }
+        }
+        if(!Number.isFinite(inferred) && i>0 && i<out.length-1 && Number.isFinite(out[i-1]) && Number.isFinite(out[i+1])){ inferred=(out[i-1]+out[i+1])/2; method='linear interpolation between adjacent periods'; }
+        if(!Number.isFinite(inferred) && i>0 && Number.isFinite(out[i-1])){
+          const growths=[]; for(let j=1;j<i;j++){ if(Number.isFinite(out[j])&&Number.isFinite(out[j-1])&&Math.abs(out[j-1])>1e-9) growths.push(out[j]/out[j-1]-1); }
+          const med=median(growths.filter(x=>Math.abs(x)<1.5));
+          if(Number.isFinite(med)){ inferred=out[i-1]*(1+med); method=`historical median growth ${fmt2.format(med*100)}%`; }
+        }
+        if(Number.isFinite(inferred)){ out[i]=inferred; log.push({statement:stmtName, field, period:periods[i], value:inferred, method}); }
+      }
+      return {series:out, log};
+    }
+    function inferMissingFinancialData(data){
+      const logs=[]; const p=data.periods||[];
+      const inferable={incomeStatement:['revenue','cogs','grossProfit','operatingIncome','ebitda','netIncome'], balanceSheet:['cash','totalDebt','totalAssets','totalEquity','currentAssets','currentLiabilities','accountsReceivable','inventory'], cashFlowStatement:['operatingCashFlow','capex','depreciationAmortization','freeCashFlow']};
+      Object.entries(inferable).forEach(([stmt,fields])=>{ const obj=data[stmt]||{}; fields.forEach(field=>{ if(!Array.isArray(obj[field])) return; const growth = field==='revenue' ? obj.revenueGrowth : null; const r=inferSeriesMissing(obj[field], growth, field, stmt, p); if(r.log.length){ obj[field]=r.series; logs.push(...r.log); } }); });
+      data.inferenceLog=logs; return logs;
+    }
+    function isInferredCell(statementName, field, period){ return (financialData?.inferenceLog||[]).some(x=>x.statement===statementName && x.field===field && x.period===period); }
+
+
+    function normalizePeriod(value){ const s=cleanCell(value); if(!s) return null; let m=s.match(/(?:FY|FYE|年度)?\s*((?:19|20)\d{2})\s*(?:年)?\s*(?:Q|季度|第)?\s*([1-4])?\s*(?:Q|季度)?/i); if(m && m[2]) return {label:`${m[1]}Q${m[2]}`, sortKey:`${m[1]}-${m[2]}`, type:'quarter'}; m=s.match(/(?:Q|季度|第)\s*([1-4])\s*(?:Q|季度)?\s*((?:19|20)\d{2})/i); if(m) return {label:`${m[2]}Q${m[1]}`, sortKey:`${m[2]}-${m[1]}`, type:'quarter'}; m=s.match(/([1-4])Q\s?(\d{2})/i); if(m) { const y=+m[2] > 50 ? `19${m[2]}` : `20${m[2]}`; return {label:`${y}Q${m[1]}`, sortKey:`${y}-${m[1]}`, type:'quarter'}; } m=s.match(/(?:FY|FYE|年度)?\s*((?:19|20)\d{2})/i); if(m) return {label:m[1], sortKey:`${m[1]}-9`, type:'annual'}; m=s.match(/FY\s?(\d{2})/i); if(m){ const y=+m[1] > 50 ? `19${m[1]}` : `20${m[1]}`; return {label:y, sortKey:`${y}-9`, type:'annual'}; } if(/ttm|ltm/i.test(s)) return {label:s.toUpperCase(), sortKey:`9999-9`, type:'ttm'}; return null; }
+    function dropEmptyRowsCols(rows){ const cleanRows=(rows||[]).map(r => (r||[]).map(cleanCell)); const nonEmptyRows=cleanRows.filter(r => r.some(c=>String(c).trim()!=='')); const maxCols=Math.max(0,...nonEmptyRows.map(r=>r.length)); const keep=[]; for(let c=0;c<maxCols;c++){ if(nonEmptyRows.some(r=>cleanCell(r[c])!=='')) keep.push(c); } return nonEmptyRows.map(r=>keep.map(c=>r[c]||'')); }
+    function findHeaderRow(rows){ let best={index:-1, score:-1, periodCols:[], periods:[], accountCol:0}; rows.slice(0,40).forEach((row,idx)=>{ const periodCols=[]; const periods=[]; row.forEach((cell,col)=>{ const p=normalizePeriod(cell); if(p){ periodCols.push(col); periods.push(p); } }); if(periodCols.length){ const minCol=Math.min(...periodCols); let accountCol=0, bestText=-1; for(let c=0;c<Math.max(1,minCol);c++){ let textScore=0; for(let r=idx+1;r<Math.min(rows.length,idx+22);r++){ const val=cleanCell(rows[r][c]); if(/[a-zA-Z\u4e00-\u9fa5]/.test(val)) textScore++; } if(textScore>bestText){bestText=textScore; accountCol=c;} } const score=periodCols.length*10 + bestText; if(score>best.score) best={index:idx, score, periodCols, periods, accountCol}; } }); return best; }
+    function identifyField(accountName){ const cleaned=cleanName(accountName); if(!cleaned) return null; for(const [field,aliases] of Object.entries(accountMapping)){ for(const alias of aliases){ const a=cleanName(alias); if(cleaned===a || (a.length>4 && cleaned.includes(a)) || (cleaned.length>4 && a.includes(cleaned))) return field; } } return null; }
+    function detectStatementType(sheetName, rows){ const name=cleanName(sheetName); if(/income|profit|p l|pnl|利润|损益/.test(name)) return 'incomeStatement'; if(/balance|资产负债/.test(name)) return 'balanceSheet'; if(/cash|现金流/.test(name)) return 'cashFlowStatement'; const text=cleanName(rows.slice(0,80).flat().join(' ')); const scores={ incomeStatement:['revenue','gross profit','operating income','net income','营业收入','净利润'].filter(k=>text.includes(cleanName(k))).length, balanceSheet:['total assets','cash','total equity','total liabilities','资产总计','负债合计','股东权益'].filter(k=>text.includes(cleanName(k))).length, cashFlowStatement:['operating cash flow','capital expenditure','cash from operations','经营活动现金流','资本开支'].filter(k=>text.includes(cleanName(k))).length }; return Object.entries(scores).sort((a,b)=>b[1]-a[1])[0][0]; }
+    function parseRowsToStatement(rawRows){ const rows=dropEmptyRowsCols(rawRows); const header=findHeaderRow(rows); const values={}; const warnings=[]; const mappedRows=[]; if(header.index<0){ return {periods:[], values, warnings:['No recognizable annual or quarterly period headers were detected.'], mappedRows}; } const periods=header.periods; for(let r=header.index+1;r<rows.length;r++){ const row=rows[r]; const labelParts=[]; for(let c=0;c<Math.max(header.accountCol+1, Math.min(...header.periodCols)); c++){ if(cleanCell(row[c]) && /[a-zA-Z\u4e00-\u9fa5]/.test(row[c])) labelParts.push(row[c]); } const account=labelParts.join(' ').trim() || row[header.accountCol] || row[0] || ''; const field=identifyField(account); if(!field) continue; const series=header.periodCols.map(col=>toNum(row[col])); if(!series.some(Number.isFinite)) continue; if(values[field]){ values[field]=values[field].map((old,i)=>Number.isFinite(old)?old:series[i]); warnings.push(`Duplicate mapped account merged: ${account} → ${field}`); } else values[field]=series; mappedRows.push({account, field, finiteCount:series.filter(Number.isFinite).length}); }
+      if(!Object.keys(values).length) warnings.push('No recognizable financial statement accounts detected. Expand the mapping dictionary or check account labels.'); return {periods, values, warnings, mappedRows}; }
+    function readFileAsArrayBuffer(file){ return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onload=e=>resolve(e.target.result); reader.onerror=reject; reader.readAsArrayBuffer(file); }); }
+    async function parseUploadedFiles(files){ const temp={ incomeStatement:{}, balanceSheet:{}, cashFlowStatement:{} }; const periodMap=new Map(); const status=[]; for(const file of files){ const buffer=await readFileAsArrayBuffer(file); const workbook=XLSX.read(buffer,{type:'array'}); for(const sheetName of workbook.SheetNames){ const ws=workbook.Sheets[sheetName]; const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''}); const type=detectStatementType(`${file.name} ${sheetName}`, rows); const parsed=parseRowsToStatement(rows); parsed.periods.forEach(p=>periodMap.set(p.label,p)); Object.entries(parsed.values).forEach(([field,arr])=>{ if(!temp[type][field]) temp[type][field]=new Map(); arr.forEach((v,i)=>{ const period=parsed.periods[i]?.label; if(period && Number.isFinite(v)) temp[type][field].set(period,v); }); }); status.push({type:Object.keys(parsed.values).length?'good':'warn', title:`Parsed ${sheetName}`, text:`${file.name} → ${statementLabels[type]} · ${Object.keys(parsed.values).length} mapped accounts · ${parsed.periods.length} periods.`}); parsed.warnings.forEach(w=>status.push({type:'warn', title:'Cleaning / mapping note', text:w})); } }
+      const periods=[...periodMap.values()].sort((a,b)=>a.sortKey.localeCompare(b.sortKey)).map(p=>p.label); const data={ companyName:document.getElementById('companyInput').value||'Uploaded Company', currency:document.getElementById('currencyInput').value||'USD', periods, incomeStatement:{}, balanceSheet:{}, cashFlowStatement:{} }; ['incomeStatement','balanceSheet','cashFlowStatement'].forEach(type=>{ Object.entries(temp[type]).forEach(([field,map])=>{ data[type][field]=periods.map(p=>map.has(p)?map.get(p):null); }); }); enrichFinancialData(data); validateFinancialData(data).forEach(w=>status.push(w)); return {data,status}; }
+
+    function arrGet(obj,key,fallback=[]){ return obj && Array.isArray(obj[key]) ? obj[key] : fallback; }
+    function enrichFinancialData(data){
+      const n=data.periods.length; const is=data.incomeStatement, bs=data.balanceSheet, cf=data.cashFlowStatement;
+      inferMissingFinancialData(data);
+      if(!is.grossProfit && is.revenue && is.cogs) is.grossProfit=is.revenue.map((v,i)=>Number.isFinite(v)&&Number.isFinite(is.cogs[i])?v-is.cogs[i]:null);
+      if(!bs.totalDebt){ const st=arrGet(bs,'shortTermDebt',Array(n).fill(0)), lt=arrGet(bs,'longTermDebt',Array(n).fill(0)); if(bs.shortTermDebt || bs.longTermDebt) bs.totalDebt=st.map((v,i)=>(Number.isFinite(v)?v:0)+(Number.isFinite(lt[i])?lt[i]:0)); }
+      if(!bs.totalLiabilities && bs.totalAssets && bs.totalEquity) bs.totalLiabilities=bs.totalAssets.map((v,i)=>Number.isFinite(v)&&Number.isFinite(bs.totalEquity[i])?v-bs.totalEquity[i]:null);
+      if(!is.ebitda && is.operatingIncome){ const da=arrGet(cf,'depreciationAmortization',Array(n).fill(0)); is.ebitda=is.operatingIncome.map((v,i)=>Number.isFinite(v)?v+(Number.isFinite(da[i])?da[i]:0):null); }
+      if(!cf.freeCashFlow && cf.operatingCashFlow && cf.capex) cf.freeCashFlow=cf.operatingCashFlow.map((v,i)=>Number.isFinite(v)&&Number.isFinite(cf.capex[i])?v+cf.capex[i]:null);
+      inferMissingFinancialData(data);
+      if(!data.currency) data.currency='USD';
+    }
+    function validateFinancialData(data){ const required=[['incomeStatement','revenue'],['incomeStatement','operatingIncome'],['incomeStatement','netIncome'],['balanceSheet','cash'],['balanceSheet','totalDebt'],['balanceSheet','totalAssets'],['balanceSheet','totalEquity'],['cashFlowStatement','operatingCashFlow'],['cashFlowStatement','capex']]; const warnings=[]; required.forEach(([stmt,key])=>{ if(!data[stmt] || !Array.isArray(data[stmt][key])) warnings.push({type:'warn', title:'Missing key account', text:`${statementLabels[stmt]} is missing ${fieldLabels[key]}. Some metrics may be unavailable.`}); }); if(!data.periods || data.periods.length<2) warnings.push({type:'bad', title:'Insufficient periods', text:'At least two periods are recommended for growth and quality analysis.'}); if(!warnings.length) warnings.push({type:'good', title:'Data quality check passed', text:'Core accounts are available. Parser completed standardization and cleaning.'}); return warnings; }
+
+    function computeMetrics(data){ const p=data.periods, is=data.incomeStatement, bs=data.balanceSheet, cf=data.cashFlowStatement, n=p.length; const revenue=arrGet(is,'revenue'), grossProfit=arrGet(is,'grossProfit'), ebit=arrGet(is,'operatingIncome'), ebitda=arrGet(is,'ebitda'), netIncome=arrGet(is,'netIncome'), interest=arrGet(is,'interestExpense'), taxExpense=arrGet(is,'taxExpense'), cash=arrGet(bs,'cash'), debt=arrGet(bs,'totalDebt'), assets=arrGet(bs,'totalAssets'), liabilities=arrGet(bs,'totalLiabilities'), equity=arrGet(bs,'totalEquity'), currentAssets=arrGet(bs,'currentAssets'), currentLiabilities=arrGet(bs,'currentLiabilities'), receivables=arrGet(bs,'accountsReceivable'), inventory=arrGet(bs,'inventory'), cfo=arrGet(cf,'operatingCashFlow'), capex=arrGet(cf,'capex'), fcf=arrGet(cf,'freeCashFlow'); const result={periods:p,series:{},latest:{},selectedIndex:selectedIdx()}; const series=(name,values)=>{result.series[name]=values; result.latest[name]=values[result.selectedIndex];}; const yoy=arr=>arr.map((v,i)=>i===0?null:(Number.isFinite(v)&&Number.isFinite(arr[i-1])&&Math.abs(arr[i-1])>1e-9?v/arr[i-1]-1:null)); const avg=(arr,i)=>i===0?arr[i]:(Number.isFinite(arr[i])&&Number.isFinite(arr[i-1])?(arr[i]+arr[i-1])/2:arr[i]); const taxRate=ebit.map((v,i)=>{ const pretax=Number.isFinite(v)&&Number.isFinite(interest[i])?v-interest[i]:v; const r=safeDiv(taxExpense[i],pretax); return Number.isFinite(r)?Math.max(0,Math.min(0.4,r)):0.22; }); const nopat=ebit.map((v,i)=>Number.isFinite(v)?v*(1-taxRate[i]):null); const netDebt=debt.map((v,i)=>Number.isFinite(v)?v-(Number.isFinite(cash[i])?cash[i]:0):null); const operatingLiabilities=liabilities.map((v,i)=>Number.isFinite(v)?v-(Number.isFinite(debt[i])?debt[i]:0):Number.isFinite(currentLiabilities[i])?currentLiabilities[i]-(Number.isFinite(arrGet(bs,'shortTermDebt')[i])?arrGet(bs,'shortTermDebt')[i]:0):null); const noa=assets.map((v,i)=>Number.isFinite(v)?v-(Number.isFinite(cash[i])?cash[i]:0)-(Number.isFinite(operatingLiabilities[i])?operatingLiabilities[i]:0):null); const revenueGrowth=yoy(revenue); const revCagr=cagr(revenue); const noaUpcomingSales=noa.map((v,i)=>{ const next=Number.isFinite(revenue[i+1])?revenue[i+1]:(Number.isFinite(revenue[i])?revenue[i]*(1+(Number.isFinite(revenueGrowth[i])?revenueGrowth[i]:(Number.isFinite(revCagr)?revCagr:0.04))):null); return safeDiv(v,next); }); const revenueVol=rollingStd(revenueGrowth); const ebitMarginRaw=revenue.map((v,i)=>safeDiv(ebit[i],v)); const ebitMarginVol=rollingStd(ebitMarginRaw); const fcfMarginRaw=revenue.map((v,i)=>safeDiv(fcf[i],v)); const unleveredCostCapital=p.map((_,i)=>{ const base=0.055; const rv=Number.isFinite(revenueVol[i])?revenueVol[i]:0.05; const mv=Number.isFinite(ebitMarginVol[i])?ebitMarginVol[i]:0.03; const fpen=Number.isFinite(fcfMarginRaw[i])?Math.max(0,-fcfMarginRaw[i]):0; return Math.max(0.06,Math.min(0.18,base+1.35*rv+2.10*mv+0.8*fpen)); }); series('revenueGrowth',revenueGrowth); series('grossMargin',revenue.map((v,i)=>safeDiv(grossProfit[i],v))); series('ebitMargin',ebitMarginRaw); series('ebitdaMargin',revenue.map((v,i)=>safeDiv(ebitda[i],v))); series('netMargin',revenue.map((v,i)=>safeDiv(netIncome[i],v))); series('effectiveTaxRate',taxRate); series('nopat',nopat); series('nopatMargin',revenue.map((v,i)=>safeDiv(nopat[i],v))); series('noa',noa); series('noaUpcomingSales',noaUpcomingSales); series('unleveredCostCapital',unleveredCostCapital); series('roa',assets.map((v,i)=>safeDiv(netIncome[i],avg(assets,i)))); series('roe',equity.map((v,i)=>safeDiv(netIncome[i],avg(equity,i)))); series('netDebt',netDebt); series('netDebtToEbitda',debt.map((v,i)=>safeDiv(netDebt[i],ebitda[i]))); series('debtToEquity',debt.map((v,i)=>safeDiv(v,equity[i]))); series('interestCoverage',ebit.map((v,i)=>safeDiv(v,interest[i]))); series('currentRatio',currentAssets.map((v,i)=>safeDiv(v,currentLiabilities[i]))); series('quickRatio',currentAssets.map((v,i)=>safeDiv(v-(Number.isFinite(inventory[i])?inventory[i]:0),currentLiabilities[i]))); series('fcfMargin',fcfMarginRaw); series('cashConversion',netIncome.map((v,i)=>safeDiv(cfo[i],v))); series('capexToRevenue',revenue.map((v,i)=>safeDiv(Math.abs(capex[i]),v))); series('accrualRatio',assets.map((v,i)=>safeDiv(netIncome[i]-cfo[i],v))); series('receivablesGrowth',yoy(receivables)); series('inventoryGrowth',yoy(inventory)); series('cfoGrowth',yoy(cfo)); result.cagr={revenue:revCagr, ebit:cagr(ebit), netIncome:cagr(netIncome), fcf:cagr(fcf)}; result.health=computeHealthScore(result); return result; }
+    function rollingStd(arr){ return arr.map((_,i)=>{ const vals=arr.slice(0,i+1).filter(Number.isFinite); if(vals.length<2) return null; const m=vals.reduce((a,b)=>a+b,0)/vals.length; return Math.sqrt(vals.reduce((s,v)=>s+(v-m)**2,0)/(vals.length-1)); }); }
+    function cagr(arr){ if(!arr || arr.length<2) return null; const first=arr.find(Number.isFinite); const last=latest(arr); const firstIdx=arr.findIndex(Number.isFinite); if(!Number.isFinite(first)||first<=0||!Number.isFinite(last)||arr.length-firstIdx<2) return null; return Math.pow(last/first,1/(arr.length-firstIdx-1))-1; }
+    function clamp(value,min,max){ return Math.max(min,Math.min(max,value)); }
+    function scoreRange(value,low,high,invert=false){ if(!Number.isFinite(value)) return 50; let score=((value-low)/(high-low))*100; score=clamp(score,0,100); return invert?100-score:score; }
+    function computeHealthScore(m){ const profitability=0.32*scoreRange(m.latest.ebitMargin,0.05,0.25)+0.28*scoreRange(m.latest.roe,0.05,0.25)+0.20*scoreRange(m.latest.netMargin,0.02,0.18)+0.20*scoreRange(m.latest.nopatMargin,0.04,0.22); const growth=0.55*scoreRange(m.cagr.revenue,0,0.15)+0.45*scoreRange(m.cagr.netIncome,0,0.18); const cashQuality=0.55*scoreRange(m.latest.cashConversion,0.6,1.4)+0.45*scoreRange(m.latest.fcfMargin,0,0.15); const leverage=0.45*scoreRange(m.latest.netDebtToEbitda,4.5,0.5,true)+0.30*scoreRange(m.latest.debtToEquity,2.0,0.2,true)+0.25*scoreRange(m.latest.unleveredCostCapital,0.17,0.07,true); const liquidity=0.70*scoreRange(m.latest.currentRatio,0.8,2.5)+0.30*scoreRange(m.latest.quickRatio,0.5,1.5); const total=0.25*profitability+0.20*growth+0.25*cashQuality+0.20*leverage+0.10*liquidity; return {profitability,growth,cashQuality,leverage,liquidity,total}; }
+    function runDiagnostics(data,m){ const warnings=[]; const lg=m.latest.revenueGrowth, cfoGrowth=m.latest.cfoGrowth, recGrowth=m.latest.receivablesGrowth, invGrowth=m.latest.inventoryGrowth, cashConversion=m.latest.cashConversion, netDebtEbitda=m.latest.netDebtToEbitda, fcfMargin=m.latest.fcfMargin, ebitMargin=m.latest.ebitMargin, currentRatio=m.latest.currentRatio, ucc=m.latest.unleveredCostCapital; if(Number.isFinite(lg)&&Number.isFinite(cfoGrowth)&&lg>0.1&&cfoGrowth<lg*0.5) warnings.push({level:'bad',title:'Revenue growth not supported by cash flow',text:'收入增长明显快于经营现金流增长，可能存在回款质量或营运资本压力。'}); if(Number.isFinite(recGrowth)&&Number.isFinite(lg)&&recGrowth>lg+0.08) warnings.push({level:'bad',title:'Receivables growing faster than revenue',text:'应收账款增速高于收入增速，需要关注收入确认、客户回款和坏账风险。'}); if(Number.isFinite(invGrowth)&&Number.isFinite(lg)&&invGrowth>lg+0.08) warnings.push({level:'warn',title:'Inventory buildup risk',text:'存货增速高于收入增速，可能反映需求放缓或存货跌价风险。'}); if(Number.isFinite(cashConversion)&&cashConversion<0.8) warnings.push({level:'bad',title:'Weak cash conversion',text:'经营现金流 / 净利润低于 0.8，盈利质量需要进一步验证。'}); if(Number.isFinite(netDebtEbitda)&&netDebtEbitda>3.5) warnings.push({level:'bad',title:'Elevated leverage',text:'净债务 / EBITDA 高于 3.5x，偿债压力和再融资风险需要重点关注。'}); if(Number.isFinite(fcfMargin)&&fcfMargin<0) warnings.push({level:'bad',title:'Negative free cash flow',text:'自由现金流为负，企业可能依赖外部融资支持扩张或经营。'}); if(Number.isFinite(ebitMargin)&&ebitMargin<0.08) warnings.push({level:'warn',title:'Low operating margin',text:'EBIT margin 偏低，经营杠杆和成本控制能力需要进一步分析。'}); if(Number.isFinite(currentRatio)&&currentRatio<1) warnings.push({level:'bad',title:'Liquidity pressure',text:'流动比率低于 1.0，短期偿债能力存在压力。'}); if(Number.isFinite(ucc)&&ucc>0.14) warnings.push({level:'warn',title:'High business-risk capital cost proxy',text:'Unlevered cost of capital 代理值偏高，说明收入波动、利润率波动或现金流风险较高。'}); if(!warnings.length) warnings.push({level:'good',title:'No major red flags detected',text:'基于当前规则，盈利质量、现金流和杠杆未出现显著异常。'}); return warnings; }
+    function getInputNum(id){ return parseFloat(document.getElementById(id).value)||0; }
+    function runDcf(data){ if(!data||!metrics) return null; const idx=selectedIdx(); const revenue0=data.incomeStatement.revenue[idx] || latest(data.incomeStatement.revenue); const netDebt=metrics.series.netDebt[idx] || latest(metrics.series.netDebt) || 0; const assumptions={ growth:getInputNum('dcfGrowth')/100, ebitMargin:getInputNum('dcfEbitMargin')/100, tax:getInputNum('dcfTax')/100, daPct:getInputNum('dcfDa')/100, capexPct:getInputNum('dcfCapex')/100, nwcPct:getInputNum('dcfNwc')/100, wacc:getInputNum('dcfWacc')/100, terminalGrowth:getInputNum('dcfTerminal')/100, shares:getInputNum('dcfShares')||100 }; let prevRevenue=revenue0; const forecast=[1,2,3,4,5].map(year=>{ const revenue=prevRevenue*(1+assumptions.growth); prevRevenue=revenue; const ebit=revenue*assumptions.ebitMargin; const nopat=ebit*(1-assumptions.tax); const da=revenue*assumptions.daPct; const capex=revenue*assumptions.capexPct; const nwc=revenue*assumptions.nwcPct; const ufcf=nopat+da-capex-nwc; const pv=ufcf/Math.pow(1+assumptions.wacc,year); return {year:`Y${year}`,revenue,ebit,nopat,ufcf,pv}; }); const terminalValue=forecast[4].ufcf*(1+assumptions.terminalGrowth)/(assumptions.wacc-assumptions.terminalGrowth); const pvTerminal=terminalValue/Math.pow(1+assumptions.wacc,5); const enterpriseValue=forecast.reduce((s,x)=>s+x.pv,0)+pvTerminal; const equityValue=enterpriseValue-netDebt; const sharePrice=equityValue/assumptions.shares; return {assumptions,forecast,terminalValue,pvTerminal,enterpriseValue,netDebt,equityValue,sharePrice}; }
+    function median(arr){ const a=arr.filter(Number.isFinite).sort((x,y)=>x-y); if(!a.length) return null; const mid=Math.floor(a.length/2); return a.length%2?a[mid]:(a[mid-1]+a[mid])/2; }
+    function runComps(data){ const idx=selectedIdx(); const latestRevenue=data.incomeStatement.revenue[idx] || latest(data.incomeStatement.revenue); const latestEbitda=data.incomeStatement.ebitda[idx] || latest(data.incomeStatement.ebitda); const latestEbit=data.incomeStatement.operatingIncome[idx] || latest(data.incomeStatement.operatingIncome); const latestNI=data.incomeStatement.netIncome[idx] || latest(data.incomeStatement.netIncome); const netDebt=metrics.series.netDebt[idx] || latest(metrics.series.netDebt) || 0; const comps=compsDatabase.map(c=>{ const ev=c.marketCap+c.netDebt; return {...c,ev,evRevenue:ev/c.revenue,evEbitda:ev/c.ebitda,evEbit:ev/c.ebit,pe:c.marketCap/c.netIncome}; }); const med={evRevenue:median(comps.map(c=>c.evRevenue)),evEbitda:median(comps.map(c=>c.evEbitda)),evEbit:median(comps.map(c=>c.evEbit)),pe:median(comps.map(c=>c.pe))}; const implied={ revenue:latestRevenue*med.evRevenue-netDebt, ebitda:latestEbitda*med.evEbitda-netDebt, ebit:latestEbit*med.evEbit-netDebt, pe:latestNI*med.pe }; return {comps,med,implied}; }
+    function runMA(){ const acqNI=getInputNum('maAcqNI'), acqShares=getInputNum('maAcqShares'), sharePrice=getInputNum('maSharePrice'), purchase=getInputNum('maPurchase'), targetNI=getInputNum('maTargetNI'), synergy=getInputNum('maSynergy'), debtPct=getInputNum('maDebtPct')/100, stockPct=getInputNum('maStockPct')/100, cashPct=getInputNum('maCashPct')/100, debtCost=getInputNum('maDebtCost')/100, tax=getInputNum('maTax')/100; const debtFinancing=purchase*debtPct, stockFinancing=purchase*stockPct, cashFinancing=purchase*cashPct, newInterestAfterTax=debtFinancing*debtCost*(1-tax), afterTaxSynergy=synergy*(1-tax), newShares=stockFinancing/Math.max(sharePrice,0.001), standaloneEPS=acqNI/acqShares, proFormaNI=acqNI+targetNI+afterTaxSynergy-newInterestAfterTax, proFormaShares=acqShares+newShares, proFormaEPS=proFormaNI/proFormaShares, accDil=proFormaEPS/standaloneEPS-1; return {debtFinancing,stockFinancing,cashFinancing,newInterestAfterTax,afterTaxSynergy,newShares,standaloneEPS,proFormaNI,proFormaShares,proFormaEPS,accDil}; }
+    function runLBO(){ const entryEbitda=getInputNum('lboEbitda'), entryMultiple=getInputNum('lboEntryMultiple'), debtMultiple=getInputNum('lboDebtMultiple'), growth=getInputNum('lboGrowth')/100, fcfConv=getInputNum('lboFcfConv')/100, exitMultiple=getInputNum('lboExitMultiple'), years=Math.max(1,Math.round(getInputNum('lboYears'))); const entryEV=entryEbitda*entryMultiple, initialDebt=entryEbitda*debtMultiple, sponsorEquity=entryEV-initialDebt; let debt=initialDebt, ebitda=entryEbitda; const schedule=[]; for(let y=1;y<=years;y++){ ebitda*=1+growth; const fcf=ebitda*fcfConv; const debtPaydown=Math.min(debt,fcf); debt-=debtPaydown; schedule.push({year:`Y${y}`,ebitda,fcf,debtPaydown,endingDebt:debt}); } const exitEV=ebitda*exitMultiple, exitEquity=exitEV-debt, moic=exitEquity/sponsorEquity, irr=Math.pow(moic,1/years)-1; return {entryEV,initialDebt,sponsorEquity,exitEV,exitEquity,moic,irr}; }
+    function htmlTable(headers,rows){ return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(cell=>`<td>${cell ?? '--'}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
+    function renderStatementTable(targetId,statement,periods){ const stmtName=targetId==='incomeTable'?'incomeStatement':targetId==='balanceTable'?'balanceSheet':'cashFlowStatement'; const rows=Object.entries(statement||{}).map(([key,values])=>[fieldLabels[key]||key,...periods.map((period,i)=>{ const val=statementValueDisplay(key, values[i]); return isInferredCell(stmtName,key,period)?`<span class="inferred-cell">${val}</span><span class="inference-note">*</span>`:val; })]); document.getElementById(targetId).innerHTML=htmlTable(['Account',...periods],rows.length?rows:[['No data',...periods.map(()=>'--')]]); }
+    function renderParseStatus(items){ document.getElementById('parseStatus').innerHTML=items.map(item=>`<div class="warning-item ${item.type==='bad'?'bad':item.type==='good'?'good':''}"><strong>${escapeHtml(item.title)}</strong>${escapeHtml(item.text)}</div>`).join(''); }
+    function populatePeriodSelector(){ const el=document.getElementById('periodSelect'); if(!financialData){ el.innerHTML=''; return; } const old=el.value; el.innerHTML=financialData.periods.map((p,i)=>`<option value="${i}">${p}</option>`).join(''); el.value=old && +old<financialData.periods.length ? old : String(financialData.periods.length-1); }
+    function renderMetricCards(m){ const idx=m.selectedIndex, p=m.periods[idx]; const cards=[ ['Selected Period',p,'User-selected analysis base'], ['Revenue Growth',pct(m.latest.revenueGrowth),'YoY or previous-period growth'], ['NOPAT Margin',pct(m.latest.nopatMargin),'NOPAT / revenue'], ['NOA / Upcoming Sales',ratio(m.latest.noaUpcomingSales),'Net operating assets / next-period sales'], ['Unlevered Cost of Capital',pct(m.latest.unleveredCostCapital),'Business-risk proxy, not market WACC'], ['ROE',pct(m.latest.roe),'Net income / average equity'], ['FCF Margin',pct(m.latest.fcfMargin),'Free cash flow / revenue'], ['Financial Health',fmt0.format(m.health.total)+'/100','Composite score'] ]; document.getElementById('metricCards').innerHTML=cards.map(c=>`<div class="metric-card"><div class="name">${c[0]}</div><div class="number">${c[1]}</div><div class="desc">${c[2]}</div></div>`).join(''); const upcoming=idx+1<m.periods.length?m.periods[idx+1]:'forecasted next period'; document.getElementById('periodNote').textContent=currentLang==='zh'?`当前分析期间：${p}。NOA / Upcoming Sales 使用 ${upcoming} 的收入；若没有下一期，使用最近增长率外推。`:`Selected period: ${p}. NOA / upcoming sales uses revenue from ${upcoming}; if no next period exists, revenue is projected from recent growth.`; }
+    function renderMetricsTable(m){ const metricNames=[ ['Revenue Growth','revenueGrowth',true],['Gross Margin','grossMargin',true],['EBIT Margin','ebitMargin',true],['NOPAT Margin','nopatMargin',true],['NOA / Upcoming Sales','noaUpcomingSales',false],['Unlevered Cost of Capital [Business Risk]','unleveredCostCapital',true],['Net Margin','netMargin',true],['ROA','roa',true],['ROE','roe',true],['Net Debt / EBITDA','netDebtToEbitda',false],['Debt / Equity','debtToEquity',false],['Current Ratio','currentRatio',false],['Cash Conversion','cashConversion',false],['FCF Margin','fcfMargin',true],['Accrual Ratio','accrualRatio',true] ]; const rows=metricNames.map(([label,key,isPct])=>[label,...m.periods.map((_,i)=>{ const v=m.series[key]?.[i]; return isPct?pct(v):(Number.isFinite(v)?fmt2.format(v)+'x':'--'); })]); document.getElementById('metricsTable').innerHTML=htmlTable(['Metric',...m.periods],rows); }
+    function renderDiagnostics(diag,health){ const badge=document.getElementById('healthBadge'); badge.className=`badge ${health.total>=75?'good':health.total>=55?'warn':'bad'}`; badge.textContent=`${fmt0.format(health.total)}/100`; const scoreCards=[['Profitability',health.profitability],['Growth',health.growth],['Cash Flow Quality',health.cashQuality],['Leverage / Business Risk',health.leverage],['Liquidity',health.liquidity],['Total',health.total]]; document.getElementById('scoreBreakdown').innerHTML=scoreCards.map(c=>`<div class="metric-card"><div class="name">${c[0]}</div><div class="number">${fmt0.format(c[1])}</div><div class="desc">/100</div></div>`).join(''); document.getElementById('diagnosticList').innerHTML=diag.map(d=>`<div class="warning-item ${d.level==='bad'?'bad':d.level==='good'?'good':''}"><strong>${d.title}</strong>${d.text}</div>`).join(''); }
+    function renderDcf(dcf){ const rows=dcf.forecast.map(x=>[x.year,money(x.revenue),money(x.ebit),money(x.nopat),money(x.ufcf),money(x.pv)]); rows.push(['Terminal Value','','','','',money(dcf.pvTerminal)]); rows.push(['Enterprise Value','','','','',money(dcf.enterpriseValue)]); rows.push(['Net Debt','','','','',money(dcf.netDebt)]); rows.push(['Equity Value','','','','',money(dcf.equityValue)]); rows.push(['Implied Share Price','','','','',money(dcf.sharePrice)]); document.getElementById('dcfTable').innerHTML=htmlTable(['Year','Revenue','EBIT','NOPAT','UFCF','PV'],rows); }
+    function renderComps(comps){ const compRows=comps.comps.map(c=>[c.company,c.ticker,fmt2.format(c.evRevenue)+'x',fmt2.format(c.evEbitda)+'x',fmt2.format(c.evEbit)+'x',fmt2.format(c.pe)+'x']); compRows.push(['Median','',fmt2.format(comps.med.evRevenue)+'x',fmt2.format(comps.med.evEbitda)+'x',fmt2.format(comps.med.evEbit)+'x',fmt2.format(comps.med.pe)+'x']); compRows.push(['Implied Equity Value','',money(comps.implied.revenue),money(comps.implied.ebitda),money(comps.implied.ebit),money(comps.implied.pe)]); document.getElementById('compsTable').innerHTML=htmlTable(['Company','Ticker','EV/Revenue','EV/EBITDA','EV/EBIT','P/E'],compRows); }
+    function renderMA(ma){ document.getElementById('maTable').innerHTML=htmlTable(['Output','Value'],[['Standalone EPS',fmt2.format(ma.standaloneEPS)],['Pro Forma EPS',fmt2.format(ma.proFormaEPS)],['Accretion / Dilution',pct(ma.accDil)],['New Shares Issued',fmt2.format(ma.newShares)],['After-tax Synergy',money(ma.afterTaxSynergy)],['After-tax Interest Cost',money(ma.newInterestAfterTax)]]); }
+    function renderLBO(lbo){ document.getElementById('lboTable').innerHTML=htmlTable(['Output','Value'],[['Entry Enterprise Value',money(lbo.entryEV)],['Initial Debt',money(lbo.initialDebt)],['Sponsor Equity',money(lbo.sponsorEquity)],['Exit Enterprise Value',money(lbo.exitEV)],['Exit Equity Value',money(lbo.exitEquity)],['MOIC',fmt2.format(lbo.moic)+'x'],['IRR',pct(lbo.irr)]]); }
+    function chartOptionBase(title){ return { backgroundColor:'transparent', title:{text:title,textStyle:{color:'#1e293b',fontSize:15,fontWeight:700},left:14,top:10}, tooltip:{trigger:'axis'}, legend:{textStyle:{color:'#64748b'},top:40}, grid:{left:52,right:24,top:82,bottom:42}, xAxis:{type:'category',axisLine:{lineStyle:{color:'#cbd5e1'}},axisLabel:{color:'#64748b'}}, yAxis:{type:'value',axisLine:{lineStyle:{color:'#cbd5e1'}},splitLine:{lineStyle:{color:'#e2e8f0'}},axisLabel:{color:'#64748b'}} }; }
+    function renderCharts(){ if(!financialData||!metrics||!dcfResults||!compsResults||!window.echarts) return; const p=financialData.periods,is=financialData.incomeStatement,bs=financialData.balanceSheet,cf=financialData.cashFlowStatement; ['revenueChart','marginChart','fcfChart','debtChart','dcfChart','compsChart','footballChart'].forEach(id=>{ const node=document.getElementById(id); if(node) echarts.dispose(node); }); echarts.init(document.getElementById('revenueChart')).setOption({...chartOptionBase('Revenue and Net Income Trend'),xAxis:{...chartOptionBase('').xAxis,data:p},series:[{name:'Revenue',type:'bar',data:is.revenue},{name:'Net Income',type:'line',data:is.netIncome}]}); echarts.init(document.getElementById('marginChart')).setOption({...chartOptionBase('Margin Trend'),xAxis:{...chartOptionBase('').xAxis,data:p},yAxis:{...chartOptionBase('').yAxis,axisLabel:{color:'#64748b',formatter:'{value}%'}},series:[{name:'Gross Margin',type:'line',data:metrics.series.grossMargin.map(x=>Number.isFinite(x)?x*100:null)},{name:'EBIT Margin',type:'line',data:metrics.series.ebitMargin.map(x=>Number.isFinite(x)?x*100:null)},{name:'NOPAT Margin',type:'line',data:metrics.series.nopatMargin.map(x=>Number.isFinite(x)?x*100:null)}]}); echarts.init(document.getElementById('fcfChart')).setOption({...chartOptionBase('Operating Cash Flow and FCF'),xAxis:{...chartOptionBase('').xAxis,data:p},series:[{name:'Operating Cash Flow',type:'bar',data:cf.operatingCashFlow},{name:'Free Cash Flow',type:'line',data:cf.freeCashFlow}]}); echarts.init(document.getElementById('debtChart')).setOption({...chartOptionBase('Cash, Debt and NOA'),xAxis:{...chartOptionBase('').xAxis,data:p},series:[{name:'Cash',type:'bar',data:bs.cash},{name:'Total Debt',type:'bar',data:bs.totalDebt},{name:'NOA',type:'line',data:metrics.series.noa}]}); echarts.init(document.getElementById('dcfChart')).setOption({...chartOptionBase('DCF Forecast UFCF'),xAxis:{...chartOptionBase('').xAxis,data:dcfResults.forecast.map(x=>x.year)},series:[{name:'Revenue',type:'bar',data:dcfResults.forecast.map(x=>x.revenue)},{name:'UFCF',type:'line',data:dcfResults.forecast.map(x=>x.ufcf)}]}); echarts.init(document.getElementById('compsChart')).setOption({...chartOptionBase('Trading Comps Multiples'),xAxis:{...chartOptionBase('').xAxis,data:compsResults.comps.map(c=>c.company)},series:[{name:'EV/EBITDA',type:'bar',data:compsResults.comps.map(c=>c.evEbitda)},{name:'P/E',type:'line',data:compsResults.comps.map(c=>c.pe)}]}); const ranges=[['DCF',dcfResults.equityValue*0.9,dcfResults.equityValue*1.1],['EV/Revenue',compsResults.implied.revenue*0.9,compsResults.implied.revenue*1.1],['EV/EBITDA',compsResults.implied.ebitda*0.9,compsResults.implied.ebitda*1.1],['P/E',compsResults.implied.pe*0.9,compsResults.implied.pe*1.1]]; echarts.init(document.getElementById('footballChart')).setOption({backgroundColor:'transparent',title:{text:'Football Field Valuation',left:14,top:10,textStyle:{color:'#1e293b',fontSize:15}},tooltip:{trigger:'axis'},grid:{left:110,right:30,top:60,bottom:30},xAxis:{type:'value',axisLabel:{color:'#64748b'},splitLine:{lineStyle:{color:'#e2e8f0'}}},yAxis:{type:'category',data:ranges.map(x=>x[0]),axisLabel:{color:'#64748b'}},series:[{type:'bar',name:'Low',stack:'value',data:ranges.map(x=>x[1]),itemStyle:{opacity:0}},{type:'bar',name:'Range',stack:'value',data:ranges.map(x=>x[2]-x[1])}]}); }
+    function renderReport(){ const aiText=document.getElementById('aiNarrative')?.value || generateMockAIText(); if(!financialData||!metrics||!dcfResults||!compsResults){ document.getElementById('reportPreview').innerHTML='<p>Load sample data or upload statements to generate a report.</p>'; return; } const rangeRows=[['DCF',money(dcfResults.equityValue*0.9),money(dcfResults.equityValue*1.1)],['EV/Revenue',money(compsResults.implied.revenue*0.9),money(compsResults.implied.revenue*1.1)],['EV/EBITDA',money(compsResults.implied.ebitda*0.9),money(compsResults.implied.ebitda*1.1)],['P/E',money(compsResults.implied.pe*0.9),money(compsResults.implied.pe*1.1)]]; const diagHtml=diagnostics.map(d=>`<li><strong>${d.title}:</strong> ${d.text}</li>`).join(''); document.getElementById('reportPreview').innerHTML=`<h2>${escapeHtml(financialData.companyName)} · Financial Analysis Report</h2><p><strong>Selected period:</strong> ${financialData.periods[selectedIdx()]} · <strong>Currency:</strong> ${financialData.currency}</p><div class="report-grid"><div class="report-card"><div class="label">Financial Health</div><div class="value">${fmt0.format(metrics.health.total)}/100</div></div><div class="report-card"><div class="label">DCF Equity Value</div><div class="value">${money(dcfResults.equityValue)}</div></div><div class="report-card"><div class="label">NOPAT Margin</div><div class="value">${pct(metrics.latest.nopatMargin)}</div></div><div class="report-card"><div class="label">NOA / Upcoming Sales</div><div class="value">${ratio(metrics.latest.noaUpcomingSales)}</div></div><div class="report-card"><div class="label">Unlevered Cost of Capital</div><div class="value">${pct(metrics.latest.unleveredCostCapital)}</div></div><div class="report-card"><div class="label">Net Debt / EBITDA</div><div class="value">${ratio(metrics.latest.netDebtToEbitda)}</div></div></div><h3>Key Financial Metrics</h3>${document.getElementById('metricsTable').innerHTML}<h3>Valuation Range</h3>${htmlTable(['Method','Low','High'],rangeRows)}<h3>Risk Diagnostics</h3><ul>${diagHtml}</ul><h3>AI Mock Narrative</h3><p style="white-space: pre-line;">${escapeHtml(aiText)}</p>`; }
+    function escapeHtml(str){ return String(str ?? '').replace(/[&<>'"]/g,tag=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
+    function setProcessStatus(text){ const el=document.getElementById('aiReadiness') || document.getElementById('periodNote'); if(el) el.textContent=text; }
+
+    function updateHero(){ if(!metrics||!dcfResults) return; document.getElementById('heroScore').textContent=fmt0.format(metrics.health.total)+'/100'; document.getElementById('heroEquityValue').textContent=money(dcfResults.equityValue,financialData.currency); document.getElementById('heroNopatMargin').textContent=pct(metrics.latest.nopatMargin); document.getElementById('heroBusinessRisk').textContent=pct(metrics.latest.unleveredCostCapital); }
+    function recalculateAll(){ if(!financialData) return; setProcessStatus('正在补全缺失数据并刷新模型...'); enrichFinancialData(financialData); populatePeriodSelector(); metrics=computeMetrics(financialData); diagnostics=runDiagnostics(financialData,metrics); dcfResults=runDcf(financialData); compsResults=runComps(financialData); maResults=runMA(); lboResults=runLBO(); renderStatementTable('incomeTable',financialData.incomeStatement,financialData.periods); renderStatementTable('balanceTable',financialData.balanceSheet,financialData.periods); renderStatementTable('cashflowTable',financialData.cashFlowStatement,financialData.periods); renderMetricCards(metrics); renderMetricsTable(metrics); renderDiagnostics(diagnostics,metrics.health); renderDcf(dcfResults); renderComps(compsResults); renderMA(maResults); renderLBO(lboResults); renderCharts(); updateHero(); document.getElementById('standardJsonPreview').textContent=JSON.stringify(financialData,null,2); renderReport(); renderModelSelfCheck(); }
+    function loadSample(){ financialData=JSON.parse(JSON.stringify(sampleCompany)); document.getElementById('companyInput').value=financialData.companyName; document.getElementById('currencyInput').value=financialData.currency; renderParseStatus([{type:'good',title:'Sample data loaded',text:'示例公司数据已加载。可以直接查看指标、估值模型和报告导出效果。'}]); populatePeriodSelector(); recalculateAll(); }
+    function resetAll(){ financialData=null; metrics=null; diagnostics=null; dcfResults=null; compsResults=null; maResults=null; lboResults=null; ['incomeTable','balanceTable','cashflowTable','metricCards','metricsTable','scoreBreakdown','diagnosticList','dcfTable','compsTable','maTable','lboTable'].forEach(id=>document.getElementById(id).innerHTML=''); ['heroScore','heroEquityValue','heroNopatMargin','heroBusinessRisk'].forEach(id=>document.getElementById(id).textContent='--'); document.getElementById('standardJsonPreview').textContent='等待上传或加载示例数据...'; document.getElementById('aiNarrative').value=''; renderParseStatus([{type:'warn',title:'Data reset',text:'已清空当前数据。'}]); renderReport(); renderModelSelfCheck(); }
+    function downloadTemplate(){ const income='Account,2021,2022,2023,2024,2025Q1\nRevenue,1000,1200,1400,1600,430\nCOGS,500,600,700,800,215\nGross Profit,500,600,700,800,215\nOperating Income,200,260,310,380,100\nEBITDA,260,330,390,470,124\nInterest Expense,20,25,28,30,8\nTax Expense,40,52,62,76,20\nNet Income,120,155,190,245,72\n'; const balance='Account,2021,2022,2023,2024,2025Q1\nCash,100,130,160,200,215\nShort-term Debt,60,70,75,80,82\nLong-term Debt,300,310,320,330,335\nTotal Debt,360,380,395,410,417\nAccounts Receivable,140,180,220,250,265\nInventory,160,180,210,230,242\nCurrent Assets,520,620,720,830,860\nCurrent Liabilities,300,340,380,420,435\nTotal Assets,1800,2050,2300,2600,2680\nTotal Liabilities,950,1070,1170,1300,1335\nTotal Equity,850,980,1130,1300,1345\n'; const cashflow='Account,2021,2022,2023,2024,2025Q1\nOperating Cash Flow,150,210,250,300,76\nCapital Expenditure,-60,-75,-90,-110,-28\nDepreciation and Amortization,60,70,80,90,24\nFree Cash Flow,90,135,160,190,48\n'; const content=`--- income_statement.csv ---\n${income}\n--- balance_sheet.csv ---\n${balance}\n--- cash_flow_statement.csv ---\n${cashflow}`; const blob=new Blob([content],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='financial_statement_template.txt'; a.click(); URL.revokeObjectURL(url); }
+    async function handleParse(){ const files=document.getElementById('fileInput').files; if(!files.length){ renderParseStatus([{type:'warn',title:'No file selected',text:'请先上传 Excel 或 CSV 文件；也可以点击加载示例公司数据。'}]); return; } try{ setProcessStatus('正在解析报表、清洗数字格式并识别期间...'); renderParseStatus([{type:'warn',title:'Parsing files',text:'正在解析上传的财务报表并执行数据清洗...'}]); const result=await parseUploadedFiles(files); financialData=result.data; document.getElementById('companyInput').value=financialData.companyName; renderParseStatus(result.status); populatePeriodSelector(); recalculateAll(); }catch(err){ console.error(err); renderParseStatus([{type:'bad',title:'Parse failed',text:err.message||'文件解析失败，请检查文件格式。'}]); } }
+
+    function exportStandardJson(){ if(!financialData){ loadSample(); } const blob=new Blob([JSON.stringify(financialData,null,2)],{type:'application/json;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${(financialData.companyName||'financial_data').replace(/\s+/g,'_')}_standardized_financials.json`; a.click(); URL.revokeObjectURL(url); }
+    async function importStandardJson(evt){ const file=evt.target.files?.[0]; if(!file) return; try{ const text=await file.text(); const data=JSON.parse(text); if(!data.periods || !data.incomeStatement || !data.balanceSheet || !data.cashFlowStatement) throw new Error('JSON must include periods, incomeStatement, balanceSheet, and cashFlowStatement.'); financialData=data; document.getElementById('companyInput').value=financialData.companyName||'Imported Company'; document.getElementById('currencyInput').value=financialData.currency||'USD'; renderParseStatus([{type:'good',title:'Standard JSON imported',text:'已导入标准化 JSON，并重新运行指标、估值和报告模型。'}]); populatePeriodSelector(); recalculateAll(); }catch(err){ renderParseStatus([{type:'bad',title:'JSON import failed',text:err.message||'JSON 文件无法读取。'}]); } finally { evt.target.value=''; } }
+    function buildModelSelfCheck(){ const checks=[]; const add=(ok,title,text)=>checks.push({ok,title,text}); add(!!financialData,'Data object',financialData?'Standardized financialData JSON is active.':'No standardized financialData object is active.'); add(!!(financialData&&financialData.periods&&financialData.periods.length>=2),'Period detection',financialData?`${financialData.periods.length} periods detected: ${financialData.periods.join(', ')}`:'No periods detected.'); const validation=financialData?validateFinancialData(financialData):[{type:'bad'}]; add(validation.every(v=>v.type!=='bad'),'Core account mapping',validation.map(v=>v.title).join(' | ')); add(!!metrics,'Financial metrics engine',metrics?'Metrics, health score and selected-period analytics computed.':'Metrics not computed yet.'); add(!!dcfResults&&Number.isFinite(dcfResults.enterpriseValue),'DCF engine',dcfResults?'DCF forecast, terminal value and equity value computed.':'DCF not available.'); add(!!compsResults,'Comps engine',compsResults?'Static comps, valuation range and football field available.':'Comps not available.'); add(!!maResults&&!!lboResults,'Deal models',maResults&&lboResults?'M&A accretion/dilution and LBO return models computed.':'Deal models not computed.'); add(!!document.getElementById('reportPreview')?.innerText.trim(),'Image report renderer','Report preview is populated and full-page image export is attached.'); const endpoint=document.getElementById('apiEndpoint')?.value||'/api/generate-report'; const mode=document.getElementById('aiMode')?.value||'mock'; add(true,'AI layer readiness',mode==='mock'?`Mock report mode active. Future endpoint reserved: ${endpoint}`:`API-ready placeholder selected. Front end will still not expose API keys; use a Worker route such as ${endpoint}.`); return checks; }
+    function renderModelSelfCheck(){ const el=document.getElementById('modelSelfCheck'); if(!el) return; const checks=buildModelSelfCheck(); el.innerHTML=checks.map(c=>`<div><strong>${c.ok?'✅':'⚠️'} ${escapeHtml(c.title)}</strong><br>${escapeHtml(c.text)}</div>`).join(''); const ai=document.getElementById('aiReadiness'); if(ai){ const mode=document.getElementById('aiMode')?.value||'mock'; const endpoint=document.getElementById('apiEndpoint')?.value||'/api/generate-report'; ai.textContent=currentLang==='zh' ? `AI 接入状态：${mode==='mock'?'当前使用 mock，不调用真实 API。':'API 占位模式已启用。'} 未来请通过 ${endpoint} 的 serverless 网关隐藏 API key。` : `AI readiness: ${mode==='mock'?'mock only, no live API call.':'API placeholder enabled.'} Use a serverless gateway at ${endpoint} to protect API keys.`; } }
+    function generateMockAIText(){ if(!financialData||!metrics) return ''; const p=financialData.periods[selectedIdx()]; const style=document.getElementById('reportStyle')?.value||'er'; const styleMap={er:'Equity Research',ib:'Investment Banking pitch',pe:'Private Equity investment memo',credit:'Credit Risk memo',wm:'Wealth Management client report'}; return currentLang==='zh'?`【${styleMap[style]} 风格】基于 ${p} 的标准化财务数据，公司 Financial Health Score 为 ${fmt0.format(metrics.health.total)}/100。NOPAT margin 为 ${pct(metrics.latest.nopatMargin)}，NOA / Upcoming Sales 为 ${ratio(metrics.latest.noaUpcomingSales)}，Unlevered Cost of Capital [Business Risk] 代理值为 ${pct(metrics.latest.unleveredCostCapital)}。DCF equity value 为 ${dcfResults?money(dcfResults.equityValue,financialData.currency):'--'}。该报告中的数字来自前端模型计算，AI 层仅负责解释、归纳和报告语言组织；真实 API 版本应通过 serverless endpoint 调用，不能把 API key 写入 GitHub 前端代码。`:`[${styleMap[style]} style] Based on standardized ${p} financials, the company records a financial health score of ${fmt0.format(metrics.health.total)}/100. NOPAT margin is ${pct(metrics.latest.nopatMargin)}, NOA / upcoming sales is ${ratio(metrics.latest.noaUpcomingSales)}, and the unlevered cost of capital [business risk] proxy is ${pct(metrics.latest.unleveredCostCapital)}. DCF equity value is ${dcfResults?money(dcfResults.equityValue,financialData.currency):'--'}. All numbers are produced by the front-end model; the AI layer only explains, synthesizes and organizes the report narrative. A live API version should call a serverless endpoint and must not expose API keys in GitHub front-end code.`; }
+    function generateMockAIReport(){ document.getElementById('aiNarrative').value=generateMockAIText(); renderReport(); }
+    function toggleCollapsible(targetId, btn){ const target=document.getElementById(targetId); if(!target) return; const willShow=target.hasAttribute('hidden'); if(willShow) target.removeAttribute('hidden'); else target.setAttribute('hidden',''); if(btn){ const showKey=btn.dataset.showKey||btn.getAttribute('data-i18n'); const hideKey=btn.dataset.hideKey; if(hideKey && i18n[showKey] && i18n[hideKey]){ btn.setAttribute('data-i18n', willShow?hideKey:showKey); btn.textContent=i18n[willShow?hideKey:showKey][currentLang]; } else { btn.textContent=willShow?(currentLang==='zh'?'隐藏':'Hide'):(currentLang==='zh'?'展开':'Show'); } } }
+    function aoaFromStatement(statement, periods){ const rows=[['Account',...periods]]; Object.entries(statement||{}).forEach(([key,values])=>rows.push([fieldLabels[key]||key,...periods.map((_,i)=>Number.isFinite(values[i])?values[i]:null)])); return rows; }
+    function downloadStandardizedStatementsXlsx(){ if(!financialData) loadSample(); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoaFromStatement(financialData.incomeStatement, financialData.periods)),'Income Statement'); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoaFromStatement(financialData.balanceSheet, financialData.periods)),'Balance Sheet'); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoaFromStatement(financialData.cashFlowStatement, financialData.periods)),'Cash Flow Statement'); if((financialData.inferenceLog||[]).length) XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(financialData.inferenceLog),'Inference Log'); XLSX.writeFile(wb,`${(financialData.companyName||'standardized_statements').replace(/\s+/g,'_')}_standardized_statements.xlsx`); }
+    async function downloadStandardizedStatementsImage(){ if(!financialData) loadSample(); const panel=document.getElementById('statementsPanel'); const wasHidden=panel.hasAttribute('hidden'); if(wasHidden) panel.removeAttribute('hidden'); await new Promise(r=>setTimeout(r,80)); const canvas=await html2canvas(document.getElementById('statements'),{scale:2,backgroundColor:'#f8fafc',useCORS:true}); const a=document.createElement('a'); a.download=`${(financialData.companyName||'standardized_statements').replace(/\s+/g,'_')}_statements.png`; a.href=canvas.toDataURL('image/png'); a.click(); if(wasHidden) panel.setAttribute('hidden',''); }
+    function updateDealModels(source){ maResults=runMA(); lboResults=runLBO(); renderMA(maResults); renderLBO(lboResults); renderReport(); const stamp=new Date().toLocaleTimeString(); const maStatus=document.getElementById('maStatus'), lboStatus=document.getElementById('lboStatus'); if(maStatus) maStatus.textContent=`M&A model refreshed at ${stamp}. Accretion / dilution = ${pct(maResults.accDil)}.`; if(lboStatus) lboStatus.textContent=`LBO model refreshed at ${stamp}. IRR = ${pct(lboResults.irr)}, MOIC = ${fmt2.format(lboResults.moic)}x.`; }
+    function attachInputTooltips(){ const tips={ dcfGrowth:'Revenue growth drives forecast sales and free cash flow. Higher growth raises DCF value but increases forecast sensitivity.', dcfEbitMargin:'EBIT margin determines operating profit before tax. It is one of the largest DCF drivers.', dcfTax:'Tax rate converts EBIT into NOPAT. Higher tax rate lowers unlevered FCF.', dcfDa:'D&A is a non-cash add-back. Higher D&A raises FCF but should be consistent with capex.', dcfCapex:'Capex is a cash outflow. Higher capex lowers unlevered FCF and valuation.', dcfNwc:'Net working capital investment consumes cash as the company grows.', dcfWacc:'WACC discounts future cash flows. Higher WACC materially lowers DCF value.', dcfTerminal:'Terminal growth affects terminal value; keep it below WACC.', dcfShares:'Diluted shares convert equity value into implied share price.', maAcqNI:'Acquirer net income is the standalone earnings base for EPS comparison.', maAcqShares:'Acquirer shares determine standalone and pro forma EPS.', maSharePrice:'Share price determines how many new shares are issued for stock financing.', maPurchase:'Purchase price is allocated across debt, stock and cash financing.', maTargetNI:'Target net income adds to pro forma earnings.', maSynergy:'Synergy improves pro forma earnings after tax.', maDebtPct:'Debt financing creates interest expense and can dilute EPS after tax.', maStockPct:'Stock financing issues new shares and can dilute EPS.', maCashPct:'Cash financing uses balance-sheet cash; this simplified model does not model lost interest income.', maDebtCost:'Cost of debt determines after-tax interest burden.', maTax:'Tax rate affects synergy and interest tax shield.', lboEbitda:'Entry EBITDA sets purchase value and debt capacity.', lboEntryMultiple:'Entry multiple determines acquisition enterprise value.', lboDebtMultiple:'Debt / EBITDA determines initial leverage and sponsor equity need.', lboGrowth:'EBITDA growth drives exit EBITDA and cash flow generation.', lboFcfConv:'FCF conversion determines annual debt paydown.', lboExitMultiple:'Exit multiple determines exit enterprise value.', lboYears:'Holding period annualizes MOIC into IRR.', companyInput:'Company name appears in reports and exported files.', currencyInput:'Currency label is used for tables, charts and valuation outputs.' }; document.querySelectorAll('label.input').forEach(label=>{ const input=label.querySelector('input,select'); if(!input || label.querySelector('.info-dot')) return; const tip=tips[input.id]||'Key model input. Changing this assumption can affect metrics, valuation, and report outputs.'; const dot=document.createElement('span'); dot.className='info-dot'; dot.textContent='?'; dot.setAttribute('data-tip',tip); const firstSpan=label.querySelector('span'); if(firstSpan) firstSpan.appendChild(dot); else label.insertBefore(dot,input); }); }
+    function initCollapsibles(){ document.querySelectorAll('[data-toggle-target]').forEach(btn=>{ if(btn.dataset.bound) return; btn.dataset.bound='1'; const key=btn.getAttribute('data-i18n')||''; btn.dataset.showKey=key; btn.dataset.hideKey=key==='showDetails'?'hideDetails':key==='showStatements'?'hideStatements':key==='showSelfCheck'?'hideSelfCheck':''; btn.addEventListener('click',()=>toggleCollapsible(btn.dataset.toggleTarget,btn)); }); }
+    async function exportPDF(){
+      if(!financialData) loadSample();
+      renderReport();
+      const button = document.querySelector('.top-utility-bar .primary-mini');
+      const oldText = button ? button.innerHTML : '';
+      let restoreY = window.scrollY;
+      try {
+        if (button) { button.disabled = true; button.innerHTML = currentLang === 'zh' ? '正在导出...' : 'Exporting...'; }
+        await new Promise(resolve => setTimeout(resolve, 120));
+        restoreY = window.scrollY;
+        document.body.classList.add('exporting');
+        window.scrollTo(0, 0);
+        await new Promise(resolve => setTimeout(resolve, 180));
+        const element = document.getElementById('app');
+        const width = Math.max(element.scrollWidth, document.documentElement.clientWidth - 36);
+        const height = element.scrollHeight;
+        const canvas = await html2canvas(element, {
+          backgroundColor: '#f8fafc',
+          scale: Math.min(1.6, window.devicePixelRatio || 1.25),
+          useCORS: true,
+          allowTaint: true,
+          windowWidth: width,
+          windowHeight: height,
+          width,
+          height,
+          scrollX: 0,
+          scrollY: 0
+        });
+        window.scrollTo(0, restoreY);
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        const name = (financialData?.companyName || 'Financial_Analysis').replace(/\s+/g, '_');
+        a.download = `${name}_Full_Page_Report.png`;
+        a.href = url;
+        a.click();
+      } catch (err) {
+        console.error(err);
+        alert(currentLang === 'zh' ? '导出图片失败，请稍后重试或缩短页面内容。' : 'Image export failed. Please retry or reduce page length.');
+      } finally {
+        window.scrollTo(0, restoreY);
+        document.body.classList.remove('exporting');
+        if (button) { button.disabled = false; button.innerHTML = oldText; }
+      }
+    }
+    function scrollToSection(id){ const target=document.getElementById(id); if(!target) return; const nav=document.getElementById('stickyNav'); const isStaticNav=window.getComputedStyle(nav).position==='static'; const offset=isStaticNav?(nav?.offsetHeight||0)+14:18; const y=target.getBoundingClientRect().top+window.pageYOffset-offset; window.scrollTo({top:y,behavior:'smooth'}); document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.dataset.target===id)); }
+    function setupNav(){ document.querySelectorAll('.nav-link,.nav-action').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); scrollToSection(a.dataset.target); })); const sections=[...document.querySelectorAll('main section')]; window.addEventListener('scroll',()=>{ const y=window.scrollY+120; let active=sections[0]?.id; sections.forEach(s=>{ if(s.offsetTop<=y) active=s.id; }); document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.dataset.target===active)); },{passive:true}); }
+    function renderDynamicLanguage(){ if(financialData&&metrics){ renderMetricCards(metrics); renderReport(); } renderModelSelfCheck(); }
+    document.getElementById('loadSampleBtn').addEventListener('click',()=>{setProcessStatus('正在加载示例公司数据...');loadSample();}); document.getElementById('downloadTemplateBtn').addEventListener('click',downloadTemplate); document.getElementById('parseBtn').addEventListener('click',handleParse); document.getElementById('resetBtn').addEventListener('click',resetAll); document.getElementById('exportJsonBtn').addEventListener('click',exportStandardJson); document.getElementById('jsonInput').addEventListener('change',importStandardJson); document.getElementById('downloadStatementsXlsx').addEventListener('click',downloadStandardizedStatementsXlsx); document.getElementById('downloadStatementsImage').addEventListener('click',downloadStandardizedStatementsImage); document.getElementById('runDcfBtn').addEventListener('click',()=>{setProcessStatus('正在刷新 DCF 与同业估值模型...');recalculateAll();}); document.getElementById('runMaBtn').addEventListener('click',()=>updateDealModels('button')); document.getElementById('runLboBtn').addEventListener('click',()=>updateDealModels('button')); document.querySelectorAll('#deals input').forEach(input=>input.addEventListener('input',()=>updateDealModels('input'))); document.getElementById('generateAiBtn').addEventListener('click',generateMockAIReport); document.getElementById('periodSelect').addEventListener('change',recalculateAll); document.querySelectorAll('#dcfInputs input, #currencyInput, #companyInput').forEach(input=>input.addEventListener('change',()=>{ if(financialData){ financialData.companyName=document.getElementById('companyInput').value||financialData.companyName; financialData.currency=document.getElementById('currencyInput').value||financialData.currency; recalculateAll(); }})); document.querySelectorAll('#reportStyle, #aiMode, #apiEndpoint, #modelName').forEach(input=>input.addEventListener('change',()=>{ renderModelSelfCheck(); if(document.getElementById('aiNarrative').value.trim()) generateMockAIReport(); })); initCollapsibles(); setupNav(); applyI18n(); attachInputTooltips(); renderReport(); loadSample();
+  </script>
+</body>
+</html>
