@@ -1,1 +1,6 @@
 不仅是量化模型 还有报表分析模型。
+
+1.我在recovered-Hanson-SW.github.io加入了一个新的模型（这个模型我同步上传了github仓库，你不用下载了）
+marko：
+
+back：
