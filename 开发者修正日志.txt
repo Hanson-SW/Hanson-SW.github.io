@@ -380,3 +380,36 @@ Portfolio Allocation Lab 第一轮增强：Risk Parity、Black-Litterman、VaR/C
    o 本地浏览器验证：Backtest 参数敏感性热力图正常渲染为 ECharts canvas，桌面和 390px 手机宽度均无页面级横向溢出，console 无 JS 错误。
    o 本地浏览器验证：Markowitz 默认模式方法矩阵包含 6 行，其中包含 Min CVaR；Walk-forward/OOS 表和参数敏感性表均正常显示。
    o 本地浏览器验证：选择 Min CVaR 作为主优化器后指标、主图、有效前沿、方法矩阵、Walk-forward/OOS 表和敏感性表均正常更新，console 无 JS 错误。
+
+版本v2.5（2026-07-03 04:55）修改了文件：statement-analyzer.html
+继续优化 Statement Analyzer：中英文界面一致性、模型目录宽度、三张表核心按钮排版与整页图片导出：
+
+1. M&A / LBO 中英文界面文本修正 ✅
+   o 中文界面将 M&A Accretion / Dilution 区域改为“M&A 增厚 / 摊薄模型”。
+   o 将 Acquirer NI、Acquirer Shares、Acquirer Share Price、Purchase Price、Target NI、Annual Synergy 等输入项在中文界面分别改为“收购方净利润、收购方股数、收购方股价、交易对价、标的公司净利润、年度协同效应”。
+   o 将 Debt Financing %、Stock Financing %、Cash Financing %、Cost of Debt %、Tax Rate % 改为“债务融资占比、股票融资占比、现金融资占比、债务成本、税率”。
+   o 将 M&A 输出表改为中文表头“输出项 / 数值”，并将 Standalone EPS、Pro Forma EPS、Accretion / Dilution、New Shares Issued、After-tax Synergy、After-tax Interest Cost 分别映射为“交易前 EPS、备考 EPS、增厚 / 摊薄、新增发行股数、税后协同效应、税后新增利息成本”。
+   o 将角标 tooltip 改为中英文动态切换；中文界面保留 EPS、EBITDA、DCF、LBO、M&A、WACC、NOPAT、NOA、FCF、IRR、MOIC 等金融建模常用缩写，不做生硬翻译。
+
+2. 全页面中英文一致性补充 ✅
+   o 补齐 DCF 输入项、DCF 输出表、Trading Comps、财务健康度拆解、风险提示、模型自检、报告预览、图表标题与图例的中英文动态渲染。
+   o 修复语言切换后部分动态表格仍停留在上一语言的问题，renderDynamicLanguage() 现在会同步刷新三张表、指标表、DCF、Comps、M&A、LBO、图表和报告预览。
+   o 将模型自检区从固定英文改为中英文状态文本，提升中文页面完整度。
+
+3. ☰ 模型目录宽度优化 ✅
+   o 桌面端左侧模型目录宽度由 116px 增加到 142px，对应 body 左侧留白同步增加。
+   o 中等屏幕折叠菜单宽度由 54px 增加到 64px，减少长标题被截断的问题。
+   o 导航文字字号与内边距略微放大，Statements / 三张表等长文本可读性更好。
+
+4. 三张表核心按钮重新排版 ✅
+   o “展开三张表 / 下载 XLSX / 下载图片”从标题右侧移动到“2. 标准化三张表”说明文字下方。
+   o 新增 statement-primary-actions 按钮容器，使用浅紫色背景、边框、圆角和更大的按钮尺寸。
+   o “展开三张表”作为主操作按钮使用强调色，“下载 XLSX”和“下载图片”作为同级重要功能按钮展示，突出该板块的核心导出能力。
+
+5. 整页图片导出逻辑增强 ✅
+   o 重写 exportPDF() 的截图范围计算逻辑，不再只按当前屏幕高度截图。
+   o 导出前临时切换 exporting 状态、隐藏顶部工具栏和左侧导航，并将 html/body 扩展到完整 scrollWidth / scrollHeight。
+   o html2canvas 改为捕获 document.body，并显式传入 fullWidth、fullHeight、windowWidth、windowHeight、x、y、scrollX、scrollY。
+   o 新增安全 scale 计算，避免极长页面超过浏览器 canvas 边界导致导出失败。
+   o 导出完成或失败后自动恢复原滚动位置、body/html 样式和按钮状态。
+
