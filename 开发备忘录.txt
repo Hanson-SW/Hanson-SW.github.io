@@ -3,6 +3,7 @@
 我在recovered-Hanson-SW.github.io加入了一个新的模型：statement-analyzer.html，同时也更新了index.md ，给statement-analyzer.html加入了入口。先更新一下本地模拟仓库，看看与网站仓库最新版是否一致。
 现在记住：之后每次更改开发者修正日志的时候也标注做出修改的文件名称。
 以下是需要修复优化的：
+
 index：
 #1.页面排版有什么比卡片形式更好的方案吗 ，页面左右有大片空白空间没有利用。重新排版，让空间利用率高一些。
 
