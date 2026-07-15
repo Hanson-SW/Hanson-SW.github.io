@@ -789,3 +789,43 @@ README.md
    o 首页仍需在 GitHub Pages 最终 Jekyll/Minima 渲染后复核；本轮未修改首页。
    o T0/T+1 模式仍需先冻结信号时点、成交价、停牌和缺失开盘价规则，再单独授权修改核心回测逻辑。
    o 严格 QP、多观点 Black-Litterman、滚动 Alpha/Beta、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续持续优化目标。
+
+版本v3.4（2026-07-15 16:46 CST）
+Backtest / Markowitz 整页报告坐标修复与 Backtest 手机输入重排：
+
+修改文件：
+backtest.html
+markowitz.html
+README.md
+开发者修正日志.txt
+
+1. 改动内容
+   o backtest.html：整页报告的截图目标由仅包含右侧分析区的 backtestReportArea 改为完整 document.body，左侧策略参数、日期、基准、资产权重和运行入口正式纳入报告。
+   o backtest.html、markowitz.html：增加独立的 1360px 报告排版模式，导出前统一清零页面滚动、隐藏固定导航和工具条、展开横向滚动内容并重排为稳定桌面宽度；截图显式使用 x=0、y=0，避免元素自身左偏移造成整张报告左侧消失。
+   o 两页导出前后统一等待两帧布局稳定并重设全部 ECharts 实例尺寸；截图完成后恢复横向容器、页面样式、图表尺寸和原滚动位置，避免移动端布局尺寸进入下载图片或下载后页面变形。
+   o markowitz.html：导出模式显式覆盖手机端 settings-row、资产池、场景编辑器和操作按钮的纵向规则，使截图前页面与 html2canvas 克隆页使用相同排版，消除右侧大面积留白和报告底部异常空白。
+   o backtest.html：520px 以下开始日期与结束日期改为上下独立整行；资产配置行改为“资产名称/代码一整行 + 权重/%/删除控制一整行”，并修正百分号被通用 span 弹性规则挤压的问题。
+   o backtest.html：报告侧栏固定为 300px，并强制日期、资产名称、代码和权重使用与截图克隆一致的双行结构；风险摘要在报告中恢复多列桌面布局，缩短无效空白且保持内容完整。
+   o README.md：同步 1360px 标准报告布局与完整工作区导出说明。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算；本轮只修改报告截图编排、图表 resize 和输入区 CSS/DOM 展示类名。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 或风险贡献算法；本轮只修改报告截图编排与图表 resize。
+   o 未修改 fetch_data.py、数据抓取、asset_manifest.json、quality_report.json、行情文件或 manifest 生成逻辑。
+
+3. 验证结果
+   o 在 390x844 手机视口实际点击下载：Backtest 整页报告为 2720x4096，Markowitz 整页报告为 2720x6858；实图确认两张报告均从左边界开始，Backtest 左侧 300px 参数区、三条资产配置、全部分析图表和表格完整，Markowitz 的净值、有效前沿、方法矩阵、OOS、敏感性和模型输入完整。
+   o 报告实图确认 Backtest 资产名称“上证指数 / 科创50 / 创业板指”及 SH000001 / SH000688 / SZ399006 代码完整显示；Markowitz 不再把内容挤到左侧并在右侧留下巨幅空白，报告底部仅保留正常页面留白。
+   o 360、390、430px 三档手机视口下，Backtest 和 Markowitz 的 body.scrollWidth 均严格等于视口宽度；日期、基准、资产行、权重、删除按钮和 Markowitz 关键输入均无越界，浏览器控制台无 JavaScript error。
+   o Backtest 在 390px 下开始日期和结束日期分别为 370x44px 并上下排列；三条资产身份区宽 354px、权重输入宽 282px、删除按钮宽 40px，均完整位于 390px 视口内。
+   o 导出排版量测中 Backtest body 为 1360x2048、侧栏 300px、资产身份区 284px；Markowitz body 高度由旧手机规则下的 4813px 收敛至 3429px，截图前和克隆页排版一致。
+   o 默认核心输出保持基线：Backtest 为 40.03%、41.99% / 21.46%、15.32%、1.86 / 2.74；Markowitz 为 17.22% / 22.51%、17.83%、0.68 / 0.83、1.44% / 3.48%。
+   o backtest.html 与 markowitz.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+
+4. 未完成或受限项
+   o 本轮自动回归使用本机无界面 Chrome；仍建议在真实 iOS Safari 和 Android Chrome 各手动保存一次超长 PNG，确认系统分享面板和相册对 2720px 宽长图的处理。
+   o Statement Analyzer 本轮未修改；其整页导出沿用此前实现。
+   o 首页仍需在 GitHub Pages 最终 Jekyll/Minima 渲染后复核；本轮未修改首页。
+   o T0/T+1 模式仍需先冻结信号时点、成交价、停牌和缺失开盘价规则，再单独授权修改核心回测逻辑。
+   o 严格 QP、多观点 Black-Litterman、滚动 Alpha/Beta、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续持续优化目标。
