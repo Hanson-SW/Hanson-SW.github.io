@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-07-17T11:52:23+00:00",
+  "generated_at": "2026-07-18T11:29:41+00:00",
   "source": "AkShare stock_zh_index_daily",
   "assets": [
     {
@@ -181,8 +181,8 @@
       "style": "technology_growth",
       "frequency": "daily",
       "start_date": "2003-10-01",
-      "end_date": "2026-07-16",
-      "rows": 5733,
+      "end_date": "2026-07-17",
+      "rows": 5734,
       "status": "ok"
     },
     {
@@ -195,8 +195,8 @@
       "style": "gold",
       "frequency": "daily",
       "start_date": "2004-11-18",
-      "end_date": "2026-07-16",
-      "rows": 5447,
+      "end_date": "2026-07-17",
+      "rows": 5448,
       "status": "ok"
     },
     {
@@ -209,8 +209,8 @@
       "style": "semiconductor",
       "frequency": "daily",
       "start_date": "2001-07-13",
-      "end_date": "2026-07-16",
-      "rows": 6288,
+      "end_date": "2026-07-17",
+      "rows": 6289,
       "status": "ok"
     },
     {
@@ -223,8 +223,8 @@
       "style": "healthcare",
       "frequency": "daily",
       "start_date": "1998-12-22",
-      "end_date": "2026-07-16",
-      "rows": 6932,
+      "end_date": "2026-07-17",
+      "rows": 6933,
       "status": "ok"
     }
   ]
