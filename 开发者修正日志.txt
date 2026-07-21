@@ -1,0 +1,872 @@
+开发修正日志：
+版本v1.0（2026.06.26）
+
+Markowitz 
+o	核心逻辑被破坏（初次调整的误区）：底层逻辑 100% 还原，恢复了完整的 solveQP 矩阵迭代算法和 monteCarloOptimize 算法。保留了原代码中基于滚动窗口（windowSize）和步长（step）进行时间序列滑动的动态权重计算逻辑，以及压力测试场景对每日收益率的叠加冲击逻辑（scenarioShocks）。(✅6.29)
+
+o	排版自适应问题： 样式与空间一致性修正，引入了 .en-mode 的专属 CSS 缩放引擎。(✅6.29)
+Backtest
+o	图表与核心回测失联：(✅6.29)
+o	侧边栏挤压： 自适应空间锁定，全表动态重绘(✅6.29)
+o	策略干扰与未来函数隐患：引入“独立资金池 (Sleeve-based)”架构与严格T+1执行(✅6.29)
+o	做空资产复利计算的隐藏Bug：多空隔离剥离修正(✅6.29)
+o	现金池（Cash Pool）剥离： 重新设计了资产状态流转。只要资产被策略判定为“卖出”，其当前真实权重即刻归 `0%`，所释放的资金被统一收集，并在报告单独生成一行“现金 (避险)”。这样持仓资产+现金，逻辑上完美闭环。(✅6.29)
+o	JS浮点数精度导致加总为99.9%：财务级平账算法 (Plug Adjustment) (✅6.29)
+o	原生DOM报告卡片溢出与导出断层：全面迁移至 ECharts Graphic + Rich Text 引擎(✅6.29)
+
+————————————————————————————————————————————————————————
+
+版本v1.1（2026.06.29）
+o 调整网页设计到适应手机版✅6.29
+o 加入两个次级网页的英文版✅6.29
+o 网页美化，加入更多动画✅6.29
+o 鼠标选中有特效，✅6.29
+
+主页quant优化模拟净值曲线的颜色
+marko v1.1：
+o 检查是否存在抄未来答案问题：（压力测试中提前2个月策略开始应对）✅6.30
+o 美术：图像新增放大缩小功能，参考back。✅6.30
+o 优化翻译问题：切换语言之后图像、设置保留了之前语言的场景名称✅6.30
+o 美术：右上🏆 Sharpe / Sortino在EN下opt 文本超出卡片✅6.30
+o 数据抓取会直接返回本地代码里用随机数生成的 cachedData（冷启动底料）✅6.30
+👇
+版本v1.2（2026.06.30）
+backtesting：bk
+markowitz：mk
+
+1.back、marko模型真正运行，运算速度太慢，图像显示也卡 ✅6.30【检查为网络延迟，正常网络打开bk，mk只需5-10秒】
+
+🌟模型2.0待优化框架：
+index
+
+mk：
+  修复回测中的前视偏差（T 日信号，T+1 日执行）。
+  为 Markowitz 引入协方差收缩（如 Ledoit–Wolf）和稳健收益估计，减少极端权重。
+  在回测中加入交易成本、滑点、印花税等现实约束。
+  将当前梯度优化替换为真正的二次规划（QP）求解器，或至少增加更稳定的收敛策略。
+  增加 Walk-Forward、样本外验证和 Bootstrap 置信区间，使结果更具有统计可信度
+
+bk
+
+   buy/sell没有具体信息
+
+————————————————————————————————————————————————————————
+
+版本v1.3（2026.07.01）
+数据库与前端数据层可信化修正：
+
+1. 数据库扩展 ✅7.01
+   o fetch_data.py 从单一 A 股指数池升级为双数据源资产池：
+     - AkShare：上证指数、深证成指、创业板指、沪深300、沪深300(深)、上证50、中证500、中证1000、科创50、中证800、中证全指、中证红利。
+     - yfinance：纳斯达克综合ETF(ONEQ)、黄金ETF(GLD)、半导体ETF(SOXX)、医药健康ETF(XLV)。
+   o 每个 data/*.json 保持前端兼容格式：dates + values，其中 values[i][1] 仍为 close，不破坏现有模型算法读取方式。
+   o 每个 JSON 新增 meta 字段，记录中英文名称、资产类别、区域、风格、频率、数据源、更新时间。
+
+2. 数据质量与维护 ✅7.01
+   o 新增 data/asset_manifest.json，作为前端统一资产清单。
+   o 新增 data/quality_report.json，记录每个资产的抓取状态、起止日期、行数、失败原因。
+   o GitHub Actions update_data.yml 增加 workflow_dispatch、contents: write、concurrency；支持每日自动更新和手动触发。
+   o 新增 stale cache 保护：当 yfinance 等外部源日内间歇失败时，脚本保留仓库中已有 JSON，不让资产从 manifest 消失；quality_report 中以 stale_cache 标记。
+
+3. 两个模型接入 manifest ✅7.01
+   o backtest.html 与 markowitz.html 改为优先读取 data/asset_manifest.json 自动生成资产池、输入联想、基准选择。
+   o manifest 读取失败时保留原有硬编码资产池作为 fallback，保证页面不因数据源异常而空白。
+   o 数据 URL 改为相对路径 data/...，GitHub Pages 与本地静态服务器均可运行。
+   o 未改动 runBacktest、solveQP、monteCarloOptimize、runFullAnalysis 等核心算法逻辑。
+
+4. Data Health 与快速冷启动 ✅7.01
+   o 两个页面新增 Data Health 状态条，展示数据状态、可用资产数、最新日期、manifest 日期。
+   o Data Health 将“总可用资产数”和“当前回测区间覆盖资产数”分开展示，避免历史停止更新指数被误判为数据失败。
+   o manifest 与行情数据请求超时从 1.5 秒收紧到 0.5 秒。
+   o 页面初始化改为先使用内置资产池/模拟缓存快速渲染初始图表，再异步加载真实 manifest 和真实数据；网络慢或数据源不可达时，0.5 秒内降级到 cachedData。
+   o 新增浏览器 localStorage 缓存层：manifest 与每个资产 JSON 成功读取后会写入本地浏览器缓存；后续网络超时或服务器短暂不可达时，0.5 秒内优先读取浏览器缓存，再降级到内置模拟数据。
+
+版本v1.4（2026.07.01）
+Markowitz 第四阶段算法稳健性修正：
+
+1. 输入估计稳健化 ✅7.01
+   o 对收益率样本进行 2% winsorize，降低极端日收益对均值和协方差的污染。
+   o 对年化期望收益做横截面收缩，缓解短样本下均值估计噪声导致的极端权重。
+   o 对协方差矩阵加入 18% 对角目标收缩和最小方差稳定项，降低矩阵病态带来的权重跳变。
+
+2. 优化器解释性增强 ✅7.01
+   o solveQP 与 Monte Carlo 优化器均复用同一套稳健 mu/cov 输入，保证不同求解方式的输入口径一致。
+   o 新增风险贡献计算，页面在最优权重下方展示每个资产的组合风险贡献。
+   o 动态 Walk-forward 模式下，展示最近一次调仓权重及对应风险贡献，避免权重与风险归因不一致。
+
+3. 风险提示增强 ✅7.01
+   o 当样本天数相对资产数偏少时，页面自检提示已启用均值/协方差收缩。
+   o 保留原有收益、波动、Sharpe、Sortino、回撤、基准和压力测试视图，不改变网页主视图结构。
+
+4. 外盘资产代码大小写修复 ✅7.01
+   o 新增 normalizeAssetCode，统一将前端输入、下拉选择、benchmark、缓存 key、data/*.json 文件路径归一为小写。
+   o 修复手动输入 US_ONEQ、GOLD_GLD、SEMI_SOXX、HEALTH_XLV 等大写代码时请求 data/US_ONEQ.json 导致的 Data Fetch Failed。
+   o 页面展示仍保留大写代码，底层读取统一使用小写文件名，不影响视觉呈现。
+
+版本v1.5（2026.07.01）
+第四阶段算法与归因增强：
+
+1. 数据质量复核 ✅7.01
+   o 逐个检查 data/*.json，当前 16 个资产 close 字段均无 null、非数字或缺失价格。
+   o 确认 fetch_data.py 已具备 normalize_price_frame、dropna、排序去重、stale_cache、quality_report 等清洗与质量报告逻辑。
+   o 明确数据并非仅从 2020 年开始；默认组合若包含科创50，会因科创50 2020 起始而限制共同回测区间。
+
+2. Markowitz 图表与算法 ✅7.01
+   o 修复“每日超额收益”和“修正超额收益”tooltip 显示 [object Object]% 的问题，中英文均已修复。
+   o 新增单资产权重上限控件，并在限制做空模式下用 capped simplex 投影强制约束权重。
+   o 新增单边交易成本控件，动态滚动优化调仓时按换手率扣减交易成本。
+   o 新增月度/季度再平衡频率选项，动态模式不再固定为 21 个交易日。
+
+3. Backtest 交易明细与归因 ✅7.01
+   o 新增交易明细面板，显示日期、资产、买卖方向、仓位变化、触发规则。
+   o 新增资产归因面板，显示每个资产的收益贡献、波动贡献、交易次数。
+   o 中英文切换已覆盖新增面板表头和标题，移动端采用单列布局。
+
+维护规则更新（2026-07-01 16:22）
+o 后续不再默认每次更新 zip 上传包；仅在用户明确要求“打包/输出下载包/准备上传包”时更新 zip。
+o 后续每一轮对话产生的代码、数据、页面或验证变更，均记录在本文件中，并在条目后标注精确到分钟的时间。
+o 记录格式建议：版本/主题 + （YYYY-MM-DD HH:MM）+ 具体变更项 + 验证结果。
+
+版本v1.6（2026-07-01 16:27）
+Markowitz 有效前沿图表增强：
+
+1. 新增有效前沿图表 ✅
+   o 在主净值对比曲线和两个超额收益附图下方新增“有效前沿：风险-收益组合空间”散点图。
+   o 图中展示候选组合云、当前组合、最高夏普组合、最低波动组合。
+   o 有效前沿计算复用当前稳健收益/协方差输入，并纳入限制做空、单资产权重上限等现有约束。
+
+2. 新增显示开关 ✅
+   o 新增“有效前沿 / Efficient Frontier”开关，可打开或关闭该图表。
+   o 中文/英文切换均已覆盖新增控件和图表标题。
+
+3. 验证结果 ✅
+   o markowitz.html 内联 JS 语法检查通过。
+   o 本地浏览器验证：有效前沿默认显示、关闭隐藏、重新打开恢复显示均正常。
+   o 英文版显示为 Efficient Frontier / Show risk-return cloud。
+   o 390px 手机宽度验证无横向溢出，console 无 JS 错误。
+
+
+版本v1.7（2026-07-02 09:17）
+Backtest 交易交互与 Markowitz 图表输入修正：
+
+1. Backtest 交易明细增强 ✅
+   o 策略交易记录改为逐资产保存，包含日期、资产代码/名称、BUY/SELL、仓位变化、触发规则和对应组合净值。
+   o 净值图表买卖标记改为使用逐资产交易明细，tooltip 在对应日期显示具体交易资产、方向、仓位变化和规则。
+   o 下方交易明细新增筛选器，可查看全部交易、单一指数交易或多选指数交易；筛选会即时更新交易表。
+
+2. Backtest 图表布局修正 ✅
+   o 将净值图表的数据缩放时间轴收回图表容器内部，避免出现在卡片外部。
+   o 右侧报告区域取消卡片边框和背景，仅保留核心指标文字，降低缩放和移动端下的排版风险。
+   o 保留原有策略、现金、交易成本、归因和基准计算逻辑，不改变核心算法口径。
+
+3. Markowitz 有效前沿与压力测试修正 ✅
+   o 有效前沿明确使用横轴年化波动率、纵轴年化收益率，并将坐标轴名称靠近坐标轴。
+   o 有效前沿新增鼠标缩放/框选缩放、滑块缩放、还原和导出功能。
+   o 压力测试日期输入改为原生 date 类型，交互方式与模型开始/结束日期保持一致。
+
+4. 验证结果 ✅
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+   o 本地浏览器验证：Backtest 启用双均线后生成逐资产交易明细，筛选器可正确剔除/保留指定指数交易。
+   o 本地浏览器验证：Markowitz 有效前沿图和主图均正常渲染，压力测试日期输入类型为 date，console 无 JS 错误。
+   o 390px 手机宽度验证：Backtest 与 Markowitz 均无横向溢出，图表和关键面板正常存在。
+
+版本v1.8（2026-07-02 09:44）
+Backtest 交易明细分页导出与 Markowitz 有效前沿排版修正：
+
+1. Backtest 交易明细完整展示 ✅
+   o 修复交易明细只显示最近 12 笔的问题，改为按当前筛选条件展示全部交易。
+   o 新增交易明细分页控件，每页 12 笔，可在“上一页 / 下一页”之间切换。
+   o 分页保留原有资产筛选逻辑，可查看全部交易、单个指数交易或多个指数交易。
+
+2. Backtest 交易明细图片导出 ✅
+   o 新增“下载全部明细图片”按钮，可将当前筛选条件下的全部交易明细导出为 PNG 图片。
+   o 导出图片包含标题、导出时间、交易数量、日期、资产、方向、仓位变化和触发规则。
+   o 导出功能不改变策略计算、交易生成和归因算法，只作用于展示层。
+
+3. Markowitz 有效前沿排版修正 ✅
+   o 增大有效前沿图表高度，桌面端 380px，移动端 340px。
+   o 增大 grid 左/右/下边距，调整 x/y 轴 nameGap 和刻度 margin，避免坐标名称与百分比刻度重叠。
+   o 同步调整缩放滑块位置，保留鼠标缩放、滑块缩放、还原和导出功能。
+
+4. 验证结果 ✅
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+   o 本地浏览器验证：Backtest 启用双均线后生成 34 笔交易，分页显示为 3 页，下一页切换正常。
+   o 本地浏览器验证：交易明细下载按钮点击后无 JS 错误。
+   o 本地浏览器验证：Markowitz 有效前沿桌面端与 390px 手机宽度均正常渲染，无横向溢出，console 无 JS 错误。
+
+版本v1.9（2026-07-02 10:06）
+Portfolio Allocation Lab 第一轮增强：Risk Parity、Black-Litterman、VaR/CVaR：
+
+1. Markowitz 优化方法矩阵 ✅
+   o 优化方法下拉扩展为：等权基准、最大夏普组合、最小方差组合、等风险贡献组合、随机组合搜索。
+   o 新增 Risk Parity 求解器，使用稳健协方差矩阵迭代逼近等风险贡献权重。
+   o Risk Parity 代码区已加入注释，标明该部分是“等风险贡献组合”功能。
+
+2. Markowitz Black-Litterman 高级输入估计 ✅
+   o 新增“启用 Black-Litterman 观点修正”开关。
+   o 开启后显示市场均衡权重、风险厌恶系数 δ、Tau、观点资产、比较资产、观点超额收益和观点置信度输入项。
+   o Black-Litterman 使用市场均衡先验和一条相对观点修正预期收益，再交给当前优化方法求解。
+   o 新增原 Markowitz vs Black-Litterman 对比表，展示预期收益、年化波动、Sharpe、最大回撤、权重、风险贡献和观点内容。
+   o Black-Litterman 代码区已加入注释，说明其用于降低历史均值估计敏感性。
+
+3. Markowitz VaR / CVaR ✅
+   o 指标卡新增 95% Historical VaR、95% Historical CVaR、99% VaR、99% CVaR。
+   o VaR/CVaR 基于组合回测 dailyRets 的历史分布计算，不依赖正态假设。
+
+4. Backtest 风险 Tear Sheet ✅
+  o 新增“风险报告 / Risk Tear Sheet”面板。
+  o 基于策略真实 dailyReturns 计算 Daily VaR 95%、Daily CVaR 95%、Daily VaR 99%、Daily CVaR 99%。
+  o 同时显示 Worst Day、Best Day、Skewness、Kurtosis、最近60日 Rolling VaR。
+  o Backtest VaR/CVaR 代码区已加入注释，说明其来自策略实际净值曲线，而不是资产协方差估计。
+
+版本v1.10（2026-07-09 08:10）
+页面视觉、导出与移动端交互修正：
+
+1. 修改文件列表 ✅
+   o index.md
+   o backtest.html
+   o markowitz.html
+   o statement-analyzer.html
+   o 开发者修正日志.txt
+
+2. 改动内容 ✅
+   o index 首页简历区域改为白底、浅边框、深色文字，和项目卡片/模型板块视觉统一。
+   o Backtest 策略回测沙盒宽度收窄，资产权重行和输入框增加自适应约束，移动端避免挤压和横向溢出。
+   o Backtest 参数敏感性热力图增大高度、grid 边距、轴标题间距，并将横纵轴标题设置为居中，修复坐标显示不全。
+   o Backtest 权重非 100% 校验改为仅在手动运行策略时提示；resize/初始化刷新不再反复弹窗。
+   o Backtest 新增“下载净值曲线”按钮，直接导出 ECharts 净值图；整页报告导出改为自适应尺寸，并临时展开横向滚动内容。
+   o Markowitz Black-Litterman 说明角标新增 click/touch 触发，修复只能 hover、点击无反应的问题。
+   o Markowitz 有效前沿拆分横轴与纵轴 dataZoom，保留底部 x 轴滑条和右侧 y 轴滑条，支持横纵轴独立缩放/滑动查看。
+   o Markowitz 整页报告导出改为自适应尺寸，并临时展开方法对比、可信度、Walk-forward、敏感性等横向滚动表格。
+   o Statement Analyzer 整页导出同样临时展开横向滚动表格/代码块，避免截图遗漏右侧内容。
+   o Statement Analyzer 移动端约束顶部按钮、输入框、主操作区和报告预览，减少重叠、输入联想挤压和整体横向溢出。
+
+3. 是否触碰核心算法 ✅
+   o 未触碰 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap、参数敏感性计算口径。
+   o 未触碰 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿点集生成、Walk-forward/OOS、风险贡献计算口径。
+   o 未触碰数据抓取、manifest 生成和数据质量报告逻辑。
+
+4. 验证结果 ✅
+   o 使用捆绑 Node 对 backtest.html、markowitz.html、statement-analyzer.html 的内联脚本做语法解析检查，均通过。
+   o 本地静态服务器 http://localhost:8765 验证三页加载，桌面端 console error 均为空。
+   o 390px 手机视口验证：Backtest、Markowitz、Statement Analyzer 均无整体横向溢出，console error 均为空。
+   o Backtest 验证报告下载按钮和净值曲线下载按钮存在，沙盒宽度收窄后页面无横向滚动。
+   o Markowitz 验证有效前沿图正常显示，Black-Litterman 角标点击后弹出说明气泡。
+
+5. 未完成或受限项 ⚠️
+   o T0/T+1 切换涉及行情 JSON 增加 open 字段、执行价口径和回测假设变更，本轮仅做方案判断，未改数据结构和核心回测算法。
+   o 更深层算法项（严格 QP、Alpha/Beta、信息比率、跟踪误差、胜率、换手率、平均持仓期）仍留待下一阶段。
+
+5. 验证结果 ✅
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+   o 本地浏览器验证：Markowitz 默认最大夏普可运行，VaR/CVaR 指标卡正常显示。
+   o 本地浏览器验证：Risk Parity 可运行，风险贡献约等于每资产 20%。
+   o 本地浏览器验证：Black-Litterman 开关、输入区和对比表正常显示，console 无 JS 错误。
+   o 本地浏览器验证：Backtest 风险报告面板正常显示 VaR/CVaR、Worst/Best Day、偏度、峰度和 Rolling VaR。
+   o 390px 手机宽度验证：Backtest 与 Markowitz 均无横向溢出，关键图表和新增面板正常存在。
+
+版本v2.0（2026-07-03 08:43）
+阶段审计、排版稳定性修复与主页/README 叙事统一启动：
+
+1. 当前阶段完成度审计 ✅
+   o 第一阶段“现有模型包装更专业”约完成 60%：Backtest 已有风险 Tear Sheet、交易明细、归因；Markowitz 已有 Risk Parity、BL 对比、VaR/CVaR，但 README、主页和模型说明刚开始统一。
+   o 第二阶段“扩展模型矩阵”约完成 70%：Risk Parity、VaR/CVaR、Black-Litterman 已进入现有页面；独立 Min CVaR/完整方法矩阵对照仍待补。
+   o 第三阶段“可信度提升”约完成 25%：Data Health 和 Markowitz rolling/walk-forward 基础已具备；样本外、参数敏感性、Bootstrap 区间仍待系统化。
+   o 第四阶段“统一视觉和叙事”约完成 30%：主页已开始加入模型矩阵、数据架构和研究能力，但完整叙事流仍需继续打磨。
+
+2. 排版 bug 风险修复 ✅
+   o Markowitz Black-Litterman 对比表增加 table-layout、自动换行、overflow-wrap 和高级面板横向保护，避免权重/风险贡献长文本撑破页面。
+   o Markowitz 英文模式下取消 BL 面板和对比表的强制 nowrap，降低英文长标签造成溢出的风险。
+   o Backtest 风险报告表新增 risk-table 样式，允许“含义/Meaning”列换行，避免继承交易表 nowrap 后在移动端挤出面板。
+   o Backtest 交易分页按钮在移动端允许换行，减少工具栏挤压。
+
+3. 下一阶段启动：README 与主页项目叙事统一 ✅
+   o README 从“三个单点模型”更新为 Portfolio Analytics & Financial Engineering Lab 叙事。
+   o README 的核心模块矩阵补充 Backtest VaR/CVaR、交易明细、归因，以及 Markowitz Risk Parity、Black-Litterman、VaR/CVaR。
+   o 主页项目卡片新增“目标、方法、输出、局限”四类说明，明确 Backtest 与 Portfolio Allocation Lab 的研究定位。
+   o 主页新增“数据架构”和“研究能力矩阵”区块，对 data/*.json、asset_manifest.json、quality_report.json、组合优化、策略回测和可信度增强进行说明。
+   o 新增主页内容均接入中英文 data-i18n 翻译。
+
+4. 验证结果 ✅
+   o backtest.html、markowitz.html、index.md 内联 JS 语法检查通过。
+   o index.md 新增 data-i18n 键完整，无漏翻译键。
+   o 本地浏览器验证：Markowitz 桌面端和 390px 手机宽度下 BL 对比表无页面级横向溢出，console 无 JS 错误。
+   o 本地浏览器验证：Backtest 390px 手机宽度下风险报告表无页面级横向溢出，console 无 JS 错误。
+   o git diff --check 通过。
+
+版本v2.1（2026-07-03 08:49）
+前三阶段优先推进：Backtest 完整 Tear Sheet 与 Markowitz 方法矩阵：
+
+1. Backtest Tear Sheet 完整化 ✅
+   o 风险报告升级为六模块 Tear Sheet：Performance、Risk、Trading、Drawdown、Rolling、Monthly。
+   o Performance 展示 CAGR、累计收益、Sharpe、Calmar。
+   o Risk 展示 Vol、MaxDD、VaR 95%、CVaR 95%、VaR 99%、CVaR 99%。
+   o Trading 展示交易次数、BUY/SELL 数量、胜率、平均持仓天数、换手率代理。
+   o Drawdown 展示最大回撤起点、谷底、恢复日期和恢复天数。
+   o Rolling 展示最近窗口 Rolling Sharpe、Rolling Vol、Rolling VaR、Worst/Best Day、Skew/Kurt。
+   o Monthly 新增最近 12 个月收益热力格，增强策略稳定性观察。
+
+2. Backtest 交易统计增强 ✅
+   o 交易明细新增触发价字段，用于估算 SELL 平仓时的胜率和平均持仓天数。
+   o 不改变双均线/布林带信号逻辑，只在交易记录和展示层增加统计信息。
+
+3. Markowitz Portfolio Allocation Lab 方法矩阵 ✅
+   o 新增“方法矩阵对比”表，横向比较等权基准、最大夏普、最小方差、Risk Parity、Monte Carlo。
+   o 如果开启 Black-Litterman，矩阵自动加入 Black-Litterman 行。
+   o 每种方法展示收益、波动、Sharpe、MaxDD、VaR95、CVaR95、最大权重和风险集中度。
+   o MaxDD/VaR/CVaR 由同一资产池历史收益分布下的静态权重回放计算，便于跨方法使用同一风险语言比较。
+
+4. 排版与验证 ✅
+   o Markowitz 方法矩阵在移动端改为容器内横向滚动，避免页面整体横向溢出。
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+   o 本地浏览器验证：Backtest 默认与启用双均线后 Tear Sheet 正常更新，策略模式下显示 34 笔交易、胜率、平均持仓天数和换手率代理。
+  o 本地浏览器验证：Markowitz 方法矩阵默认 5 行，开启 Black-Litterman 后 6 行，console 无 JS 错误。
+  o 390px 手机宽度验证：Backtest Tear Sheet 与 Markowitz 方法矩阵均无页面级横向溢出。
+  o git diff --check 通过。
+
+版本v2.2（2026-07-03 09:03）
+前三阶段继续推进：参数解释、样本外可信度与 Bootstrap 稳定性区间：
+
+1. 模型参数解释角标 ✅
+   o Backtest 主要输入项新增 hover 解释角标：开始日期、结束日期、样本外切分日期、基准、择时策略、双均线、布林带、自定义资产配置。
+   o Markowitz 主要输入项新增 hover 解释角标：日期、模拟次数、无风险利率、优化方法、做空限制、权重上限、交易成本、滚动窗口、再平衡、Black-Litterman 参数、场景模式、自检、压力测试、有效前沿、资产池、基准指数。
+   o Markowitz 压力测试输入补齐解释：场景名称、冲击类型、冲击幅度、冲击日期。
+   o 所有角标均使用 data-tip-zh / data-tip-en 双语字段，并在中英文切换时同步更新。
+
+2. Backtest 第三阶段可信度增强 ✅
+   o 新增“样本外切分日期”输入，用于区分 in-sample / out-of-sample。
+   o Tear Sheet 新增“样本内 / 样本外”模块，展示 IS/OOS 天数、Sharpe、CAGR、MaxDD。
+   o 新增 Bootstrap 可信区间模块，对策略日收益做固定 seed 重抽样，展示 CAGR、Sharpe、MaxDD 的 5%-95% 区间。
+   o Bootstrap 只用于报告可信度展示，不改变双均线、布林带、交易信号或组合净值核心算法。
+
+3. Markowitz 第三阶段可信度增强 ✅
+   o 新增“模型可信度：Bootstrap 置信区间”模块。
+   o 对最终组合日收益做固定 seed 重抽样，展示样本天数、重抽样次数、CAGR、Sharpe、MaxDD 的 5%-95% 区间。
+   o Bootstrap 结果不参与优化求解，不影响 Max Sharpe、Min Vol、Risk Parity、Monte Carlo 或 Black-Litterman 的核心权重计算。
+   o 手机端为 Bootstrap 表格设置模块内横向滚动，避免页面整体横向溢出。
+
+4. 验证结果 ✅
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+  o git diff --check 通过。
+  o 本地浏览器验证：Backtest 数据健康 OK，样本内/样本外与 Bootstrap 模块正常显示，桌面和 390px 手机宽度无页面级横向溢出，console 无 JS 错误。
+  o 本地浏览器验证：Markowitz 数据健康 OK，方法矩阵、有效前沿、Bootstrap 可信度模块正常显示，桌面和 390px 手机宽度无页面级横向溢出，console 无 JS 错误。
+
+版本v2.3（2026-07-03 13:53）
+前三阶段继续推进：Backtest 报告区重排、全页导出与 Markowitz 有效前沿缩放修复：
+
+1. Markowitz 有效前沿缩放修复 ✅
+   o 有效前沿 dataZoom 改为 inside 双轴缩放，支持鼠标滚轮缩放和拖动平移。
+   o 工具箱 dataZoom 明确绑定 xAxis / yAxis，保留 restore 和 saveAsImage。
+   o 横轴、纵轴滑块保留，并设置 filterMode:none 与 realtime:true，避免缩放时误过滤候选组合点。
+   o 有效前沿容器新增 grab 光标，提示该图表可拖动交互。
+
+2. Backtest 全页报告导出 ✅
+   o 引入仓库已有 html2canvas.min.js，不新增外部依赖。
+   o 顶部新增“下载报告截图 / Download Report”按钮，位置和交互参考 Markowitz。
+   o 新增 downloadBacktestReport()，用于导出 Backtest 当前页面报告截图。
+
+3. Backtest 输入联想检查与增强 ✅
+   o 基准和组合资产共用 asset_manifest 驱动的 stock-database datalist。
+   o 联想项从单纯名称升级为“代码 + 名称”，例如 sh000300 (沪深300)。
+   o 添加组合资产时会校验是否为当前可用资产池内的代码；不可识别代码会给出中英文提示，不再静默加入。
+   o 基准输入会自动规范化有效代码，并对不可识别输入显示“未识别 / Unknown”。
+
+4. Backtest Risk Tear Sheet 排版重构 ✅
+   o 图表下方分析区改为纵向顺序：Risk Tear Sheet、Asset Attribution、Trade History。
+   o 取消原先左右网格限制，减少交易明细和风险报告互相挤压。
+   o Monthly 收益格改为 auto-fit 网格、提高单元格高度与宽度，并拆成月份/收益两行 flex 内容，修复数字重叠。
+   o 桌面端 body 从固定高度改为 min-height，保证报告区和交易明细可自然向下展开。
+
+5. 验证结果 ✅
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+   o git diff --check 通过。
+   o 本地浏览器验证：Backtest 桌面端数据健康 OK，Risk / Attribution / Trade 顺序正确，Monthly 无横向或纵向溢出，联想列表显示“代码 + 名称”，console 无 JS 错误。
+   o 本地浏览器验证：Backtest 390px 手机宽度无页面级横向溢出，导出按钮存在，报告顺序正确，Monthly 无重叠。
+  o 本地浏览器验证：Markowitz 有效前沿 canvas 正常显示，容器为 grab 光标，桌面和 390px 手机宽度无页面级横向溢出，console 无 JS 错误。
+  o 浏览器下载事件接口未捕获合成 link.click 下载事件，但按钮点击后页面无报错、按钮状态正常恢复；该导出方式与 Markowitz 当前实现保持一致。
+
+版本v2.4（2026-07-03 14:07）
+前三阶段继续推进：参数敏感性热力图、Min CVaR 优化与 Walk-forward/OOS 明细表：
+
+1. Backtest 参数敏感性热力图 ✅
+   o Risk Tear Sheet 区域新增“参数敏感性热力图：SMA窗口 vs Sharpe”。
+   o 热力图横轴为短均线窗口 3/5/8/10，纵轴为长均线窗口 15/20/30/40。
+   o 每个格子用同一资产池和同一数据区间重放策略，展示对应 Sharpe。
+   o 该模块只用于稳健性诊断，不改变原默认双均线 5/20 和布林带核心回测逻辑。
+
+2. Markowitz Min CVaR 优化方法 ✅
+   o 优化方法下拉新增“最小CVaR组合 / Min CVaR Portfolio”。
+   o 新增 solveMinCVaR()，以历史组合收益分布的 95% CVaR 为主要优化目标。
+   o Min CVaR 已接入主优化流程，可作为当前组合权重求解方法。
+   o 方法矩阵新增 Min CVaR 行，与 Equal Weight、Max Sharpe、Min Vol、Risk Parity、Monte Carlo 统一比较。
+   o 当前实现为前端友好的历史重放近似求解，不引入重型凸优化器。
+
+3. Markowitz Walk-forward / OOS 明细表 ✅
+   o 新增“Walk-forward / OOS 窗口表”。
+   o 表格展示训练窗口、样本外窗口、样本外天数、CAGR、Sharpe、MaxDD。
+   o 动态模式下按再平衡频率切分；静态模式下按报告切片展示样本外表现。
+   o 让模型从单一净值曲线进一步升级为可解释的样本外验证报告。
+
+4. Markowitz 参数敏感性表 ✅
+   o 新增“参数敏感性：单资产权重上限”。
+   o 固定资产池与历史收益，只改变单资产权重上限，观察收益、波动、Sharpe、CVaR95 和实际最大权重。
+   o 该表用于判断组合结果是否高度依赖某一个权重约束参数。
+
+5. 验证结果 ✅
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+   o git diff --check 通过。
+   o 本地浏览器验证：Backtest 参数敏感性热力图正常渲染为 ECharts canvas，桌面和 390px 手机宽度均无页面级横向溢出，console 无 JS 错误。
+   o 本地浏览器验证：Markowitz 默认模式方法矩阵包含 6 行，其中包含 Min CVaR；Walk-forward/OOS 表和参数敏感性表均正常显示。
+   o 本地浏览器验证：选择 Min CVaR 作为主优化器后指标、主图、有效前沿、方法矩阵、Walk-forward/OOS 表和敏感性表均正常更新，console 无 JS 错误。
+
+版本v2.5（2026-07-06 16:23）
+首页、Markowitz、Backtest 页面结构与交互修复：
+
+修改文件：
+index.md
+markowitz.html
+backtest.html
+开发者修正日志.txt
+
+1. index 首页信息架构优化 ✅
+   o 将联系方式 sw6245@nyu.edu、+86 159 0896 3789 和 GitHub 主页入口移动到姓名/学历区域，位置在简历入口上方。
+   o 页面主容器从 960px 扩展到 1220px，项目展示改为更高利用率的三列工作台布局，减少左右空白。
+   o 合并“数据架构”和“研究能力矩阵”为“技术与研究能力”折叠面板。
+   o 新面板按数据可信化、量化研究、报表分析建模、前端工程四类组织关键词，默认隐藏详细说明，点击展开。
+   o 补齐新增内容的中英文 i18n 词条。
+
+2. Markowitz 页面结构与 tooltip 修复 ✅
+   o 参考 statement-analyzer.html 新增左侧悬浮模型目录，可跳转总览、净值曲线、有效前沿、方法对比和模型输入。
+   o 主体布局从居中 1400px 卡片改为宽屏工作台，报告区和输入区去掉外层大卡片边框与阴影，减少空白浪费。
+   o 参数角标 tooltip 改为全局 fixed 浮层，不再受 panel/table/report 裁切。
+   o tooltip 支持鼠标悬停、键盘 focus、Esc/滚动/缩放隐藏，并自动根据屏幕边界调整位置。
+   o 下载报告截图时临时隐藏左侧目录和顶部语言按钮，避免出现在导出图片中。
+
+3. Backtest 页面结构与 heatmap 修复 ✅
+   o 参考 statement-analyzer.html 新增左侧悬浮模型目录，可跳转回测沙盒、指标总览、净值曲线、风险报告、资产归因和交易明细。
+   o 顶部报告下载/语言切换从悬浮层移入主报告区，避免遮挡 VaR 等右侧图表文本。
+   o 策略回测沙盒宽度缩小为 clamp(205px, 20vw, 230px)，取消页面级横向滚动风险，并让资产输入与权重行更紧凑。
+   o 参数敏感性热力图高度、grid、坐标名称间距和 visualMap 位置重新排版，修复横纵坐标显示不全和重叠问题。
+   o 参数角标 tooltip 改为全局 fixed 浮层，支持鼠标悬停、键盘 focus 和屏幕边界避让。
+   o 下载报告截图时临时隐藏左侧目录和顶部工具条。
+
+4. 验证结果 ✅
+   o backtest.html 与 markowitz.html 内联 JS 语法检查通过。
+   o git diff --check 通过。
+   o 已确认本地 main 与当前记录的 origin/main 指向同一提交 7d8f120c336b2032fd3885c390836ebd663e654d；实时 git fetch 曾长时间无返回，未强制覆盖本地文件。
+  o statement-analyzer.html 当前为本地未跟踪新增文件；index.md 已包含入口。
+  o 自动浏览器验证未完成：运行时未安装 Playwright Chromium，本机 Chrome 无头启动被系统权限中止。需后续在可用浏览器环境中复核视觉细节。
+
+版本v2.6（2026-07-06 20:14）
+首页宽屏排版重构、README 内容同步与交接状态整理：
+
+修改文件：
+index.md
+README.md
+开发者修正日志.txt
+
+1. index 首页宽屏排版重构 ✅
+   o 将首页外层改为 100vw 宽屏作品集工作台，避免 Jekyll 默认内容宽度造成左右空白。
+   o 顶部从线性简历排列改为 hero-dashboard 双栏结构：左侧身份、学历、联系方式，右侧简历下载入口。
+   o 项目展示改为稳定三列横向排列，三个模型在 100% 页面缩放下并排展示。
+   o 三个项目卡片改为更紧凑的模型条带风格，分别用蓝色、紫色、绿色强调 Backtest、Markowitz、Statement Analyzer。
+   o 去掉过重的卡片阴影和过圆的视觉风格，改为更接近金融作品集/研究工作台的克制排版。
+   o 补充 hero_kicker 中英文翻译键，保证语言切换不破坏新增标题。
+
+2. README 内容同步 ✅
+   o 项目定位从单纯 Portfolio Analytics 扩展为 Financial Engineering、Portfolio Analytics 与 Statement Analysis Lab。
+   o 模块矩阵新增 statement-analyzer.html，明确其三表解析、估值建模、DCF、Comps、LBO 和 AI Mock Report 能力。
+   o Markowitz 描述同步加入 Min CVaR、OOS 等已经实现的增强项。
+   o 本地运行说明新增 statement-analyzer.html 访问路径。
+   o Future Enhancements 更新为视觉系统统一、严格优化器、深层归因和数据管线维护。
+
+3. 验证结果 ✅
+   o index.md 内联 JS 语法检查通过。
+   o git diff --check 通过。
+   o 本轮修改不触碰 backtest.html、markowitz.html 的核心算法函数，不改变回测、优化、风险指标计算逻辑。
+   o 自动浏览器视觉验证仍受限于当前运行时缺少可用 Playwright Chromium；需后续在浏览器中重点复核首页 100% 缩放、三项目横排、移动端折叠效果。
+
+版本v2.7（2026-07-14 08:06 CST）
+移动端结构修复、Backtest 相对绩效指标与下载可靠性增强：
+
+修改文件：
+index.md
+backtest.html
+markowitz.html
+statement-analyzer.html
+开发者修正日志.txt
+
+1. 改动内容
+   o index.md：修复手机版股票代码输入框被“拉取”按钮挤压的问题；480px 以下参数区改为单列；联想列表增加触摸、方向键、Enter、Esc 和 ARIA 状态支持；修正中文简历主按钮文字对比度；图像下载链接改为挂载 DOM 后触发。
+   o backtest.html：手机首屏为固定导航预留完整高度，日期、权重和英文标签自适应；420px 以下指标卡改为单列；手机导航跳转加入动态顶部偏移；图表标题、工具栏和滚动图例分层排布。
+   o backtest.html：新增基于既有组合/基准日收益的 Alpha、Beta、信息比率、跟踪误差、相关系数和 R²，结果展示在 Risk Tear Sheet 的“相对基准”板块。
+   o backtest.html：净值图、交易明细图和整页报告统一使用可见 DOM 下载锚点，修复部分嵌入式浏览器与手机浏览器点击无反应的问题。
+   o markowitz.html：手机端资产池与压力场景编辑器改为稳定网格；固定宽度输入改为自适应；资产标签和场景标签允许换行；固定导航跳转加入动态顶部偏移；主图与有效前沿的标题、工具栏、图例和绘图区按手机宽度重新排版。
+   o backtest.html、markowitz.html：Font Awesome 改用完整 CDN 资源路径，消除本地 all.min.css 缺失 webfonts 导致的图标 404。
+   o statement-analyzer.html：手机首屏、固定导航、表格滚动与英文标签重新排版；修复 deal-grid 在手机规则之后仍被强制为两列的问题；图表与截图组件改为优先加载本地文件，远程 XLSX 延后加载并增加不可用提示。
+   o statement-analyzer.html：模板、标准 JSON、三表图片和整页图片下载统一使用 DOM 下载锚点，对象 URL 延迟释放，降低手机下载被取消的概率。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 和参数敏感性计算。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 和风险贡献算法。
+   o 未修改 fetch_data.py、数据抓取流程或 manifest 生成逻辑。
+   o Backtest 新增指标只对既有日收益序列做结果后处理，不回写持仓、交易或净值。
+
+3. 验证结果
+   o index.md、backtest.html、markowitz.html、statement-analyzer.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+   o data/*.json 全部可解析；asset_manifest.json 通过 assets/symbol/file/status 契约检查；quality_report.json 通过 records 契约检查，共 16 个资产和 16 条质量记录。
+   o 390x844 手机视口：Backtest、Markowitz、Statement Analyzer 均无页面级横向溢出，固定导航不遮挡首屏，console 无 JavaScript error。
+   o 手机视觉检查：Backtest 权重行和日期输入无挤压；Markowitz 图表标题与工具栏无重叠，场景输入占满可用宽度；Statement deal-grid 为单列且首屏按钮、标题、指标卡无重叠。
+   o 1440x900 桌面视口：三个工具页均无页面级横向溢出；Backtest 相对绩效板块显示正常；Markowitz 主图和有效前沿均生成 canvas；Statement 生成 7 个图表 canvas，报告预览正常。
+   o Backtest 净值图已实际下载为 2028x956 PNG；整页报告已实际下载为 2560x3860 PNG，经目视检查包含指标卡、净值曲线、相对基准指标、参数热力图、资产归因和交易明细，底部未截断。
+
+4. 未完成或受限项
+   o index.md 依赖 GitHub Pages/Jekyll 模板，本地静态服务器不能直接渲染最终首页；本轮已完成语法与响应式规则检查，发布后仍需对最终 Jekyll 页面做一次 390px 视觉复核。
+   o Statement Analyzer 的 XLSX 解析库仍来自 CDN；网络不可用时图表与图片报告可运行，但 Excel/CSV 解析和 XLSX 导出会给出提示。后续可在仓库中补齐本地 xlsx.full.min.js。
+   o T0/T+1 模式尚未实现。该功能会改变信号可用时间和成交价假设，必须先定义“何时产生信号、何时成交、是否允许使用当日收盘信息”，避免前视偏差后再进入核心逻辑。
+   o 严格 QP、多观点 Black-Litterman、Alpha/Beta 滚动窗口、信息比率稳定性和更完整的交易统计解释仍列为后续持续优化目标。
+
+版本v2.8（2026-07-14 08:22 CST）
+本地依赖补全、XLSX 导出可读性与多断点手机回归：
+
+修改文件：
+index.md
+backtest.html
+statement-analyzer.html
+README.md
+xlsx.full.min.js
+vendor-licenses/SheetJS-LICENSE.txt
+开发者修正日志.txt
+
+1. 改动内容
+   o statement-analyzer.html：将 SheetJS 0.18.5 从远程 CDN 切换为仓库本地 xlsx.full.min.js，并在模型自检中新增 XLSX、ECharts、html2canvas 本地依赖状态。
+   o statement-analyzer.html：标准三表 XLSX 导出增加稳定列宽与首行筛选范围，修复长科目名、推断字段和推断方法在工作簿中被截断的问题；未修改三表映射、财务指标或估值计算。
+   o xlsx.full.min.js、vendor-licenses/SheetJS-LICENSE.txt：新增官方 SheetJS v0.18.5 浏览器发行文件及 Apache 2.0 许可证；发行文件 SHA-256 为 c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99。
+   o index.md：ECharts 改用仓库本地资源，删除未被代码调用的 html2pdf CDN；修复手机端“技术与研究能力”标题被压成逐字竖排的问题，标题、关键词和展开按钮改为稳定双列摘要布局。
+   o backtest.html：520px 以下固定导航改为 3×2 网格，六个入口全部可见，并增加顶部占位，避免导航遮挡回测沙盒。
+   o README.md：同步本地运行依赖、html2canvas 图片导出方式、Backtest 相对基准指标和后续交易统计方向。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 和参数敏感性计算；本轮 Backtest 仅修改手机导航 CSS。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 和风险贡献算法；本轮未改动 markowitz.html。
+   o 未修改 Statement Analyzer 的三表映射、指标、DCF、Comps、M&A 或 LBO 计算；只修改依赖加载、自检与 XLSX 展示属性。
+   o 未修改 fetch_data.py、数据抓取流程、asset_manifest.json 或 quality_report.json 的生成逻辑与内容。
+
+3. 验证结果
+   o index.md、backtest.html、markowitz.html、statement-analyzer.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+   o 首页临时构建预览在 360、390、430px 下均无页面级横向溢出；简历板块保持白色；股票输入与拉取按钮同排；联想菜单在 360px 下完整位于屏幕内；能力标题保持横排。
+   o Backtest、Markowitz、Statement Analyzer 在 360、390、430px 共 9 组视口下均无页面级横向溢出、控件越界、命令文字裁切或控件互相重叠；三页 360px 英文模式同样通过。
+   o Backtest 360px 双排导航六项全部可见，导航底部与沙盒顶部不重叠；Markowitz 生成 4 个 ECharts canvas；Statement Analyzer 生成 7 个 ECharts canvas。
+   o 浏览器控制台 error 日志为空；Statement 自检确认 XLSX、ECharts、html2canvas 均从本地资源加载。
+   o Statement 示例数据已实际下载为 27,326 字节 XLSX；通过表格工件工具验证 4 张工作表、代表性单元格与 0 个公式错误，并逐表渲染确认长科目及 Inference Log 字段不再截断。
+   o asset_manifest.json、quality_report.json 与全部 data/*.json 通过解析和数据契约检查：16 个资产、16 个可用、0 个失败，manifest 引用文件均存在且可解析。
+
+4. 未完成或受限项
+   o 当前环境没有 Gemfile 和可用 Jekyll 命令；首页使用临时等价 HTML 构建完成响应式验收，但仍需在 GitHub Pages 最终 Minima 模板渲染后复核一次发布页面。
+   o Font Awesome 和 Google Fonts 仍来自 CDN；核心图表、图片导出和 XLSX 已本地化，图标字体的完整本地 webfonts 可在后续补齐。
+   o T0/T+1 模式仍未进入实现。需先冻结信号时点、成交价、开盘缺失/停牌处理和前视偏差约束，再明确授权修改核心回测逻辑。
+   o 严格 QP、多观点 Black-Litterman、Alpha/Beta 滚动窗口、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续目标。
+
+版本v2.9（2026-07-14 08:38 CST）
+静态资源完全本地化、手机长表格定位与整页导出回归：
+
+修改文件：
+index.md
+backtest.html
+markowitz.html
+statement-analyzer.html
+README.md
+css/all.min.css
+webfonts/fa-brands-400.woff2
+webfonts/fa-brands-400.ttf
+webfonts/fa-regular-400.woff2
+webfonts/fa-regular-400.ttf
+webfonts/fa-solid-900.woff2
+webfonts/fa-solid-900.ttf
+webfonts/fa-v4compatibility.woff2
+webfonts/fa-v4compatibility.ttf
+vendor-licenses/Font-Awesome-LICENSE.txt
+all.min.css（删除未引用且字体路径失效的旧文件）
+开发者修正日志.txt
+
+1. 改动内容
+   o index.md、backtest.html、markowitz.html：Font Awesome 改为仓库本地 css/all.min.css 与 webfonts/*，不再请求 cdnjs。
+   o index.md：删除 Google Fonts 请求，Fira Code 改为 ui-monospace、SFMono-Regular、Menlo、Monaco、Consolas 系统等宽字体栈；ECharts 轴标签与水印同步使用该字体栈。
+   o css/all.min.css、webfonts/*、vendor-licenses/Font-Awesome-LICENSE.txt：引入官方 Font Awesome Free 6.7.2 发行资源及许可证；CSS 内引用的 8 个 WOFF2/TTF 文件全部随仓库保存。
+   o all.min.css：删除根目录未被任何页面引用、且内部 ../webfonts 路径指向仓库外部的旧样式文件，避免后续维护时误用。
+   o backtest.html：手机分析表格增加触摸惯性、滚动边界控制和首列固定；导出模式恢复普通单元格定位，避免整页截图中的 sticky 偏移。
+   o markowitz.html：方法矩阵、Bootstrap、Walk-forward/OOS 和参数敏感性表增加手机首列固定；表格标题与说明也保持在滚动容器左缘；导出模式解除所有 sticky 定位。
+   o statement-analyzer.html：三表与估值表的固定首列增加分隔线、表头层级和稳定滚动槽；导出模式解除首列 sticky，确保横向展开后的全部期间列进入截图。
+   o README.md：更新本地运行依赖说明，明确图表、图标、图片报告和 XLSX 均不依赖公共 CDN，并记录第三方许可证目录。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算；仅增加 CSS 表格行为与本地图标链接。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 或风险贡献算法；仅调整 CSS 与静态资源链接。
+   o 未修改 Statement Analyzer 的三表映射、指标、DCF、Comps、M&A 或 LBO 计算；仅调整表格与导出模式 CSS。
+   o 未修改 fetch_data.py、行情数据、asset_manifest.json、quality_report.json 或其生成逻辑。
+
+3. 验证结果
+   o 四个页面源码均无外部 script/link 标签；本地服务器实际返回 css/all.min.css、fa-solid-900.woff2 和 fa-brands-400.woff2，页面伪元素字体为 Font Awesome 6 Free，图标宽度非零。
+   o css/all.min.css 的 8 个字体引用全部存在并完成 SHA-256 校验；Font Awesome 许可证文件存在。
+   o 首页、Backtest、Markowitz、Statement Analyzer 在 360、390、430px 共 12 组手机视口下均无页面级横向溢出、控件越界、命令文字裁切或控件重叠，外部资源标签数量均为 0。
+   o 1440x900 桌面视口下四页均无页面级横向溢出或控件越界；首页/Backtest/Markowitz/Statement 分别生成 3/3/4/7 个 ECharts canvas；浏览器控制台 error 日志为空。
+   o Markowitz 方法矩阵横向滑动 240px 后，标题和首列仍与容器左缘对齐；Statement 三表横向滑动 178px 后首列仍完整可见；Backtest 启用双均线后生成 12 行交易记录，表格首列定位生效。
+   o Backtest、Markowitz、Statement Analyzer 已在 390px 手机视口重新实际下载整页报告，尺寸分别为 780x5972、1520x9362、934x27451；实图检查确认净值曲线、风险报告、热力图、方法矩阵、Walk-forward/OOS、三张财务表和底部报告均未截断。
+   o index.md、backtest.html、markowitz.html、statement-analyzer.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+   o asset_manifest.json、quality_report.json 与全部 data/*.json 再次通过解析和数据契约检查：16 个资产、16 个可用、0 个失败。
+
+4. 未完成或受限项
+   o 当前环境仍没有 Gemfile 和可用 Jekyll 命令；首页使用临时等价 HTML 完成三断点与桌面验收，仍需在 GitHub Pages 最终 Minima 模板渲染后复核一次发布页面。
+   o 行情更新和首页实时拉取仍会访问外部数据源，这是业务数据链路而非渲染依赖；本地缓存与 manifest 容灾保持不变。
+   o T0/T+1 模式仍未进入实现。需先冻结信号时点、成交价、开盘缺失/停牌处理和前视偏差约束，再明确授权修改核心回测逻辑。
+   o 严格 QP、多观点 Black-Litterman、Alpha/Beta 滚动窗口、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续目标。
+
+版本v3.0（2026-07-14 08:53 CST）
+Backtest 资产联想重构、三页工作台视觉统一与移动端回归：
+
+修改文件：
+backtest.html
+markowitz.html
+statement-analyzer.html
+README.md
+开发者修正日志.txt
+
+1. 改动内容
+   o backtest.html：移除原生 datalist，新增基于本地资产索引与可用日期的自定义联想列表；基准和新增资产输入均支持触摸点击、方向键、Enter、Esc、焦点收起及 ARIA 状态，手机端列表按视口边界展开，不再触发系统联想错位。
+   o backtest.html：输入区增加紧凑的 Research Workbench 标题层级，将原“策略回测沙盒”收束为“策略与组合输入”；资产代码、权重行和联想层保持自适应宽度。
+   o markowitz.html：新增与 Backtest 一致的紧凑工作台标题、说明与中英文文案，保持顶部工具条、固定导航和指标卡之间的稳定间距。
+   o statement-analyzer.html：压缩首屏 hero 的字号、留白和按钮间距；手机端四项摘要改为 2x2 网格，在不删减信息的前提下降低首屏高度，并统一工作台命名。
+   o README.md：补充 Backtest 资产联想与三页响应式工作台说明。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 或风险贡献算法。
+   o 未修改 Statement Analyzer 的三表映射、财务指标、DCF、Comps、M&A 或 LBO 计算。
+   o 未修改 fetch_data.py、数据抓取、asset_manifest.json、quality_report.json 或 manifest 生成逻辑。
+
+3. 验证结果
+   o backtest.html、markowitz.html、statement-analyzer.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+   o 360、390、430px 三种手机视口下，三页均无页面级横向溢出、控件越界或控件重叠；中英文标题完整，输入框未被挤出视口。
+   o Backtest 联想列表在 360px 下完成触摸、键盘选择和 Esc 收起验证；列表完整位于视口内，新增资产后总权重校验未在编辑过程中误报。
+   o 1440x900 桌面视口下三页标题均未与下载或语言工具条重叠，Backtest、Markowitz、Statement Analyzer 分别生成 3、4、7 个 ECharts canvas。
+   o 默认核心输出保持基线：Backtest 为 40.03%、41.99% / 21.46%、15.32%、1.86 / 2.74；Markowitz 为 17.22% / 22.51%、17.83%、0.68 / 0.83、1.44% / 3.48%；Statement 摘要为 46/100、USD 703、16.1%、18%。
+   o 390px 手机视口实际下载 Backtest 整页报告 780x5972、净值曲线 696x736、Markowitz 整页报告 1520x9556、Statement 整页报告 584x15265；实图检查确认图表、横向板块和底部内容未截断。
+   o asset_manifest.json 与 quality_report.json 解析和契约复核通过：16 个资产、16 条质量记录、16 个可用、0 个失败。
+
+4. 未完成或受限项
+   o 首页仍需在 GitHub Pages 最终 Jekyll/Minima 渲染后做一次发布环境视觉复核；本轮未修改首页。
+   o T0/T+1 模式未实现。开盘价是否可用于 T0 取决于信号生成时点；若信号依赖当日收盘数据却按当日开盘成交会产生前视偏差，需先冻结成交与停牌/缺失开盘价规则，再单独授权核心回测改造。
+   o 严格 QP、多观点 Black-Litterman、滚动 Alpha/Beta、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续持续优化目标。
+
+版本v3.1（2026-07-14 15:31 CST）
+Markowitz 手机输入重构、长表格方向提示与 Statement 图表响应式增强：
+
+修改文件：
+backtest.html
+markowitz.html
+statement-analyzer.html
+README.md
+开发者修正日志.txt
+
+1. 改动内容
+   o markowitz.html：移除资产池原生 datalist，新增基于 asset_manifest 可用区间的中英文自定义联想；支持触摸点击、方向键、Enter、Esc、焦点收起和 ARIA 状态，可在逗号分隔资产池中只替换当前输入片段。
+   o markowitz.html：修复带内联 flex 的场景模式、复核选项和数据状态在 360px 下被压缩的问题；场景选择框、重新分析按钮和状态区域改为手机全宽布局。
+   o markowitz.html、statement-analyzer.html：为确实存在隐藏列的宽表格增加左右方向边缘提示；提示随 scrollLeft 自动切换，到达边界后消失，导出时强制隐藏。
+   o statement-analyzer.html：七张 ECharts 图在 620px 以下使用紧凑标题、滚动图例、10px 坐标标签、containLabel 网格和 tooltip 边界约束；设备旋转或窗口变化后防抖重建图表。
+   o backtest.html、markowitz.html、statement-analyzer.html：补充手机锚点顶部预留，避免固定工具条和导航遮挡目标标题；加入空 data favicon，消除本地运行时无关的 favicon 404。
+   o statement-analyzer.html：宽表格与图表圆角收敛到 8px；README 同步资产联想、响应式图表和长表格方向提示。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 或风险贡献算法；本轮只调整资产池输入、布局和表格提示。
+   o 未修改 Statement Analyzer 的三表映射、财务指标、DCF、Comps、M&A 或 LBO 计算；图表只调整 ECharts 展示配置与 resize 生命周期。
+   o 未修改 fetch_data.py、数据抓取、asset_manifest.json、quality_report.json 或 manifest 生成逻辑。
+
+3. 验证结果
+   o backtest.html、markowitz.html、statement-analyzer.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+   o Markowitz 360px 手机视口下，场景选择框、所属分组与重新分析按钮均为 340px；页面无横向溢出。资产联想完成键盘、点击和 Esc 路径验证，905 与 852 分别正确补全为 sh000905、sh000852。
+   o Markowitz 方法矩阵在 340px 可视宽度下对应 760px 表宽：初始只显示右缘提示，滑到 420px 末端后只显示左缘提示。Statement 利润表在 312px 可视宽度下对应 520px 表宽，方向提示同样随滚动切换。
+   o Statement 手机图表使用 scroll 图例、containLabel 网格、12px 标题和 10px 坐标；360x844 与 844x390 往返旋转后，图表实例宽度分别恢复为 338px 与 736px，7 个 canvas 均保留。
+   o 360、390、430px 共 9 组三页手机视口均无页面级横向溢出或控件越界；1440x900 桌面视口下三页无标题/工具条重叠，分别生成 3、4、7 个 canvas。
+   o 默认核心输出保持基线：Backtest 为 40.03%、41.99% / 21.46%、15.32%、1.86 / 2.74；Markowitz 为 17.22% / 22.51%、17.83%、0.68 / 0.83、1.44% / 3.48%；Statement 为 46/100、USD 703、16.1%、18%。
+   o 390px 实际导出的 Markowitz 整页报告为 1520x10158，Statement 整页报告为 584x15246；实图确认方法矩阵、OOS、三张财务表、图表和底部报告完整，方向提示未进入报告。
+   o 本地页面资源无 4xx、运行控制台无 JavaScript error；asset_manifest.json 与 quality_report.json 契约复核通过：16 个资产、16 条质量记录、16 个可用、0 个失败。
+
+4. 未完成或受限项
+   o 本轮自动视觉回归使用 Chromium 的 360/390/430px 视口和横竖屏切换；仍建议在真实 iOS Safari 上补一次联想键盘、惯性横滑和图片保存验证。
+   o 首页仍需在 GitHub Pages 最终 Jekyll/Minima 渲染后复核；本轮未修改首页。
+   o T0/T+1 模式仍需先冻结信号时点、成交价、停牌和缺失开盘价规则，再单独授权修改核心回测逻辑。
+   o 严格 QP、多观点 Black-Litterman、滚动 Alpha/Beta、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续持续优化目标。
+
+版本v3.2（2026-07-14 15:47 CST）
+移动输入联想视口边界与三页导航跟随增强：
+
+修改文件：
+backtest.html
+markowitz.html
+statement-analyzer.html
+README.md
+开发者修正日志.txt
+
+1. 改动内容
+   o backtest.html、markowitz.html：自定义资产联想层改为基于 visualViewport 的可用空间动态选择向上或向下展开，并按当前方向限制最大高度；页面滚动、窗口变化、移动端虚拟键盘引起的视觉视口 resize/scroll 后会立即重新定位。
+   o backtest.html：基准与新增资产两个输入框统一使用动态方向，不再依赖新增资产固定向上、基准固定向下的静态假设。
+   o backtest.html、markowitz.html、statement-analyzer.html：移动导航在激活章节变化时自动横向定位到可见区域；到达页面底部时明确激活最后章节，并在横竖屏切换后重新定位当前激活项。
+   o 三页导航保持原有锚点偏移、平滑纵向滚动和桌面侧边栏布局；仅增加手机端横向可见性与页底状态处理。
+   o README.md：同步 visualViewport 联想定位与活动章节导航说明。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算；本轮只调整输入联想层和导航状态。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 或风险贡献算法；本轮只调整资产池联想层和导航状态。
+   o 未修改 Statement Analyzer 的三表映射、财务指标、DCF、Comps、M&A 或 LBO 计算；本轮只调整导航状态。
+   o 未修改 fetch_data.py、数据抓取、asset_manifest.json、quality_report.json、行情文件或 manifest 生成逻辑。
+
+3. 验证结果
+   o Markowitz 联想框在 360x844 视口靠近底部时，输入框位于 792.2-828.2px，8 条候选自动向上显示于 548.2-788.2px；在 360x500 压缩高度下，向上为 204.2-444.2px、向下为 152.2-392.2px，均完整位于视觉视口内且无横向越界。
+   o Backtest 在 360x500 压缩高度下，新增资产联想向上显示于 203.5-443.5px，基准联想向下显示于 149.5-389.5px；两者均完整位于视口内。Backtest 与 Markowitz 输入 905 后通过方向键和 Enter 均补全为 sh000905，输入 852 后 Esc 均正确收起列表。
+   o Backtest 在 600px 导航点击交易明细并到达页底后，最后章节保持激活且完整可见；Markowitz 360px 的五个导航项完整可见；Statement 360px 导航滚动到报告末项后 scrollLeft 为 716px，活动项完整可见。横竖屏往返后，三页均按新的阅读位置重算激活章节并保持该项可见。
+   o 360、390、430px 共 9 组三页手机视口均无页面级横向溢出、控件越界或浏览器错误，Backtest、Markowitz、Statement Analyzer 分别保留 3、4、7 个 ECharts canvas。
+   o 1440x900 桌面视口下三页均无页面级横向溢出、控件越界或导航/工具条重叠，浏览器控制台无 JavaScript error，页面资源无 4xx。
+   o 默认核心输出保持基线：Backtest 为 40.03%、41.99% / 21.46%、15.32%、1.86 / 2.74；Markowitz 为 17.22% / 22.51%、17.83%、0.68 / 0.83、1.44% / 3.48%；Statement 为 46/100、USD 703、16.1%、18%。
+   o backtest.html、markowitz.html、statement-analyzer.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+   o asset_manifest.json、quality_report.json 与 16 个行情 JSON 再次通过解析和行数契约检查：16 个资产、16 条质量记录、16 个可用、0 个失败、无缺失文件或数组长度异常。
+
+4. 未完成或受限项
+   o 虚拟键盘场景使用 Chromium 360x500 压缩视觉视口近似验证；仍建议在真实 iOS Safari 上补一次中文输入法弹出、候选点击和惯性滚动验证。
+   o 本轮未修改导出逻辑，因此未重复执行三张超长整页报告的像素级导出；导出能力沿用 v3.1 已通过的完整性结果。
+   o 首页仍需在 GitHub Pages 最终 Jekyll/Minima 渲染后复核；本轮未修改首页。
+   o T0/T+1 模式仍需先冻结信号时点、成交价、停牌和缺失开盘价规则，再单独授权修改核心回测逻辑。
+   o 严格 QP、多观点 Black-Litterman、滚动 Alpha/Beta、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续持续优化目标。
+
+版本v3.3（2026-07-14 16:33 CST）
+手机安全区、触控尺寸与长页导航性能优化：
+
+修改文件：
+backtest.html
+markowitz.html
+statement-analyzer.html
+README.md
+开发者修正日志.txt
+
+1. 改动内容
+   o backtest.html、markowitz.html、statement-analyzer.html：viewport 增加 viewport-fit=cover，并引入顶部、右侧、底部、左侧四个 safe-area CSS 变量；竖屏固定导航、工具栏、正文边距以及 844px 横屏侧边导航均会避开刘海、圆角和底部手势区。
+   o 三页手机导航链接的实际触控高度由约 29-31px 提升到 40px；主要输入框、选择框和命令按钮提升到 44px。Backtest 删除与交易翻页按钮提升到 40px，策略复选框提升到 18px。
+   o markowitz.html：右上语言按钮改为 40px 高并与导航固定保留 6px 间隔，修复原先约 0.8px 的边界重叠；正文与导航底部保留 8px 间隔。
+   o 三页导航统一由 nav-inner 承担横向滚动，外层固定栏不再形成第二层滚动；隐藏滚动条但保留触摸惯性和 overscroll 约束，并增加 1px 末端余量，消除活动项最右侧 0.3-2px 的裁切。
+   o Backtest 与 Markowitz 的联想定位、三页活动导航监听改为 requestAnimationFrame 帧节流，避免一次滚动事件中重复读取布局和切换状态。
+   o backtest.html：980px 以下指标总览改为两列 minmax(0, 1fr)，卡片允许收缩和英文换行，修复横屏安全区压缩后第四张指标卡被顶出约 9px 的问题。
+   o README.md：同步安全区、触控尺寸和帧节流导航说明。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算；本轮只调整 CSS 响应式布局和界面事件调度。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 或风险贡献算法；本轮只调整 CSS、导航和联想定位调度。
+   o 未修改 Statement Analyzer 的三表映射、财务指标、DCF、Comps、M&A 或 LBO 计算；本轮只调整 CSS 和导航事件调度。
+   o 未修改 fetch_data.py、数据抓取、asset_manifest.json、quality_report.json、行情文件或 manifest 生成逻辑。
+
+3. 验证结果
+   o 360px 实测三页所有导航链接均为 40px；Backtest、Markowitz、Statement 的关键输入框均为 44px，主要命令按钮为 44px。Markowitz 语言按钮与导航间隔为 6px，导航与正文间隔为 8px；Statement 对应间隔为 6px 和 12px。
+   o 通过 CSS 变量等价注入顶部 47px、底部 34px 的竖屏安全区后，Backtest / Markowitz / Statement 正文顶边分别为 197 / 159 / 163px，固定导航底边分别为 191 / 151 / 151px，仍保留 6 / 8 / 12px 间隔且无横向溢出。
+   o 844x390 横屏等价注入左右各 47px、底部 21px 安全区后，三页侧边导航左缘均为 47px，右上工具栏右侧间隔均为 47px；中英文模式均无页面级横向溢出或控件裁切。
+   o 360、390、430px 共 9 组三页手机视口均无页面级横向溢出、控件越界、固定栏重叠或浏览器错误，Backtest、Markowitz、Statement Analyzer 分别保留 3、4、7 个 ECharts canvas。
+   o 三页末项导航均保持完整可见：Backtest 网格导航无需横移，Markowitz 横移 4px 到末端，Statement 横移 714px 到末端；活动章节与点击目标一致。
+   o 360x500 压缩高度下，三页 44px 输入框均位于约 228-272px 且未与固定栏重叠。Backtest 和 Markowitz 的 8 条联想分别自动向上显示于 199.5-439.5px、200.2-440.2px，完整位于视觉视口内。
+   o 1440x900 桌面视口下三页均无页面级横向溢出、控件越界或导航/工具条重叠，浏览器控制台无 JavaScript error，页面资源无 4xx。
+   o 默认核心输出保持基线：Backtest 为 40.03%、41.99% / 21.46%、15.32%、1.86 / 2.74；Markowitz 为 17.22% / 22.51%、17.83%、0.68 / 0.83、1.44% / 3.48%；Statement 为 46/100、USD 703、16.1%、18%。
+   o 80 段长页滚动采样中三页中位帧均为 16.7ms、P95 为 17.7ms，最大值不超过 22.5ms；未出现明显长帧停顿。
+   o backtest.html、markowitz.html、statement-analyzer.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+   o asset_manifest.json、quality_report.json 与 16 个行情 JSON 再次通过解析和行数契约检查：16 个资产、16 条质量记录、16 个可用、0 个失败、无缺失文件或数组长度异常。
+
+4. 未完成或受限项
+   o 当前 Chromium 不提供 Emulation.setSafeAreaInsets 接口，本轮使用相同 CSS 变量在页面初始化阶段等价注入安全区；仍建议在带刘海的真实 iPhone Safari 横竖屏各复核一次。
+   o 本轮未修改导出逻辑，因此未重复执行三张超长整页报告的像素级导出；导出能力沿用 v3.1 已通过的完整性结果。
+   o 首页仍需在 GitHub Pages 最终 Jekyll/Minima 渲染后复核；本轮未修改首页。
+   o T0/T+1 模式仍需先冻结信号时点、成交价、停牌和缺失开盘价规则，再单独授权修改核心回测逻辑。
+   o 严格 QP、多观点 Black-Litterman、滚动 Alpha/Beta、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续持续优化目标。
+
+版本v3.4（2026-07-15 16:46 CST）
+Backtest / Markowitz 整页报告坐标修复与 Backtest 手机输入重排：
+
+修改文件：
+backtest.html
+markowitz.html
+README.md
+开发者修正日志.txt
+
+1. 改动内容
+   o backtest.html：整页报告的截图目标由仅包含右侧分析区的 backtestReportArea 改为完整 document.body，左侧策略参数、日期、基准、资产权重和运行入口正式纳入报告。
+   o backtest.html、markowitz.html：增加独立的 1360px 报告排版模式，导出前统一清零页面滚动、隐藏固定导航和工具条、展开横向滚动内容并重排为稳定桌面宽度；截图显式使用 x=0、y=0，避免元素自身左偏移造成整张报告左侧消失。
+   o 两页导出前后统一等待两帧布局稳定并重设全部 ECharts 实例尺寸；截图完成后恢复横向容器、页面样式、图表尺寸和原滚动位置，避免移动端布局尺寸进入下载图片或下载后页面变形。
+   o markowitz.html：导出模式显式覆盖手机端 settings-row、资产池、场景编辑器和操作按钮的纵向规则，使截图前页面与 html2canvas 克隆页使用相同排版，消除右侧大面积留白和报告底部异常空白。
+   o backtest.html：520px 以下开始日期与结束日期改为上下独立整行；资产配置行改为“资产名称/代码一整行 + 权重/%/删除控制一整行”，并修正百分号被通用 span 弹性规则挤压的问题。
+   o backtest.html：报告侧栏固定为 300px，并强制日期、资产名称、代码和权重使用与截图克隆一致的双行结构；风险摘要在报告中恢复多列桌面布局，缩短无效空白且保持内容完整。
+   o README.md：同步 1360px 标准报告布局与完整工作区导出说明。
+
+2. 是否触碰核心算法
+   o 否。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算；本轮只修改报告截图编排、图表 resize 和输入区 CSS/DOM 展示类名。
+   o 未修改 Markowitz 的权重求解、Min CVaR、Risk Parity、Black-Litterman、有效前沿、Walk-forward/OOS 或风险贡献算法；本轮只修改报告截图编排与图表 resize。
+   o 未修改 fetch_data.py、数据抓取、asset_manifest.json、quality_report.json、行情文件或 manifest 生成逻辑。
+
+3. 验证结果
+   o 在 390x844 手机视口实际点击下载：Backtest 整页报告为 2720x4096，Markowitz 整页报告为 2720x6858；实图确认两张报告均从左边界开始，Backtest 左侧 300px 参数区、三条资产配置、全部分析图表和表格完整，Markowitz 的净值、有效前沿、方法矩阵、OOS、敏感性和模型输入完整。
+   o 报告实图确认 Backtest 资产名称“上证指数 / 科创50 / 创业板指”及 SH000001 / SH000688 / SZ399006 代码完整显示；Markowitz 不再把内容挤到左侧并在右侧留下巨幅空白，报告底部仅保留正常页面留白。
+   o 360、390、430px 三档手机视口下，Backtest 和 Markowitz 的 body.scrollWidth 均严格等于视口宽度；日期、基准、资产行、权重、删除按钮和 Markowitz 关键输入均无越界，浏览器控制台无 JavaScript error。
+   o Backtest 在 390px 下开始日期和结束日期分别为 370x44px 并上下排列；三条资产身份区宽 354px、权重输入宽 282px、删除按钮宽 40px，均完整位于 390px 视口内。
+   o 导出排版量测中 Backtest body 为 1360x2048、侧栏 300px、资产身份区 284px；Markowitz body 高度由旧手机规则下的 4813px 收敛至 3429px，截图前和克隆页排版一致。
+   o 默认核心输出保持基线：Backtest 为 40.03%、41.99% / 21.46%、15.32%、1.86 / 2.74；Markowitz 为 17.22% / 22.51%、17.83%、0.68 / 0.83、1.44% / 3.48%。
+   o backtest.html 与 markowitz.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过。
+
+4. 未完成或受限项
+   o 本轮自动回归使用本机无界面 Chrome；仍建议在真实 iOS Safari 和 Android Chrome 各手动保存一次超长 PNG，确认系统分享面板和相册对 2720px 宽长图的处理。
+   o Statement Analyzer 本轮未修改；其整页导出沿用此前实现。
+   o 首页仍需在 GitHub Pages 最终 Jekyll/Minima 渲染后复核；本轮未修改首页。
+   o T0/T+1 模式仍需先冻结信号时点、成交价、停牌和缺失开盘价规则，再单独授权修改核心回测逻辑。
+   o 严格 QP、多观点 Black-Litterman、滚动 Alpha/Beta、信息比率稳定性、胜率、换手率和平均持仓期继续保留为后续持续优化目标。
+
+版本v3.5（2026-07-21 08:27 CST）
+Backtest 输入密度与 Monthly 分页、Black-Litterman / 压力测试联动修正：
+
+修改文件：
+backtest.html
+markowitz.html
+README.md
+开发者修正日志.txt
+
+1. 改动内容
+   o backtest.html：左侧策略输入区宽度调整为 205-225px 自适应范围，缩小标题、说明、标签、输入、策略框、运行按钮和数据状态的字号及间距，减少未使用空白；手机端继续保留 44px 输入和按钮触控高度。
+   o backtest.html：资产配置改为稳定双层网格，名称与代码在第一行横向并列，权重、百分号和删除按钮在第二行；桌面、手机和报告导出模式保持同一信息顺序，不再因窄栏挤压而逐字竖排。
+   o backtest.html：开始/结束日期在桌面侧栏也改为单列完整显示，避免原生日期控件的日历图标遮挡末位日期。
+   o backtest.html：Monthly 不再固定截取最后 12 个月，按实际回测日期保留全部月收益；每页显示 12 个月，默认定位到最新页，可用前后按钮查看全部历史月份。
+   o backtest.html、markowitz.html：数据请求超时由 0.5 秒调整为 3 秒，浏览器缓存仍优先于内置演示数据，降低移动网络稍慢时误回退到固定 2025 数据的概率；未修改数据抓取和 manifest 生成。
+   o markowitz.html：Black-Litterman 改为标准单一相对观点后验。市场均衡超额收益由风险厌恶系数、协方差和先验权重生成，再加入无风险收益；观点通过 P/Q 与置信度推导的 Omega 更新后验均值，并生成对称、正对角的后验预测协方差。
+   o markowitz.html：Min CVaR 不再在 Black-Litterman 开关前提前返回。启用 BL 时，Min CVaR 接收后验收益与协方差用于收益倾斜和风险贡献，但尾部目标仍使用原有历史收益重放，未把主观观点伪装为历史冲击。
+   o markowitz.html：BL 对比表改为同一模型窗口的预期收益/波动/Sharpe，并用同一回测收益矩阵静态重放双方 MaxDD；新增先验利差、后验利差和目标利差，删除原先不可比的“原模型需样本外重跑”占位。
+   o markowitz.html：压力事件保持为组合形成后的事后情景层，不进入 BL 后验；超出回测区间的场景直接跳过，不再吸附到首尾日期。冲击输入限制为大于 -100% 且不超过 100%，同日冲击与成本叠加低于 -100% 时限制为 -99.9%，保证净值为正；默认利率骤升的收益冲击方向修正为 -0.4%。
+
+2. 是否触碰核心算法
+   o 是，本轮按用户明确要求审计并修正了 Markowitz 的 Black-Litterman 核心后验、Min CVaR 的 BL 接入路径和压力测试边界处理。
+   o Min CVaR 的历史 95% CVaR 重放目标、随机候选搜索、Risk Parity、有效前沿、Walk-forward/OOS 和风险贡献定义未做破坏性重写。
+   o 未修改 Backtest 的交易信号、净值计算、交易成本、归因、VaR/CVaR、Bootstrap 或参数敏感性计算；Monthly 仅移除展示层 12 个月截断并增加分页。
+   o 未修改 fetch_data.py、行情 JSON、asset_manifest.json、quality_report.json 或 manifest 生成逻辑；只调整前端读取超时。
+
+3. 验证结果
+   o backtest.html 与 markowitz.html 的全部内联 JavaScript 语法检查通过；git diff --check 通过，浏览器控制台无 JavaScript error。
+   o Backtest 选择 2024-01-01 至 2026-06-30 后识别 30 个月，默认显示 2026-01 至 2026-06、第 3/3 页；切换第一页后完整显示 2024-01 至 2024-12。选择 2026-01-01 至 2026-06-30 时只显示 6 个实际月份，两个翻页按钮均正确禁用。
+   o Backtest 390px 下页面级横向溢出为 0，资产行使用 grid、身份区使用 flex，名称与代码基线一致；1440px 下侧栏宽 216px，三条资产行均为 55px 高并保持名称/代码横向排列。开始/结束日期均为 216px 单列输入，值完整且页面横向溢出为 0。
+   o Black-Litterman 数值不变量通过：60% 置信度下，后验观点利差等于“先验 + 60% ×（目标 - 先验）”，误差为 0；后验协方差最大非对称误差为 0，全部对角元素为正。
+   o 启用 BL 的 Min CVaR 返回 BL 后验，权重之和为 1，权重、预期收益、波动和 Sharpe 均为有限数；区间外日期返回空，周末日期正确匹配最近交易日。
+   o 同一静态 BL 组合加入 -20% 压力事件前后，最大权重差为 0，期末净值由 1.2193 变为 0.9753，确认压力只影响事后回放而不污染优化权重。两个 -70% 同日冲击被限制为 -99.9%，最低净值仍为 0.001017 且保持为正。
+   o Markowitz 390px 下 body 与视口同为 390px，页面级横向溢出为 0；Backtest 和 Markowitz 手机长页截图均无控件重叠或页面级横向裁切。
+
+4. 未完成或受限项
+   o 本轮自动视觉回归使用本机无界面 Chrome；仍建议在真实 iOS Safari 和 Android Chrome 上复核原生日期控件、中文输入法与长页惯性滚动。
+   o 本轮未改动整页报告实现，因此未重复执行超长 PNG 下载完整性回归；报告能力沿用 v3.4 的修正。
+   o 当前 Black-Litterman 支持一条相对观点；多观点矩阵、相关观点 Omega 和外部严格 QP/CVaR 求解器仍属于后续增强，不在本轮定点修复范围内。
+   o T0/T+1 模式仍需先冻结信号时点、成交价、停牌和缺失开盘价规则，再单独授权修改核心回测逻辑。
