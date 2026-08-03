@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-02T11:42:21+00:00",
+  "generated_at": "2026-08-03T13:24:51+00:00",
   "source": "AkShare stock_zh_index_daily",
   "assets": [
     {
@@ -13,8 +13,8 @@
       "style": "broad_market",
       "frequency": "daily",
       "start_date": "1990-12-19",
-      "end_date": "2026-07-31",
-      "rows": 8694,
+      "end_date": "2026-08-03",
+      "rows": 8695,
       "status": "ok"
     },
     {
@@ -27,8 +27,8 @@
       "style": "broad_market",
       "frequency": "daily",
       "start_date": "1991-04-03",
-      "end_date": "2026-07-31",
-      "rows": 8602,
+      "end_date": "2026-08-03",
+      "rows": 8603,
       "status": "ok"
     },
     {
@@ -41,8 +41,8 @@
       "style": "growth",
       "frequency": "daily",
       "start_date": "2010-06-01",
-      "end_date": "2026-07-31",
-      "rows": 3926,
+      "end_date": "2026-08-03",
+      "rows": 3927,
       "status": "ok"
     },
     {
@@ -55,8 +55,8 @@
       "style": "large_cap",
       "frequency": "daily",
       "start_date": "2002-01-04",
-      "end_date": "2026-07-31",
-      "rows": 5961,
+      "end_date": "2026-08-03",
+      "rows": 5962,
       "status": "ok"
     },
     {
@@ -69,8 +69,8 @@
       "style": "large_cap",
       "frequency": "daily",
       "start_date": "2002-01-04",
-      "end_date": "2026-07-31",
-      "rows": 5961,
+      "end_date": "2026-08-03",
+      "rows": 5962,
       "status": "ok"
     },
     {
@@ -83,8 +83,8 @@
       "style": "mega_cap",
       "frequency": "daily",
       "start_date": "2004-01-02",
-      "end_date": "2026-07-31",
-      "rows": 5483,
+      "end_date": "2026-08-03",
+      "rows": 5484,
       "status": "ok"
     },
     {
@@ -97,8 +97,8 @@
       "style": "mid_cap",
       "frequency": "daily",
       "start_date": "2005-01-04",
-      "end_date": "2026-07-31",
-      "rows": 5240,
+      "end_date": "2026-08-03",
+      "rows": 5241,
       "status": "ok"
     },
     {
@@ -111,8 +111,8 @@
       "style": "small_cap",
       "frequency": "daily",
       "start_date": "2014-10-17",
-      "end_date": "2026-07-31",
-      "rows": 2867,
+      "end_date": "2026-08-03",
+      "rows": 2868,
       "status": "ok"
     },
     {
@@ -125,8 +125,8 @@
       "style": "technology_growth",
       "frequency": "daily",
       "start_date": "2020-01-02",
-      "end_date": "2026-07-31",
-      "rows": 1594,
+      "end_date": "2026-08-03",
+      "rows": 1595,
       "status": "ok"
     },
     {
@@ -139,8 +139,8 @@
       "style": "large_mid_cap",
       "frequency": "daily",
       "start_date": "2005-01-04",
-      "end_date": "2026-07-31",
-      "rows": 5240,
+      "end_date": "2026-08-03",
+      "rows": 5241,
       "status": "ok"
     },
     {
