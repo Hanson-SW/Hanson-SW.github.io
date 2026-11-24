@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-11-23T22:10:03+00:00",
+  "generated_at": "2026-11-24T20:45:20+00:00",
   "source": "AkShare stock_zh_index_daily",
   "assets": [
     {
@@ -13,8 +13,8 @@
       "style": "broad_market",
       "frequency": "daily",
       "start_date": "1990-12-19",
-      "end_date": "2026-11-23",
-      "rows": 8769,
+      "end_date": "2026-11-24",
+      "rows": 8770,
       "status": "ok"
     },
     {
@@ -27,8 +27,8 @@
       "style": "broad_market",
       "frequency": "daily",
       "start_date": "1991-04-03",
-      "end_date": "2026-11-23",
-      "rows": 8677,
+      "end_date": "2026-11-24",
+      "rows": 8678,
       "status": "ok"
     },
     {
@@ -41,8 +41,8 @@
       "style": "growth",
       "frequency": "daily",
       "start_date": "2010-06-01",
-      "end_date": "2026-11-23",
-      "rows": 4001,
+      "end_date": "2026-11-24",
+      "rows": 4002,
       "status": "ok"
     },
     {
@@ -55,8 +55,8 @@
       "style": "large_cap",
       "frequency": "daily",
       "start_date": "2002-01-04",
-      "end_date": "2026-11-23",
-      "rows": 6036,
+      "end_date": "2026-11-24",
+      "rows": 6037,
       "status": "ok"
     },
     {
@@ -69,8 +69,8 @@
       "style": "large_cap",
       "frequency": "daily",
       "start_date": "2002-01-04",
-      "end_date": "2026-11-23",
-      "rows": 6036,
+      "end_date": "2026-11-24",
+      "rows": 6037,
       "status": "ok"
     },
     {
@@ -83,8 +83,8 @@
       "style": "mega_cap",
       "frequency": "daily",
       "start_date": "2004-01-02",
-      "end_date": "2026-11-23",
-      "rows": 5558,
+      "end_date": "2026-11-24",
+      "rows": 5559,
       "status": "ok"
     },
     {
@@ -97,8 +97,8 @@
       "style": "mid_cap",
       "frequency": "daily",
       "start_date": "2005-01-04",
-      "end_date": "2026-11-23",
-      "rows": 5315,
+      "end_date": "2026-11-24",
+      "rows": 5316,
       "status": "ok"
     },
     {
@@ -111,8 +111,8 @@
       "style": "small_cap",
       "frequency": "daily",
       "start_date": "2014-10-17",
-      "end_date": "2026-11-23",
-      "rows": 2942,
+      "end_date": "2026-11-24",
+      "rows": 2943,
       "status": "ok"
     },
     {
@@ -125,8 +125,8 @@
       "style": "technology_growth",
       "frequency": "daily",
       "start_date": "2020-01-02",
-      "end_date": "2026-11-23",
-      "rows": 1669,
+      "end_date": "2026-11-24",
+      "rows": 1670,
       "status": "ok"
     },
     {
@@ -139,8 +139,8 @@
       "style": "large_mid_cap",
       "frequency": "daily",
       "start_date": "2005-01-04",
-      "end_date": "2026-11-23",
-      "rows": 5315,
+      "end_date": "2026-11-24",
+      "rows": 5316,
       "status": "ok"
     },
     {
@@ -181,8 +181,8 @@
       "style": "technology_growth",
       "frequency": "daily",
       "start_date": "2003-10-01",
-      "end_date": "2026-11-23",
-      "rows": 5824,
+      "end_date": "2026-11-24",
+      "rows": 5825,
       "status": "ok"
     },
     {
@@ -195,8 +195,8 @@
       "style": "gold",
       "frequency": "daily",
       "start_date": "2004-11-18",
-      "end_date": "2026-11-23",
-      "rows": 5538,
+      "end_date": "2026-11-24",
+      "rows": 5539,
       "status": "ok"
     },
     {
@@ -209,8 +209,8 @@
       "style": "semiconductor",
       "frequency": "daily",
       "start_date": "2001-07-13",
-      "end_date": "2026-11-23",
-      "rows": 6379,
+      "end_date": "2026-11-24",
+      "rows": 6380,
       "status": "ok"
     },
     {
@@ -223,8 +223,8 @@
       "style": "healthcare",
       "frequency": "daily",
       "start_date": "1998-12-22",
-      "end_date": "2026-11-23",
-      "rows": 7023,
+      "end_date": "2026-11-24",
+      "rows": 7024,
       "status": "ok"
     }
   ]
